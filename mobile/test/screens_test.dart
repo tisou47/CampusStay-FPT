@@ -8,6 +8,7 @@ import 'package:campusstay_student/screens/activity.dart';
 import 'package:campusstay_student/screens/notifications.dart';
 import 'package:campusstay_student/screens/applications.dart';
 import 'package:campusstay_student/screens/assistant.dart';
+import 'package:campusstay_student/screens/checkout.dart';
 import 'package:campusstay_student/screens/family_day.dart';
 import 'package:campusstay_student/screens/apply.dart';
 import 'package:campusstay_student/screens/handover.dart';
@@ -233,7 +234,7 @@ void main() {
     expect(find.text('No refunds yet'), findsOneWidget);
     await tester.tap(find.text('Invoices & fees (1)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Deposit · 900,000 VND'));
+    await tester.tap(find.text('Deposit').last);
     await tester.pumpAndSettle();
     expect(find.text('Pay with VietQR'), findsOneWidget);
   });
@@ -896,6 +897,380 @@ void main() {
     await show(tester, const HandoverCard());
     expect(find.text('Check-in inventory final'), findsOneWidget);
     expect(find.text('View inventory'), findsOneWidget);
+  });
+
+  testWidgets('My Room: declaring an item opens the Check-out page, where photos are taken', (tester) async {
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026'},
+        'allocation': {'room': 'A101', 'bed': '1', 'status': 'Resident', 'allocatedAt': _past},
+      },
+      '/students/me/door-code': {'room': 'A101', 'status': 'Ready', 'changedAt': _past},
+      '/students/me/late-check-in': {'request': null, 'canRequest': false},
+      '/students/me/check-out': {'saved': false, 'claims': <Object>[]},
+      '/students/me/furniture': {
+        'items': [
+          {'itemId': '7', 'type': 'Chair', 'status': 'In use', 'bed': '1', 'personal': true, 'reportable': true},
+        ],
+      },
+      'PUT /students/me/furniture/report': {
+        'items': [
+          {
+            'itemId': '7',
+            'type': 'Chair',
+            'status': 'In use',
+            'bed': '1',
+            'personal': true,
+            'reportable': true,
+            'reportedCondition': 'Missing',
+            'reportedNote': 'Gone',
+          },
+        ],
+      },
+    });
+    await show(tester, const RoomScreen());
+    await tester.tap(find.textContaining('Furniture & equipment ('));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Declare damaged / missing'));
+    await tester.pumpAndSettle();
+    expect(find.text('Check-out furniture report'), findsOneWidget);
+    expect(calls, isNot(contains('PUT /students/me/furniture/report')));
+  });
+
+  testWidgets('My Room: the check-out card leads to the furniture charges to answer', (tester) async {
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026'},
+        'allocation': {'room': 'A101', 'bed': '1', 'status': 'Resident', 'allocatedAt': _past},
+        'termination': {'status': 'Terminated', 'reason': 'Manager decision', 'moveOutBy': '2026-12-31'},
+      },
+      '/students/me/door-code': {'room': 'A101', 'status': 'Ready', 'changedAt': _past},
+      '/students/me/late-check-in': {'request': null, 'canRequest': false},
+      '/students/me/furniture': {'items': <Object>[]},
+      '/students/me/check-out': {
+        'saved': true,
+        'studentPresent': true,
+        'total': 200000,
+        'items': <Object>[],
+        'claims': [
+          {
+            'id': 'c1',
+            'status': 'Pending',
+            'type': 'Fridge',
+            'assetCode': 'FR-1',
+            'condition': 'Damaged',
+            'amount': 200000,
+            'dueAt': _future,
+          },
+        ],
+      },
+      '/students/me/handover': {'status': 'Not needed'},
+    });
+    await show(tester, const RoomScreen());
+    await tester.tap(find.textContaining('Contract & utilities'));
+    await tester.pumpAndSettle();
+    expect(find.text('Check-out'), findsOneWidget);
+    expect(find.text('Confirm or decline the damage'), findsOneWidget);
+    await tester.tap(find.text('View furniture charges'));
+    await tester.pumpAndSettle();
+    expect(find.text('Did you damage Fridge FR-1?'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Home: Check-in and Check-out are two tiles; Check-out asks for an answer once Staff record the charges',
+    (tester) async {
+      useApi({
+        '/students/me/home': {
+          'firstName': 'Demo',
+          'allocation': {'room': 'A902', 'bed': 'A', 'status': 'Resident'},
+          'invoices': {'due': 0, 'total': 0},
+          'openRequests': 0,
+        },
+        '/notifications': {'items': <Object>[], 'unread': 0},
+        '/students/me/handover': {'status': 'Final', 'finalizedAt': _past},
+        '/students/me/check-out': {'saved': true, 'studentPresent': true, 'claims': <Object>[]},
+      });
+      await show(tester, HomeScreen(session: session, openTab: (_, [_]) {}));
+      expect(find.text('Check-out'), findsOneWidget);
+      expect(find.text('Check-in'), findsOneWidget);
+      expect(find.text('Answer now'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Check-out: the period, the furniture report Good by default, and a photo before saving', (tester) async {
+    final items = [
+      {'itemId': 'i1', 'assetCode': 'BED-1', 'type': 'Bed', 'personal': true, 'bed': '1', 'reportable': true},
+      {'itemId': 'i2', 'assetCode': 'CH-1', 'type': 'Chair', 'personal': false, 'reportable': true},
+    ];
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026', 'stayStart': '2026-09-01', 'stayEnd': '2026-12-31'},
+        'room': 'A101',
+        'bed': '1',
+        'nextTerm': {'state': 'Not continuing', 'checkOutBy': '2027-01-01'},
+      },
+      '/students/me/furniture': {'items': items},
+      '/students/me/check-out': {'saved': false, 'claims': <Object>[], 'items': <Object>[]},
+      'PUT /students/me/furniture/report': {
+        'items': [
+          items[0],
+          {...items[1], 'reportedCondition': 'Damaged', 'reportedNote': 'Broken leg'},
+        ],
+      },
+    });
+    await show(tester, const CheckOutScreen());
+    expect(find.text('Check-out period'), findsWidgets);
+    expect(find.text('Check out at the desk by'), findsOneWidget);
+    expect(find.text('Your Bed'), findsOneWidget);
+    expect(find.text('Shared items'), findsOneWidget);
+    expect(find.textContaining('Take the photos still missing'), findsOneWidget);
+    expect(find.text("Waiting for Staff's check"), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Damaged').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Damaged').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Broken leg');
+    await tester.pumpAndSettle();
+    expect(find.text('Take at least one photo of this item.'), findsNWidgets(2));
+    await tester.ensureVisible(find.text('Save declaration (1)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save declaration (1)'));
+    await tester.pumpAndSettle();
+    expect(calls, isNot(contains('PUT /students/me/furniture/report')));
+  });
+
+  testWidgets('Check-out: a declared item shows its photos and a camera button', (tester) async {
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026', 'stayEnd': '2026-12-31'},
+        'nextTerm': {'state': 'Not continuing', 'checkOutBy': '2027-01-01'},
+      },
+      '/students/me/furniture': {
+        'items': [
+          {'itemId': 'i1', 'assetCode': 'BED-1', 'type': 'Bed', 'personal': true, 'bed': '1', 'reportable': true},
+          {
+            'itemId': 'i2',
+            'assetCode': 'CH-1',
+            'type': 'Chair',
+            'reportable': true,
+            'reportedCondition': 'Damaged',
+            'reportedNote': 'Broken leg',
+            'reportedPhotos': [
+              {'id': 'p1', 'url': 'http://localhost/files/p1'},
+            ],
+          },
+        ],
+      },
+      '/students/me/check-out': {'saved': false, 'claims': <Object>[], 'items': <Object>[]},
+      'PUT /students/me/furniture/report': {'items': <Object>[]},
+    });
+    await show(tester, const CheckOutScreen());
+    await tester.ensureVisible(find.text('Take another photo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Take another photo'), findsOneWidget);
+    expect(find.byType(PhotoThumbs), findsOneWidget);
+    expect(find.text('Take a photo'), findsOneWidget); // the Bed, Good, needs one too
+    await tester.enterText(find.byType(TextField).first, 'Broken leg and seat');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Save declaration (1)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save declaration (1)'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('PUT /students/me/furniture/report'));
+  });
+
+  testWidgets('Check-out: the student enters the meter readings', (tester) async {
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026', 'stayEnd': '2026-12-31'},
+        'nextTerm': {'state': 'Not continuing', 'checkOutBy': '2027-01-01'},
+      },
+      '/students/me/furniture': {'items': <Object>[]},
+      '/students/me/check-out': {
+        'saved': false,
+        'claims': <Object>[],
+        'items': <Object>[],
+        'studentMeters': {
+          'photos': [
+            {'id': 'm1', 'url': 'http://localhost/files/m1'},
+          ],
+        },
+      },
+      'PUT /students/me/check-out/meters': {'saved': false},
+    });
+    await show(tester, const CheckOutScreen());
+    await tester.ensureVisible(find.text('Readings saved'));
+    await tester.pumpAndSettle();
+    expect(find.text('Take another photo'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).at(0), '1234.5');
+    await tester.enterText(find.byType(TextField).at(1), '56');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save readings'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('PUT /students/me/check-out/meters'));
+    expect(find.text('Readings saved'), findsOneWidget);
+  });
+
+  testWidgets('Check-out: the declaration is submitted once every item and the meters have a photo', (tester) async {
+    final photo = [
+      {'id': 'p1', 'url': 'http://localhost/files/p1'},
+    ];
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026', 'stayEnd': '2026-12-31'},
+        'nextTerm': {'state': 'Not continuing', 'checkOutBy': '2027-01-01'},
+      },
+      '/students/me/furniture': {
+        'items': [
+          {'itemId': 'i1', 'type': 'Bed', 'personal': true, 'bed': '1', 'reportable': true, 'reportedPhotos': photo},
+        ],
+      },
+      '/students/me/check-out': {
+        'saved': false,
+        'claims': <Object>[],
+        'items': <Object>[],
+        'studentMeters': {'electricity': 120, 'water': 8, 'photos': photo},
+      },
+      'POST /students/me/check-out/submit': {'saved': false},
+    });
+    await show(tester, const CheckOutScreen());
+    await tester.scrollUntilVisible(
+      find.text('Submit check-out declaration'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('A photo of every item (1/1)'), findsOneWidget);
+    await tester.tap(find.text('Submit check-out declaration'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Submit').last);
+    await tester.pumpAndSettle();
+    expect(calls, contains('POST /students/me/check-out/submit'));
+  });
+
+  testWidgets('Check-out: the student disagrees with the charges and waits for Staff', (tester) async {
+    final charges = {
+      'saved': true,
+      'studentPresent': true,
+      'total': 480000,
+      'claims': <Object>[],
+      'items': [
+        {'itemId': 'i1', 'type': 'Bed', 'assetCode': 'BED-1', 'personal': true, 'bed': '1', 'amount': 480000},
+      ],
+      'declarationSubmittedAt': _past,
+    };
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026', 'stayEnd': '2026-12-31'},
+        'nextTerm': {'state': 'Not continuing', 'checkOutBy': '2027-01-01'},
+      },
+      '/students/me/furniture': {'items': <Object>[]},
+      '/students/me/check-out': charges,
+      'POST /students/me/check-out/dispute': {
+        ...charges,
+        'dispute': {
+          'id': '1',
+          'status': 'Open',
+          'reason': 'It was there at check-in.',
+          'itemIds': ['i1'],
+        },
+      },
+    });
+    await show(tester, const CheckOutScreen());
+    await tester.scrollUntilVisible(find.text('Disagree'), 400, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Disagree'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send to Staff'));
+    await tester.pumpAndSettle();
+    expect(find.text('Write why you do not agree.'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, 'It was there at check-in.');
+    await tester.tap(find.text('Send to Staff'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('POST /students/me/check-out/dispute'));
+  });
+
+  testWidgets('Check-out: an open disagreement hides Agree until Staff answer', (tester) async {
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026', 'stayEnd': '2026-12-31'},
+        'nextTerm': {'state': 'Not continuing', 'checkOutBy': '2027-01-01'},
+      },
+      '/students/me/furniture': {'items': <Object>[]},
+      '/students/me/check-out': {
+        'saved': true,
+        'studentPresent': true,
+        'total': 480000,
+        'claims': <Object>[],
+        'items': <Object>[],
+        'dispute': {'id': '1', 'status': 'Open', 'reason': 'It was there at check-in.', 'itemIds': <Object>[]},
+      },
+    });
+    await show(tester, const CheckOutScreen());
+    await tester.scrollUntilVisible(
+      find.text('You do not agree: Staff are checking again'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Agree with the charges'), findsNothing);
+    expect(find.text('Disagree'), findsNothing);
+  });
+
+  testWidgets('Check-out: once Staff record the charges the report is read-only and the charges show', (tester) async {
+    useApi({
+      '/students/me/allocation': {
+        'term': {'name': 'Fall 2026', 'stayEnd': '2026-12-31'},
+        'termination': {'status': 'Terminated', 'reason': 'Manager decision', 'moveOutBy': '2026-12-31'},
+      },
+      '/students/me/furniture': {
+        'items': [
+          {'itemId': 'i2', 'assetCode': 'CH-1', 'type': 'Chair', 'reportable': true, 'reportedCondition': 'Damaged'},
+        ],
+      },
+      '/students/me/check-out': {
+        'saved': true,
+        'studentPresent': true,
+        'total': 0,
+        'items': <Object>[],
+        'claims': <Object>[],
+      },
+    });
+    await show(tester, const CheckOutScreen());
+    expect(find.text('Read the charges and agree'), findsOneWidget);
+    expect(find.textContaining('Save declaration'), findsNothing);
+    expect(find.text("Waiting for Staff's check"), findsNothing);
+  });
+
+  testWidgets('Home: a student not continuing next Term sees the Check-out tile', (tester) async {
+    useApi({
+      '/students/me/home': {
+        'firstName': 'Demo',
+        'allocation': {'room': 'A902', 'bed': 'A', 'status': 'Resident'},
+        'invoices': {'due': 0, 'total': 0},
+        'openRequests': 0,
+      },
+      '/notifications': {'items': <Object>[], 'unread': 0},
+      '/students/me/handover': {'status': 'Final', 'finalizedAt': _past},
+      '/students/me/check-out': {'saved': false, 'claims': <Object>[]},
+      '/students/me/allocation': {
+        'nextTerm': {'state': 'Not continuing', 'checkOutBy': '2027-01-01'},
+      },
+    });
+    await show(tester, HomeScreen(session: session, openTab: (_, [_]) {}));
+    expect(find.text('Check-out'), findsOneWidget);
+    expect(find.text('Check-in'), findsOneWidget);
+  });
+
+  testWidgets('Home: the Check-out tile stays after the check-out and says it is done', (tester) async {
+    useApi({
+      '/students/me/home': {'firstName': 'Demo', 'invoices': {'due': 0, 'total': 0}, 'openRequests': 0},
+      '/notifications': {'items': <Object>[], 'unread': 0},
+      '/students/me/check-out': {'saved': true, 'claims': <Object>[], 'checkedOutAt': _past},
+    });
+    await show(tester, HomeScreen(session: session, openTab: (_, [_]) {}));
+    expect(find.text('Check-out'), findsOneWidget);
+    expect(find.text('Checked out'), findsOneWidget);
   });
 
   testWidgets('Links open Family Day screens', (tester) async {

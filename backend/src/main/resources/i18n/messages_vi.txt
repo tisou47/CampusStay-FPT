@@ -1136,3 +1136,17 @@ The gender cannot change while the student holds a Bed or a live Application. �
 The workbook is too large once unpacked. Keep only the list in it and upload it again. ⟶ Tệp quá lớn khi giải nén. Chỉ giữ lại danh sách trong tệp và tải lên lại.
 The refund of a rejected Application cannot be switched off. Change its percent instead. ⟶ Không thể tắt quy định hoàn tiền khi đơn đăng ký bị từ chối. Hãy đổi tỷ lệ hoàn tiền thay vì tắt.
 This conversation is not valid. Start a new one. ⟶ Cuộc trò chuyện này không hợp lệ. Hãy bắt đầu cuộc trò chuyện mới.
+The reading is far above the meter's previous reading. Check it for a typo. ⟶ Chỉ số cao bất thường so với chỉ số công tơ gần nhất. Hãy kiểm tra xem có nhập nhầm không.
+The reading is lower than the Room's record ({0} {1}): meters only go up. Read the meter again; if it was replaced, record it in an inspection. ⟶ Chỉ số thấp hơn chỉ số gốc của phòng ({0} {1}): công tơ chỉ tăng. Hãy đọc lại đồng hồ; nếu đã thay công tơ, ghi nhận trong một lượt kiểm tra phòng.
+The reading is far above the Room's record ({0} {1}). Check it for a typo. ⟶ Chỉ số cao bất thường so với chỉ số gốc của phòng ({0} {1}). Hãy kiểm tra xem có nhập nhầm không.
+Add a photo of this item. ⟶ Hãy chụp ảnh món này.
+You have submitted your check-out declaration; it can no longer be changed. ⟶ Bạn đã nộp kê khai trả phòng; không thể thay đổi nữa.
+Add a photo of every item of your Bed and Room. ⟶ Hãy chụp ảnh mọi món của giường và phòng bạn.
+Enter the meter readings. ⟶ Hãy nhập chỉ số công tơ.
+You have already agreed with these charges. ⟶ Bạn đã đồng ý với khoản đền này.
+Staff are already checking your disagreement. ⟶ Nhân viên đang xem lại ý kiến không đồng ý của bạn.
+Write why you do not agree. ⟶ Hãy ghi lý do bạn không đồng ý.
+Write what you checked and decided. ⟶ Hãy ghi bạn đã kiểm tra gì và quyết định thế nào.
+Keep the answer under 500 characters. ⟶ Câu trả lời tối đa 500 ký tự.
+The student has no disagreement to answer. ⟶ Sinh viên không có ý kiến không đồng ý nào cần trả lời.
+Staff are checking your disagreement; agree once they answer. ⟶ Nhân viên đang xem lại ý kiến của bạn; hãy đồng ý sau khi nhân viên trả lời.

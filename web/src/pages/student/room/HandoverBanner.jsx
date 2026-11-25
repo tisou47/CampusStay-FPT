@@ -12,8 +12,8 @@ export function HandoverBanner() {
   const charges = useQuery(['check-out-furniture', 'mine'], ({ signal }) => api.checkOutFurniture.mine(undefined, { signal }))
   const h = inventory.data
   const c = charges.data
-  const open = (label) => (
-    <Button size="sm" variant="primary" icon={ClipboardList} to="/student/room/inventory">
+  const open = (label, to = '/student/room/inventory') => (
+    <Button size="sm" variant="primary" icon={ClipboardList} to={to}>
       {label}
     </Button>
   )
@@ -39,9 +39,9 @@ export function HandoverBanner() {
     )
   }
   const claims = c?.claims?.filter((x) => x.status === 'Pending').length ?? 0
-  if (claims || (c?.studentPresent && !c?.agreedAt && c?.saved)) {
+  if (claims || (c?.saved && !c?.agreedAt && !c?.checkedOutAt && c?.dispute?.status !== 'Open')) {
     return (
-      <Alert type="warning" title="Furniture charges to answer" action={open('Open')} className="shrink-0">
+      <Alert type="warning" title="Furniture charges to answer" action={open('Open', '/student/room/check-out')} className="shrink-0">
         {claims ? t('Staff ask you to confirm damage to a shared item.') : t('Read the charges of your check-out and agree.')}
       </Alert>
     )

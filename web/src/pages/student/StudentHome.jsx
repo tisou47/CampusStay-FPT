@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Bed, CalendarCheck, Clock, CreditCard, FileText, LogIn, Wrench } from 'lucide-react'
+import { Bed, CalendarCheck, Clock, CreditCard, FileText, LogIn, LogOut, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -44,6 +44,9 @@ const dueIn = (iso) => {
 const range = (a, b) => (a ? formatDateRange(a, b ?? a) : '—')
 
 function HomeContent({ home }) {
+  // The check-out stays reachable after it is done (the page says it is completed).
+  const checkOut = useQuery(['check-out-furniture', 'mine'], ({ signal }) => api.checkOutFurniture.mine(undefined, { signal }))
+  const checkedOut = !!checkOut.data?.checkedOutAt
   const stage = stageOf(home)
   const { term, application: app, allocation, dueInvoice } = home
   const payLink = dueInvoice ? `/student/invoices/${dueInvoice.id}/pay` : '/student/invoices'
@@ -198,6 +201,9 @@ function HomeContent({ home }) {
         )}
         {allocation && term?.checkInStart && !home.checkedIn && (
           <StatusRow icon={LogIn} value="Check-in" note={[range(term.checkInStart, term.checkInEnd), tr(allocation.block)].filter(Boolean).join(' · ')} to="/student/room" />
+        )}
+        {((allocation && home.checkedIn) || checkedOut) && (
+          <StatusRow icon={LogOut} value="Check-out" note={checkedOut ? 'Check-out completed' : 'Photograph your items and meters before you leave'} to="/student/room/check-out" />
         )}
         <StatusRow icon={CreditCard} value={`${t('Payments')} · ${cards.payments.value}`} note={cards.payments.note} to={cards.payments.to} />
         <StatusRow icon={Wrench} value={`${t('Requests')} · ${t('{n} open', { n: home.openRequests ?? 0 })}`} note="Maintenance and room-change requests" to="/student/requests" />

@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -113,11 +114,17 @@ public class MaintenanceService {
                             .map(home -> furnitureOf(home.roomId())).orElse(List.of());
             return new Options(categories, locations, List.of(), List.of(), furniture);
         }
+        return new Options(categories, locations, RequestStore.PRIORITY_LABELS, staffOptions(blockScope.resolve(null).ids()),
+                List.of());
+    }
+
+    /** The staff of these Blocks, maintenance handlers first, each with the kinds of work they handle. */
+    List<StaffOption> staffOptions(Collection<Long> buildingIds) {
         List<Lookups.Lookup> handles = lookups.list("STAFF_HANDLE");
         Map<String, String> handleLabels = handles.stream()
                 .collect(Collectors.toMap(Lookups.Lookup::code, Lookups.Lookup::label));
         List<String> order = handles.stream().map(Lookups.Lookup::code).toList();
-        List<StaffOption> staff = users.staffOf(blockScope.resolve(null).ids()).stream()
+        return users.staffOf(buildingIds).stream()
                 .sorted(Comparator.comparing((UserDirectory.StaffMember m) -> !m.handles().contains(MAINTENANCE))
                         .thenComparing(UserDirectory.StaffMember::name))
                 .map(m -> new StaffOption(String.valueOf(m.userId()), m.name(), m.handles().stream()
@@ -125,7 +132,6 @@ public class MaintenanceService {
                         .sorted(Comparator.comparing((String h) -> !h.equals(MAINTENANCE)).thenComparing(order::indexOf))
                         .map(handleLabels::get).toList()))
                 .toList();
-        return new Options(categories, locations, RequestStore.PRIORITY_LABELS, staff, List.of());
     }
 
     /** The Room's furniture items, as the request forms list them. */

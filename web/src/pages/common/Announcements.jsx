@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Eye, Megaphone, Pin, PinOff, Plus, Send, X } from 'lucide-react'
+import { Megaphone, Pin, PinOff, Plus, Send, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
@@ -13,8 +13,8 @@ import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
-import { cx } from '@/lib/cx'
 import { formatDateTime, fromDateTimeInput } from '@/lib/format'
+import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 import { DateTimePicker } from '@/components/ui/date-time'
 
@@ -37,33 +37,6 @@ const studentPages = [
   { value: '/student/family-days', label: 'Family Days' },
   { value: '/student/round-2-offer', label: 'Round 2 offer' },
 ]
-
-const TITLE_MAX = 120
-
-/** The announcement as a student sees it opened on the board (Student Home), updated as the form is typed. */
-function BoardPreview({ form, linkLabel }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3">
-      <span className="flex flex-wrap items-center gap-1.5">
-        <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-primary" />
-        {form.pinned && <Pin size={13} aria-label={t('Pinned')} className="text-fg-brand" />}
-        <Tag tone={categoryTone[form.category] ?? 'neutral'} dot={false}>
-          {form.category}
-        </Tag>
-        <span className={cx('line-clamp-2 text-sm font-medium', form.title.trim() ? 'text-fg' : 'text-fg-tertiary')}>{form.title.trim() || t('Title of the announcement')}</span>
-      </span>
-      <span className="text-xs text-fg-tertiary">{t('Just now')}</span>
-      <p className={cx('line-clamp-6 text-sm whitespace-pre-wrap', form.body.trim() ? 'text-fg-secondary' : 'text-fg-tertiary')}>{form.body.trim() || t('The text students read when they open it.')}</p>
-      {linkLabel && (
-        <span className="flex items-center gap-1 text-xs font-medium text-fg-link">
-          {t('Open')}
-          <ChevronRight size={14} aria-hidden="true" />
-          <span className="font-normal text-fg-tertiary">({linkLabel})</span>
-        </span>
-      )}
-    </div>
-  )
-}
 
 function NewAnnouncement({ options, onClose }) {
   const { notify } = useToast()
@@ -105,119 +78,84 @@ function NewAnnouncement({ options, onClose }) {
       onError: (err) => setFields(err.fields ?? {}),
     },
   )
-  const linkOptions = [
-    { value: '', label: t('No link') },
-    ...options.terms.map((x) => ({ value: `/student/registration-periods/${x.id}`, label: t('Registration period · {term}', { term: x.name }) })),
-    ...studentPages.map((p) => ({ value: p.value, label: t(p.label) })),
-  ]
-  const linkLabel = form.link ? linkOptions.find((o) => o.value === form.link)?.label : null
-  const missingBlocks = form.audience === 'Residents of Blocks' && form.blocks.size === 0
-
   return (
     <Modal
       open
       onClose={onClose}
-      width={980}
+      width={640}
       title="New announcement"
+      description="It stays as you write it in both languages."
       footer={
         <>
-          <span className="mr-auto text-sm text-fg-tertiary">{t('It stays as you write it in both languages.')}</span>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Send} disabled={!form.title.trim() || !form.body.trim() || missingBlocks || create.pending} onClick={() => create.run()}>
+          <Button variant="primary" icon={Send} disabled={!form.title.trim() || !form.body.trim() || create.pending} onClick={() => create.run()}>
             Publish
           </Button>
         </>
       }
     >
       {create.error && !Object.keys(create.error.fields ?? {}).length && <Alert type="error" title="Could not publish">{create.error.message}</Alert>}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_20rem]">
-        {/* What it says */}
-        <div className="flex min-w-0 flex-col gap-4">
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 text-base font-medium text-fg">{t('Category')}</legend>
-            <div className="flex flex-wrap gap-2">
-              {options.categories.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  aria-pressed={form.category === c}
-                  onClick={() => set('category', c)}
-                  className={cx(
-                    'rounded-full border px-3 py-1 text-sm font-medium transition-colors',
-                    form.category === c ? 'border-primary bg-primary-subtle text-fg-brand' : 'border-line text-fg-secondary hover:border-line-strong hover:text-fg',
-                  )}
-                >
-                  {t(c)}
-                </button>
-              ))}
-            </div>
-            {fields.category && <p className="text-sm text-error-fg">{tr(fields.category)}</p>}
-          </fieldset>
-          <Field label="Title" required hint={`${form.title.length}/${TITLE_MAX}`} error={fields.title}>
-            {(id) => <Input id={id} maxLength={TITLE_MAX} placeholder={t('For example: Water cut in Block A on Saturday morning')} value={form.title} onChange={(e) => set('title', e.target.value)} />}
-          </Field>
-          <Field label="Text" required error={fields.body}>
-            {(id) => <Textarea id={id} rows={8} placeholder={t('What happens, when, and what students should do.')} value={form.body} onChange={(e) => set('body', e.target.value)} />}
-          </Field>
-          <Field label="Link on the board" helper="Students see “Open” under the announcement and go to this page." error={fields.link}>
-            {(id) => <Select id={id} value={form.link} onChange={(e) => set('link', e.target.value)} options={linkOptions} />}
-          </Field>
-        </div>
-
-        {/* Who reads it, how long, and how it looks */}
-        <div className="flex min-w-0 flex-col gap-4 rounded-xl bg-subtle/50 p-4">
-          <Field label="Who reads it" error={fields.audience}>
-            {(id) => <Select id={id} value={form.audience} options={options.audiences} onChange={(e) => set('audience', e.target.value)} />}
-          </Field>
-          {form.audience === 'Residents of Blocks' && (
-            <fieldset className="-mt-2 flex flex-col gap-2">
-              <legend className="sr-only">{t('Blocks')}</legend>
-              <div className="flex flex-wrap gap-1.5">
-                {options.blocks.map((b) => {
-                  const on = form.blocks.has(b)
-                  return (
-                    <button
-                      key={b}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => {
-                        const next = new Set(form.blocks)
-                        if (on) next.delete(b)
-                        else next.add(b)
-                        set('blocks', next)
-                      }}
-                      className={cx('min-w-9 rounded-md border px-2 py-1 text-sm font-medium', on ? 'border-primary bg-surface text-fg-brand' : 'border-line bg-surface text-fg-tertiary hover:text-fg')}
-                    >
-                      {b}
-                    </button>
-                  )
-                })}
-              </div>
-              {(fields.blocks || missingBlocks) && <p className="text-sm text-error-fg">{fields.blocks ? tr(fields.blocks) : t('Choose at least one block.')}</p>}
-            </fieldset>
-          )}
-          {form.audience === 'Applicants of a Term' && (
-            <Field label="Term" error={fields.termId}>
-              {(id) => <Select id={id} value={form.termId} options={options.terms.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('termId', e.target.value)} />}
-            </Field>
-          )}
-          <Field label="Shown until" helper="Empty: until you end it." error={fields.shownUntil}>
-            {(id) => <DateTimePicker id={id} clearable minTime="00:00" maxTime="23:00" value={form.shownUntil} onChange={(v) => set('shownUntil', v)} />}
-          </Field>
-          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2">
-            <span className="flex flex-col">
-              <span className="text-base font-medium text-fg">{t('Pin at the top of the board')}</span>
-              <span className="text-sm text-fg-tertiary">{t('Stays first until it ends.')}</span>
-            </span>
-            <Switch aria-label={t('Pin at the top of the board')} checked={form.pinned} onChange={(v) => set('pinned', v)} />
-          </label>
-          <div className="flex flex-col gap-2">
-            <span className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">
-              <Eye size={15} aria-hidden="true" />
-              {t('Preview on the students’ board')}
-            </span>
-            <BoardPreview form={form} linkLabel={linkLabel} />
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Category" error={fields.category}>
+          {(id) => <Select id={id} value={form.category} options={options.categories} onChange={(e) => set('category', e.target.value)} />}
+        </Field>
+        <Field label="Who reads it" error={fields.audience}>
+          {(id) => <Select id={id} value={form.audience} options={options.audiences} onChange={(e) => set('audience', e.target.value)} />}
+        </Field>
+      </div>
+      {form.audience === 'Residents of Blocks' && (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-base font-medium text-fg">{t('Blocks')}</legend>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {options.blocks.map((b) => (
+              <Checkbox
+                key={b}
+                label={t('Block {code}', { code: b })}
+                checked={form.blocks.has(b)}
+                onChange={() => {
+                  const next = new Set(form.blocks)
+                  if (next.has(b)) next.delete(b)
+                  else next.add(b)
+                  set('blocks', next)
+                }}
+              />
+            ))}
           </div>
+          {fields.blocks && <p className="text-sm text-error-fg">{tr(fields.blocks)}</p>}
+        </fieldset>
+      )}
+      {form.audience === 'Applicants of a Term' && (
+        <Field label="Term" error={fields.termId}>
+          {(id) => <Select id={id} value={form.termId} options={options.terms.map((x) => ({ value: x.id, label: x.name }))} onChange={(e) => set('termId', e.target.value)} />}
+        </Field>
+      )}
+      <Field label="Title" error={fields.title}>
+        {(id) => <Input id={id} value={form.title} onChange={(e) => set('title', e.target.value)} />}
+      </Field>
+      <Field label="Text" error={fields.body}>
+        {(id) => <Textarea id={id} rows={6} value={form.body} onChange={(e) => set('body', e.target.value)} />}
+      </Field>
+      <Field label="Link on the board" helper="Students see “Open” under the announcement and go to this page." error={fields.link}>
+        {(id) => (
+          <Select
+            id={id}
+            value={form.link}
+            onChange={(e) => set('link', e.target.value)}
+            options={[
+              { value: '', label: t('No link') },
+              ...options.terms.map((x) => ({ value: `/student/registration-periods/${x.id}`, label: t('Registration period · {term}', { term: x.name }) })),
+              ...studentPages.map((p) => ({ value: p.value, label: t(p.label) })),
+            ]}
+          />
+        )}
+      </Field>
+      <div className="grid grid-cols-2 items-end gap-4">
+        <Field label="Shown until" helper="Empty: until you end it." error={fields.shownUntil}>
+          {(id) => <DateTimePicker id={id} clearable minTime="00:00" maxTime="23:00" value={form.shownUntil} onChange={(v) => set('shownUntil', v)} />}
+        </Field>
+        <div className="flex items-center gap-3 pb-1.5">
+          <Switch aria-label={t('Pin at the top of the board')} checked={form.pinned} onChange={(v) => set('pinned', v)} />
+          <span className="text-base text-fg">{t('Pin at the top of the board')}</span>
         </div>
       </div>
     </Modal>
@@ -237,11 +175,13 @@ export default function Announcements() {
   )
   const change = useMutation((id, body) => api.announcements.change(id, body), { invalidates: ['announcements'], onError: (e) => notifyError(e, 'Could not change the announcement') })
   const items = query.data?.items ?? []
+  const atManager = useRoleBase() === '/manager'
 
   return (
     <>
       <PageHeader
         title="Announcements"
+        description={atManager ? undefined : "News on the students' board: written here, and by the system for every published term and every money or policy change."}
         actions={
           <Button variant="primary" icon={Plus} disabled={!options.data} onClick={() => setWriting(true)}>
             New announcement

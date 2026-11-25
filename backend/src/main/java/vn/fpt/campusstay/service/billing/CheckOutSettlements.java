@@ -163,6 +163,29 @@ class CheckOutSettlements {
         return lastReading(roomId).map(r -> new Billing.MeterValue(r.date(), r.electricity(), r.water()));
     }
 
+    /** {@link #lastMeter} of many Rooms in one query (same ordering per Room). */
+    Map<Long, Billing.MeterValue> lastMeters(Collection<Long> roomIds) {
+        Map<Long, Billing.MeterValue> out = new HashMap<>();
+        if (roomIds.isEmpty()) {
+            return out;
+        }
+        jdbc.sql("""
+                SELECT DISTINCT ON (room_id) room_id, day, electricity, water FROM (
+                    SELECT room_id, cut_date AS day, electricity, water, 1 AS rank, created_at AS at
+                    FROM bil_meter_cut WHERE room_id IN (:rooms)
+                    UNION ALL
+                    SELECT r.room_id, p.period_end, r.electricity_curr, r.water_curr, 0, coalesce(r.confirmed_at, r.entered_at)
+                    FROM bil_meter_reading r JOIN bil_meter_period p ON p.id = r.period_id
+                    WHERE r.room_id IN (:rooms) AND r.electricity_curr IS NOT NULL AND r.water_curr IS NOT NULL
+                ) readings
+                ORDER BY room_id, day DESC, rank DESC, at DESC NULLS LAST
+                """).param("rooms", List.copyOf(roomIds))
+                .query((rs, i) -> Map.entry(rs.getLong("room_id"), new Billing.MeterValue(
+                        rs.getObject("day", LocalDate.class), rs.getBigDecimal("electricity"), rs.getBigDecimal("water"))))
+                .list().forEach(e -> out.put(e.getKey(), e.getValue()));
+        return out;
+    }
+
     private Optional<Reading> lastReading(long roomId) {
         return jdbc.sql("""
                 SELECT day, electricity, water FROM (

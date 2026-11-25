@@ -10,7 +10,7 @@ import { FurnitureLabels } from './FurnitureLabels'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Note } from '@/components/ui/Display'
-import { Field, Input, SearchInput, Select, Textarea } from '@/components/ui/Field'
+import { Field, FilterSelect, Input, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Drawer, Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { QueryState, TableStatus } from '@/components/ui/States'
@@ -20,6 +20,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-INV-13 Furniture (Change Spec v2 phase 3, spec §6.19). Shared by Staff (their Blocks: status, store, moves
 // inside the Block) and Managers (also register items and transfer them between Blocks).
@@ -250,27 +251,25 @@ function Items({ manages }) {
             { value: 'store', label: 'In stores' },
           ]}
         />
-        <Select
-          wrapperClassName="w-52"
-          aria-label={t('Furniture type')}
+        <FilterSelect
+          label="Type"
           value={typeId}
-          onChange={(e) => {
-            setTypeId(e.target.value)
+          onChange={(v) => {
+            setTypeId(v)
             setPage(1)
           }}
-          options={[{ value: '', label: t('{label}: All', { label: t('Type') }) }, ...(d?.options?.types ?? []).map((x) => ({ value: x.id, label: `${t('Type')}: ${typeName(x)}` }))]}
+          options={[{ value: '', label: 'All' }, ...(d?.options?.types ?? []).map((x) => ({ value: x.id, label: typeName(x) }))]}
         />
-        <Select
-          wrapperClassName="w-48"
-          aria-label={t('Status')}
+        <FilterSelect
+          label="Status"
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value)
+          onChange={(v) => {
+            setStatus(v)
             setPage(1)
           }}
-          options={[{ value: '', label: t('{label}: All', { label: t('Status') }) }, ...(d?.options?.statuses ?? []).map((s) => ({ value: s, label: `${t('Status')}: ${tr(s)}${counts[s] != null ? ` · ${formatNumber(counts[s])}` : ''}` }))]}
+          options={[{ value: '', label: 'All' }, ...(d?.options?.statuses ?? []).map((s) => ({ value: s, label: `${tr(s)}${counts[s] != null ? ` · ${formatNumber(counts[s])}` : ''}` }))]}
         />
-        <SearchInput wrapperClassName="w-64" aria-label={t('Search')} placeholder="Asset code, room or type" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Asset code, room or type" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className="flex-1" />
         <Button icon={QrCode} onClick={() => setModal({ type: 'labels' })} disabled={!items.length}>
           {selected.length ? t('Print {n} labels', { n: selected.length }) : t('Print labels')}
@@ -509,6 +508,7 @@ function Stock() {
 }
 
 export default function Furniture() {
+  const atManager = useRoleBase() === '/manager'
   const { user } = useSession()
   const manages = user?.role === 'manager'
   const [tab, setTab] = useState('items')
@@ -516,6 +516,7 @@ export default function Furniture() {
     <>
       <PageHeader
         title="Furniture"
+        description={atManager ? undefined : manages ? 'Every item with its status and place, the block stores, moves and transfers between blocks.' : 'Items of your blocks: their status, the block store and moves between rooms.'}
       />
       <Tabs
         className="shrink-0"

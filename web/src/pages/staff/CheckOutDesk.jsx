@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Download, FileText, Gauge, LogOut, Receipt, Save, Upload, Zap } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Download, FileText, Gauge, LogOut, Receipt, Save, Upload, Zap } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -21,6 +21,8 @@ import { parseDecimal } from '@/lib/numbers'
 import { DetailFacts } from '@/components/ui/DetailFacts'
 import { DeskModeSwitch } from './CheckInDesk'
 import { FurnitureConditions } from './check-out/FurnitureConditions'
+import { DisputeCard, StudentDeclaration, StudentMeters } from './check-out/StudentDeclaration'
+
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-12 Check-out Desk (Figma 95:3876)
@@ -197,6 +199,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
 export function CheckOutPanel({ d, embedded = false }) {
   const { notify, notifyError } = useToast()
   const done = d.status === 'Checked out'
+  const [step, setStep] = useState(() => (done ? 3 : 1))
   // Raw text: a reading keeps its decimals ("1360,5"); formatNumber would add thousands dots (WEB-OPS-01).
   const [electricity, setElectricity] = useState(d.reading?.electricity != null ? String(d.reading.electricity) : '')
   const [water, setWater] = useState(d.reading?.water != null ? String(d.reading.water) : '')
@@ -336,6 +339,10 @@ export function CheckOutPanel({ d, embedded = false }) {
             </span>
             <span>·</span>
             <span className="font-medium text-fg">{tr(d.reason)}</span>
+            <span>·</span>
+            <span className="rounded-md bg-subtle px-2 py-0.5 font-medium text-fg tabular">
+              {t('Deposit held: {amount}', { amount: formatVnd(s.held) })}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             {d.handoverReport ? (
@@ -376,98 +383,216 @@ export function CheckOutPanel({ d, embedded = false }) {
         )}
       </div>
 
-      {/* 2. Vertical workflow: Step 1 (Meters) -> Step 2 (Room condition & furniture) -> Step 3 (Settlement & actions). */}
+      {/* Stepper bar: 1. Final meter reading · 2. Room & furniture · 3. Settlement & confirm */}
+      <nav
+        aria-label={t('Check-out steps')}
+        className="grid shrink-0 grid-cols-3 divide-x divide-line border-b border-line bg-subtle/40"
+      >
+        {[
+          {
+            n: 1,
+            icon: Zap,
+            label: '1. Final meter reading',
+            sub: electricity || water ? `${electricity || '—'} kWh · ${water || '—'} m³` : t('Enter readings'),
+          },
+          {
+            n: 2,
+            icon: ClipboardCheck,
+            label: '2. Room & furniture',
+            sub: !condition
+              ? t('Not checked')
+              : condition === 'good'
+                ? `${t('Good condition')} · ${formatVnd(0)}`
+                : `− ${formatVnd(damageAmount)}`,
+          },
+          {
+            n: 3,
+            icon: Receipt,
+            label: '3. Settlement & confirm',
+            sub: refund >= 0 ? t('Refund {amount}', { amount: formatVnd(refund) }) : t('Owes {amount}', { amount: formatVnd(-refund) }),
+          },
+        ].map((item) => {
+          const active = step === item.n
+          const Icon = item.icon
+          return (
+            <button
+              key={item.n}
+              type="button"
+              onClick={() => setStep(item.n)}
+              className={cx(
+                'flex min-w-0 flex-col gap-0.5 border-b-2 px-3 py-2.5 text-left transition-colors focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus',
+                active
+                  ? 'border-b-primary bg-surface'
+                  : 'border-b-transparent text-fg-secondary hover:bg-surface/60 hover:text-fg',
+              )}
+            >
+              <span className={cx('flex items-center gap-1.5 truncate text-xs font-semibold', active ? 'text-fg-brand' : 'text-fg')}>
+                <Icon size={13} aria-hidden="true" className="shrink-0" />
+                <span className="truncate">{t(item.label)}</span>
+              </span>
+              <span className="truncate text-[11px] text-fg-secondary tabular">{item.sub}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* 2. SCROLLABLE BODY: Active Step Content */}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
-        {/* The check-out at a glance, in the style of the maintenance detail. */}
-        <DetailFacts
-          facts={[
-            { label: 'Room', value: t('{room} · Bed {bed}', { room: d.room, bed: d.bed }) },
-            { label: 'Room type', value: [tr(d.roomTypeName), tr(d.roomClassName)].filter(Boolean).join(' · ') },
-            { label: 'Reason', value: tr(d.reason) },
-            { label: 'Deposit held', value: d.settlement?.held != null ? formatVnd(d.settlement.held) : null },
-            {
-              label: 'Opening meters',
-              value:
-                d.handoverReport?.electricity != null && d.handoverReport?.water != null
-                  ? `${formatNumber(d.handoverReport.electricity)} kWh · ${formatNumber(d.handoverReport.water)} m³`
-                  : null,
-            },
-            { label: 'Furniture at check-in', value: d.handoverReport?.items ? t('{n} items', { n: d.handoverReport.items.length }) : null },
-            { label: 'Checked out', value: d.checkedOutAt ? formatDateTime(d.checkedOutAt) : null },
-          ]}
-        />
-
+        {/* The student's disagreement with the charges, whichever step is open. */}
+        <DisputeCard allocationId={d.allocationId} data={fData} />
         {/* Step 1: Final Meter Reading */}
-        <section className="flex flex-col gap-2 rounded-xl bg-subtle/50 p-3.5">
-          <div className="flex items-center gap-2">
-            <Zap size={15} aria-hidden="true" className="text-fg-brand" />
-            <p className="text-sm font-semibold text-fg">{t('1. Final meter reading')}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field
-              label="Electricity (kWh)"
-              error={Number.isNaN(eValue) ? t('Enter a number, e.g. 1360,5') : undefined}
-              helper={
-                d.previousReading
-                  ? t('Previous reading: {value} kWh (recorded {date})', {
-                      value: formatNumber(d.previousReading.electricity),
-                      date: formatDate(d.previousReading.date),
-                    })
-                  : undefined
-              }
-            >
-              {(id) => (
-                <Input
-                  id={id}
-                  value={electricity}
-                  onChange={(e) => setElectricity(e.target.value)}
-                  disabled={done}
-                  inputMode="decimal"
-                  className="font-semibold tabular"
-                />
-              )}
-            </Field>
-            <Field
-              label="Water (m³)"
-              error={Number.isNaN(wValue) ? t('Enter a number, e.g. 1360,5') : undefined}
-              helper={
-                d.previousReading
-                  ? t('Previous reading: {value} m³ (recorded {date})', {
-                      value: formatNumber(d.previousReading.water),
-                      date: formatDate(d.previousReading.date),
-                    })
-                  : undefined
-              }
-            >
-              {(id) => (
-                <Input
-                  id={id}
-                  value={water}
-                  onChange={(e) => setWater(e.target.value)}
-                  disabled={done}
-                  inputMode="decimal"
-                  className="font-semibold tabular"
-                />
-              )}
-            </Field>
-          </div>
-        </section>
+        {step === 1 && (
+          <>
+            <DetailFacts
+              facts={[
+                { label: 'Room', value: t('{room} · Bed {bed}', { room: d.room, bed: d.bed }) },
+                { label: 'Room type', value: [tr(d.roomTypeName), tr(d.roomClassName)].filter(Boolean).join(' · ') },
+                { label: 'Reason', value: tr(d.reason) },
+                { label: 'Deposit held', value: d.settlement?.held != null ? formatVnd(d.settlement.held) : null },
+                {
+                  label: 'Opening meters',
+                  value:
+                    d.handoverReport?.electricity != null && d.handoverReport?.water != null
+                      ? `${formatNumber(d.handoverReport.electricity)} kWh · ${formatNumber(d.handoverReport.water)} m³`
+                      : null,
+                },
+                { label: 'Furniture at check-in', value: d.handoverReport?.items ? t('{n} items', { n: d.handoverReport.items.length }) : null },
+                { label: 'Checked out', value: d.checkedOutAt ? formatDateTime(d.checkedOutAt) : null },
+              ]}
+            />
 
-        {/* Step 2: Room Condition & Automatic Furniture Calculation */}
-        <FurnitureConditions
-          allocationId={d.allocationId}
-          query={furnitureQuery}
-          done={done}
-          condition={condition}
-          onConditionChange={setCondition}
-          electricity={electricity}
-          water={water}
-          onLiveTotalChange={setLiveFurnitureTotal}
-          onLiveSummaryChange={setFurnitureSummary}
-        />
+            <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-card">
+              <div className="flex items-center gap-2">
+                <Zap size={15} aria-hidden="true" className="text-fg-brand" />
+                <p className="text-sm font-semibold text-fg">{t('1. Final meter reading')}</p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field
+                  label="Electricity (kWh)"
+                  error={Number.isNaN(eValue) ? t('Enter a number, e.g. 1360,5') : undefined}
+                  helper={
+                    d.previousReading
+                      ? t('Previous reading: {value} kWh (recorded {date})', {
+                          value: formatNumber(d.previousReading.electricity),
+                          date: formatDate(d.previousReading.date),
+                        })
+                      : undefined
+                  }
+                >
+                  {(id) => (
+                    <Input
+                      id={id}
+                      value={electricity}
+                      onChange={(e) => setElectricity(e.target.value)}
+                      disabled={done}
+                      inputMode="decimal"
+                      className="font-semibold tabular"
+                    />
+                  )}
+                </Field>
+                <Field
+                  label="Water (m³)"
+                  error={Number.isNaN(wValue) ? t('Enter a number, e.g. 1360,5') : undefined}
+                  helper={
+                    d.previousReading
+                      ? t('Previous reading: {value} m³ (recorded {date})', {
+                          value: formatNumber(d.previousReading.water),
+                          date: formatDate(d.previousReading.date),
+                        })
+                      : undefined
+                  }
+                >
+                  {(id) => (
+                    <Input
+                      id={id}
+                      value={water}
+                      onChange={(e) => setWater(e.target.value)}
+                      disabled={done}
+                      inputMode="decimal"
+                      className="font-semibold tabular"
+                    />
+                  )}
+                </Field>
+              </div>
+              {d.previousReading && (electricity !== '' || water !== '') && (
+                <div className="flex flex-wrap items-center gap-4 rounded-lg bg-subtle/60 px-3 py-2 text-xs text-fg-secondary">
+                  <span className="font-medium text-fg">{t('Estimated usage since last reading:')}</span>
+                  <span className="tabular">
+                    {t('Electricity')}:{' '}
+                    <strong className="text-fg">
+                      {electricity !== '' && !Number.isNaN(eValue) ? `${formatNumber(Math.max(0, eValue - Number(d.previousReading.electricity ?? 0)))} kWh` : '—'}
+                    </strong>
+                  </span>
+                  <span className="tabular">
+                    {t('Water')}:{' '}
+                    <strong className="text-fg">
+                      {water !== '' && !Number.isNaN(wValue) ? `${formatNumber(Math.max(0, wValue - Number(d.previousReading.water ?? 0)))} m³` : '—'}
+                    </strong>
+                  </span>
+                </div>
+              )}
+              <StudentMeters
+                data={fData}
+                disabled={done}
+                onUse={(e, w) => {
+                  setElectricity(String(e))
+                  setWater(String(w))
+                }}
+              />
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+                {!done && (
+                  <Button size="sm" onClick={() => submit.run(true)} disabled={submit.pending || readingsInvalid}>
+                    Save draft
+                  </Button>
+                )}
+                <Button variant="primary" size="sm" onClick={() => setStep(2)}>
+                  <span className="inline-flex items-center gap-1.5">
+                    {t('Next: Room & furniture')}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </span>
+                </Button>
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* Step 2: Room Condition & Automatic Furniture Calculation (kept mounted to preserve unsaved item state across steps) */}
+        <div className={step === 2 ? 'flex flex-col gap-3' : 'hidden'}>
+          <StudentDeclaration data={fData} />
+          <FurnitureConditions
+            allocationId={d.allocationId}
+            query={furnitureQuery}
+            done={done}
+            condition={condition}
+            onConditionChange={setCondition}
+            electricity={electricity}
+            water={water}
+            onLiveTotalChange={setLiveFurnitureTotal}
+            onLiveSummaryChange={setFurnitureSummary}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface px-4 py-3">
+            <Button size="sm" icon={ArrowLeft} onClick={() => setStep(1)}>
+              {t('Back')}
+            </Button>
+            <div className="flex items-center gap-2">
+              {!done && (
+                <Button size="sm" onClick={() => submit.run(true)} disabled={submit.pending || readingsInvalid}>
+                  Save draft
+                </Button>
+              )}
+              <Button variant="primary" size="sm" onClick={() => setStep(3)}>
+                <span className="inline-flex items-center gap-1.5">
+                  {t('Next: Settlement')}
+                  <ArrowRight size={14} aria-hidden="true" />
+                </span>
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {/* Step 3: Utility deposit settlement and actions */}
-        <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-card">
+        {step === 3 && (
+          <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Receipt size={15} aria-hidden="true" className="text-fg-brand" />
@@ -537,45 +662,61 @@ export function CheckOutPanel({ d, embedded = false }) {
           </div>
 
           {done ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-success/30 bg-success-bg px-3.5 py-2.5 text-xs font-medium text-success-fg">
-              <span>{t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}</span>
-              <span>
-                {refund < 0
-                  ? t('{amount} was invoiced to the student.', { amount: formatVnd(-refund) })
-                  : d.refundStatus === 'Approved'
-                    ? t('A manager approved the refund.')
-                    : t('The refund is waiting for a manager’s approval.')}
-              </span>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-success/30 bg-success-bg px-3.5 py-2.5 text-xs font-medium text-success-fg">
+                <span>{t('Checked out {date}', { date: formatDateTime(d.checkedOutAt) })}</span>
+                <span>
+                  {refund < 0
+                    ? t('{amount} was invoiced to the student.', { amount: formatVnd(-refund) })
+                    : d.refundStatus === 'Approved'
+                      ? t('A manager approved the refund.')
+                      : t('The refund is waiting for a manager’s approval.')}
+                </span>
+              </div>
+              <div className="flex items-center justify-start">
+                <Button size="sm" icon={ArrowLeft} onClick={() => setStep(2)}>
+                  {t('Back')}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-2 pt-1">
               {!condition && (
-                <p className="text-right text-xs font-medium text-warning-fg">
-                  {t('Please select the room condition before you confirm.')}
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning-bg/60 px-3 py-2 text-xs text-warning-fg">
+                  <span className="font-medium">{t('Please select the room condition before you confirm.')}</span>
+                  <Button size="sm" onClick={() => setStep(2)}>
+                    {t('Go to Step 2')}
+                  </Button>
+                </div>
               )}
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  tip="Keep what you entered and finish the check-out later."
-                  size="sm"
-                  onClick={() => submit.run(true)}
-                  disabled={submit.pending || readingsInvalid}
-                >
-                  Save draft
+              <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
+                <Button size="sm" icon={ArrowLeft} onClick={() => setStep(2)}>
+                  {t('Back')}
                 </Button>
-                <Button
-                  tip="Ends the student’s stay and frees the bed. A meter reading is taken."
-                  variant="primary"
-                  disabled={!condition || readingsInvalid || submit.pending || review.pending}
-                  loading={review.pending}
-                  onClick={() => review.run()}
-                >
-                  Confirm check-out
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    tip="Keep what you entered and finish the check-out later."
+                    size="sm"
+                    onClick={() => submit.run(true)}
+                    disabled={submit.pending || readingsInvalid}
+                  >
+                    Save draft
+                  </Button>
+                  <Button
+                    tip="Ends the student’s stay and frees the bed. A meter reading is taken."
+                    variant="primary"
+                    disabled={!condition || readingsInvalid || submit.pending || review.pending}
+                    loading={review.pending}
+                    onClick={() => review.run()}
+                  >
+                    Confirm check-out
+                  </Button>
+                </div>
               </div>
             </div>
           )}
         </section>
+        )}
       </div>
 
       {showHandover && d.handoverReport && (
@@ -802,7 +943,18 @@ export default function CheckOutDesk() {
   return (
     <>
       <PageHeader
-        title="Check-out desk"
+        title="Check-out"
+        description={
+          list.data
+            ? [
+                list.data.date && formatDate(list.data.date),
+                t('{n} allocations in Pending check-out.', { n: formatNumber(list.data.pendingCount) }),
+                list.data.checkOutBy && t('Check out by {date}', { date: formatDate(list.data.checkOutBy) }),
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : 'Allocations in Pending check-out.'
+        }
         actions={
           <>
             <Button icon={Gauge} onClick={() => setReadingsOpen(true)}>

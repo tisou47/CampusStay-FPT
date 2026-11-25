@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRightLeft, Search } from 'lucide-react'
+import { ArrowRightLeft, BedDouble, ListChecks, Search } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -8,13 +8,15 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Radio } from '@/components/ui/Choice'
 import { Alert, Card, Note } from '@/components/ui/Display'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, FilterSelect, Input, Textarea } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDateTime, formatVnd } from '@/lib/format'
+import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
+import { BedPickerModal } from './moves/BedPickerModal'
 
 // SCR-ASG-21 Operational moves — Staff › Rooms (their Blocks) and Manager › Residents (every Block) (Change Spec v2
 // phase 6, spec §6.13, D-14, D-31). Staff or a Manager move a student to another Bed of the same Term for a recorded
@@ -24,13 +26,13 @@ import { t, tr } from '@/i18n'
 // GET /operational-moves/options?q (student code) | allocationId → { allocationId, student: { name, studentCode },
 //   term: { id, name }, from: { room, bed, block, roomTypeName, roomClassName }, resident, nextTermAllocation,
 //   feesIssued, nextTerm: { allocationId, term, place, state, fee } | null, beds: [{ bedId, room, bed, block, floor,
-//   roomTypeName, roomClassName, roommates, termPrice }], reasons }
+//   roomTypeName, roomClassName, roommates, termPrice }], reasons, meters: { [room]: { date, electricity, water } } }
 // POST /operational-moves { allocationId, bedId, reason, note, nextTerm: follow | keep, fromElectricity, fromWater,
 //   toElectricity, toWater } → { allocationId, room, bed, nextTerm (Followed, Kept, None), note }
 // GET /operational-moves?termId&block&page&pageSize → { items: [{ id, student, term, from, to, reason, note, nextTerm,
 //   movedBy, movedAt }], total, reasons }
 
-function MoveForm({ options, onDone, onLoadNext }) {
+function MoveForm({ options, onDone, onCancel, onLoadNext }) {
   const { notify } = useToast()
   const o = options
   const [bedId, setBedId] = useState('')
@@ -57,13 +59,44 @@ function MoveForm({ options, onDone, onLoadNext }) {
       onError: () => {},
     },
   )
+  const [picking, setPicking] = useState(false)
   const fields = move.error?.details?.fields ?? {}
   const bed = o.beds.find((b) => b.bedId === bedId)
-  const reading = (key, label) => (
-    <Field label={label} required error={fields[key]} className="flex-1">
-      {(id) => <Input id={id} type="number" min="0" step="0.1" value={read[key]} onChange={(e) => setRead({ ...read, [key]: e.target.value })} />}
-    </Field>
-  )
+  const meters = o.meters ?? {}
+  // The Room's latest reading under each field, so Staff compare instead of looking it up; lower is flagged.
+  const reading = (key, label, room, kind, unit) => {
+    const last = room ? meters[room] : null
+    const previous = last?.[kind]
+    const lower = previous != null && read[key] !== '' && Number(read[key]) < Number(previous)
+    return (
+      <Field
+        label={label}
+        required
+        error={fields[key] ?? (lower ? t('Lower than the last reading ({value} {unit})', { value: formatNumber(previous, { decimals: 1 }), unit }) : undefined)}
+        helper={
+          previous != null
+            ? t('Last reading: {value} {unit} · {date}', { value: formatNumber(previous, { decimals: 1 }), unit, date: formatDate(last.date) })
+            : room
+              ? t('No earlier reading')
+              : undefined
+        }
+        className="flex-1"
+      >
+        {(id) => (
+          <Input
+            id={id}
+            type="number"
+            min="0"
+            step="0.1"
+            inputMode="decimal"
+            placeholder={previous != null ? String(previous) : undefined}
+            value={read[key]}
+            onChange={(e) => setRead({ ...read, [key]: e.target.value })}
+          />
+        )}
+      </Field>
+    )
+  }
   return (
     <Card padding="lg" className="flex shrink-0 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -86,25 +119,41 @@ function MoveForm({ options, onDone, onLoadNext }) {
       )}
       <div className="flex flex-col gap-3 lg:flex-row">
         <Field label="New bed" required error={fields.bedId} className="flex-1">
-          {(id) => (
-            <Select
-              id={id}
-              value={bedId}
-              onChange={(e) => setBedId(e.target.value)}
-              options={[
-                { value: '', label: 'Choose…', disabled: true },
-                ...o.beds.map((b) => ({
-                  value: b.bedId,
-                  label: `${b.bedId} · ${tr(b.roomTypeName)} · ${tr(b.roomClassName)} · ${t(b.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: b.roommates })}`,
-                })),
-              ]}
+          {(id) =>
+            bed ? (
+              <div id={id} className="flex min-h-8 flex-wrap items-center justify-between gap-2 rounded-md border border-primary bg-primary-subtle/40 px-3 py-1">
+                <span className="flex min-w-0 items-center gap-2 text-base text-fg">
+                  <BedDouble size={16} aria-hidden="true" className="shrink-0 text-fg-brand" />
+                  <span className="font-medium">{t('{room} · Bed {bed}', { room: bed.room, bed: bed.bed })}</span>
+                  <span className="truncate text-fg-secondary">
+                    · {tr(bed.roomTypeName)} · {tr(bed.roomClassName)} · {t(bed.roommates === 1 ? '{n} roommate' : '{n} roommates', { n: bed.roommates })}
+                  </span>
+                </span>
+                <Button variant="text" size="sm" onClick={() => setPicking(true)}>
+                  Change
+                </Button>
+              </div>
+            ) : (
+              <Button id={id} icon={ListChecks} className="justify-start" disabled={o.beds.length === 0} onClick={() => setPicking(true)}>
+                {o.beds.length === 0 ? t('No free bed to move to') : t('View suggested beds ({n} free)', { n: o.beds.length })}
+              </Button>
+            )
+          }
+        </Field>
+        <Field label="Reason" required error={fields.reason} className="w-full lg:w-64">
+          {() => (
+            <FilterSelect
+              aria-label={t('Reason')}
+              value={reason}
+              onChange={setReason}
+              options={[{ value: '', label: 'Choose…' }, ...o.reasons.map((r) => ({ value: r, label: tr(r) }))]}
             />
           )}
         </Field>
-        <Field label="Reason" required error={fields.reason} className="w-full lg:w-64">
-          {(id) => <Select id={id} value={reason} onChange={(e) => setReason(e.target.value)} options={[{ value: '', label: 'Choose…', disabled: true }, ...o.reasons]} />}
-        </Field>
       </div>
+      {picking && (
+        <BedPickerModal open onClose={() => setPicking(false)} beds={o.beds} from={o.from} value={bedId} onChange={setBedId} showPrice={o.nextTermAllocation} />
+      )}
       {bed?.termPrice != null && o.nextTermAllocation && <Note>{t('Next-term price of this bed: {price}', { price: formatVnd(bed.termPrice) })}</Note>}
       <Field label="Note" required={reason === 'Other'} error={fields.note}>
         {(id) => <Textarea id={id} rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />}
@@ -113,10 +162,10 @@ function MoveForm({ options, onDone, onLoadNext }) {
         <div className="flex flex-col gap-2">
           <p className="text-base font-medium text-fg">{t('Meter readings now (both rooms)')}</p>
           <div className="flex flex-col gap-3 lg:flex-row">
-            {reading('fromElectricity', t('{room} electricity (kWh)', { room: o.from.room }))}
-            {reading('fromWater', t('{room} water (m³)', { room: o.from.room }))}
-            {reading('toElectricity', t('{room} electricity (kWh)', { room: bed?.room ?? t('New room') }))}
-            {reading('toWater', t('{room} water (m³)', { room: bed?.room ?? t('New room') }))}
+            {reading('fromElectricity', t('{room} electricity (kWh)', { room: o.from.room }), o.from.room, 'electricity', 'kWh')}
+            {reading('fromWater', t('{room} water (m³)', { room: o.from.room }), o.from.room, 'water', 'm³')}
+            {reading('toElectricity', t('{room} electricity (kWh)', { room: bed?.room ?? t('New room') }), bed?.room, 'electricity', 'kWh')}
+            {reading('toWater', t('{room} water (m³)', { room: bed?.room ?? t('New room') }), bed?.room, 'water', 'm³')}
           </div>
         </div>
       )}
@@ -133,7 +182,7 @@ function MoveForm({ options, onDone, onLoadNext }) {
         </fieldset>
       )}
       <div className="flex justify-end gap-3">
-        <Button onClick={onDone}>Cancel</Button>
+        <Button onClick={onCancel}>Cancel</Button>
         <Button variant="primary" icon={ArrowRightLeft} disabled={!bedId || !reason || move.pending} onClick={() => move.run()}>
           {move.pending ? t('Moving…') : t('Move the student')}
         </Button>
@@ -144,6 +193,7 @@ function MoveForm({ options, onDone, onLoadNext }) {
 }
 
 export default function OperationalMoves() {
+  const atManager = useRoleBase() === '/manager'
   const scope = useScopeQuery()
   const [code, setCode] = useState('')
   const [target, setTarget] = useState(null)
@@ -152,25 +202,48 @@ export default function OperationalMoves() {
   const filters = { block: scope.block, page, pageSize: 20 }
   const history = useQuery(['operational-moves', filters], ({ signal }) => api.operationalMoves.list(filters, { signal }))
   const items = history.data?.items ?? []
+  const searching = Boolean(target) && options.loading
   return (
     <>
-      <PageHeader title="Operational moves" />
+      <PageHeader compact title="Room transfers" tip="Transfer a student to another room or bed within the same term (maintenance, safety, conflict…). No fee." />
       <form
         className="flex shrink-0 items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault()
-          if (code.trim()) setTarget({ q: code.trim().toUpperCase() })
+          const q = code.trim().toUpperCase()
+          if (q) setTarget({ q })
         }}
       >
         <Field label="Student code" className="w-64">
-          {(id) => <Input id={id} value={code} onChange={(e) => setCode(e.target.value)} placeholder="SE190001" autoComplete="off" />}
+          {(id) => (
+            <Input
+              id={id}
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="Enter the student code"
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus
+            />
+          )}
         </Field>
-        <Button type="submit" icon={Search} disabled={!code.trim()}>
-          Find
+        <Button type="submit" icon={Search} disabled={!code.trim() || searching}>
+          {searching ? t('Finding…') : t('Find')}
         </Button>
       </form>
       {target && options.error && <Alert type="error" title="Cannot move this student" className="shrink-0">{options.error.message}</Alert>}
-      {target && options.data && <MoveForm key={JSON.stringify(target)} options={options.data} onDone={() => setTarget(null)} onLoadNext={(allocationId) => setTarget({ allocationId })} />}
+      {target && options.data && (
+        <MoveForm
+          key={JSON.stringify(target)}
+          options={options.data}
+          onDone={() => {
+            setTarget(null)
+            setCode('')
+          }}
+          onCancel={() => setTarget(null)}
+          onLoadNext={(allocationId) => setTarget({ allocationId })}
+        />
+      )}
       <Table fill>
         <THead>
           <tr>
@@ -183,7 +256,7 @@ export default function OperationalMoves() {
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={history} colSpan={6} emptyIcon={ArrowRightLeft} emptyTitle="No operational moves yet" />
+          <TableStatus query={history} colSpan={6} emptyIcon={ArrowRightLeft} emptyTitle="No room transfers yet" />
           {items.map((m) => (
             <Tr key={m.id} className="[&>td]:h-13">
               <Td>

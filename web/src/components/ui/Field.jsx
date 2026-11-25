@@ -1,5 +1,5 @@
-import { Fragment, cloneElement, isValidElement, useId, useRef } from 'react'
-import { ChevronDown, Search, Upload } from 'lucide-react'
+import { Fragment, cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react'
+import { Check, ChevronDown, Search, Upload } from 'lucide-react'
 import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { InfoTip } from './Tooltip'
@@ -74,12 +74,24 @@ export function Textarea({ size = 'md', invalid, className, rows = 4, placeholde
 
 /**
  * Native select styled like the Figma Select. `options` accepts strings or { value, label }.
+ * `fit`: the box is as wide as the chosen option's text (filter bars), so "Role: All" or "Date: Last 30 days" is never
+ * cut; `wrapperClassName` may still cap it (max-w-…), and then a long name ends with "…".
  */
-export function Select({ size = 'md', invalid, options = [], className, wrapperClassName, children, ...props }) {
+export function Select({ size = 'md', invalid, options = [], className, wrapperClassName, children, fit = false, ...props }) {
+  const chosen = fit
+    ? options.map((opt) => (typeof opt === 'string' ? { value: opt, label: opt } : opt)).find((o) => String(o.value) === String(props.value ?? ''))
+    : null
   return (
-    <div className={cx('relative min-w-0', wrapperClassName)}>
+    <div className={cx('relative min-w-0', fit && 'shrink-0', wrapperClassName)}>
+      {fit && (
+        // Invisible copy of the chosen text: it gives the box its width, and the select lies over it. (A select's own
+        // width follows its longest option, which is what made filters too wide or cut.)
+        <span aria-hidden="true" className={cx('invisible block truncate border px-3 pr-9 leading-[30px] whitespace-pre', sizes[size])}>
+          {tx(chosen?.label ?? '')}
+        </span>
+      )}
       <select
-        className={cx(controlClasses({ size, invalid }), 'cursor-pointer appearance-none truncate pr-9', className)}
+        className={cx(controlClasses({ size, invalid }), 'cursor-pointer appearance-none truncate pr-9', fit && 'absolute inset-0', className)}
         aria-invalid={invalid || undefined}
         {...props}
       >
@@ -97,7 +109,7 @@ export function Select({ size = 'md', invalid, options = [], className, wrapperC
         size={16}
         aria-hidden="true"
         className={cx(
-          'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2',
+          'pointer-events-none absolute top-1/2 right-3 z-1 -translate-y-1/2',
           props.disabled ? 'text-fg-disabled' : 'text-fg-secondary',
         )}
       />
@@ -158,6 +170,94 @@ export function StaticField({ size = 'md', className, children }) {
       )}
     >
       <span className="truncate">{tx(children)}</span>
+    </div>
+  )
+}
+
+/**
+ * Custom filter dropdown: shows `Label: Value` when closed, and only clean options inside the aligned popover menu.
+ */
+export function FilterSelect({ label, icon: Icon, value, onChange, options = [], size = 'md', disabled = false, placement = 'bottom', align = 'left', className, wrapperClassName, 'aria-label': ariaLabel }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const normalized = options.map((opt) => (typeof opt === 'string' ? { value: opt, label: opt } : opt))
+  const current = normalized.find((o) => String(o.value) === String(value)) ?? normalized[0]
+
+  return (
+    <div ref={ref} className={cx('relative', wrapperClassName)}>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-label={ariaLabel ?? (label ? tx(label) : undefined)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        className={cx(
+          'inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-line-strong bg-surface px-3 whitespace-nowrap text-fg transition-colors',
+          'hover:border-primary/60 focus-visible:border-focus focus-visible:shadow-focus focus-visible:outline-none',
+          'disabled:cursor-not-allowed disabled:border-line disabled:bg-subtle disabled:text-fg-disabled',
+          size === 'sm' ? 'h-7 text-sm' : 'h-8 text-base',
+          open && 'border-focus shadow-focus',
+          className,
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-1.5 truncate">
+          {Icon && <Icon size={14} aria-hidden="true" className="shrink-0 text-fg-secondary" />}
+          {label && <span className="shrink-0 text-fg-secondary">{tx(label)}:</span>}
+          <span className="truncate font-medium">{current ? tx(current.label) : ''}</span>
+        </span>
+        <ChevronDown size={15} aria-hidden="true" className={cx('shrink-0 text-fg-secondary transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          aria-label={ariaLabel ?? (label ? tx(label) : undefined)}
+          className={cx(
+            'absolute z-30 max-h-72 min-w-full overflow-y-auto rounded-lg border border-line bg-surface py-1 shadow-dropdown',
+            placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1',
+            align === 'right' ? 'right-0' : 'left-0',
+          )}
+        >
+          {normalized.map((opt) => {
+            const selected = String(opt.value) === String(value)
+            return (
+              <li key={String(opt.value)} role="option" aria-selected={selected}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange?.(opt.value)
+                    setOpen(false)
+                  }}
+                  className={cx(
+                    'flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-sm whitespace-nowrap transition-colors',
+                    selected ? 'bg-primary-subtle font-medium text-fg-brand' : 'text-fg hover:bg-subtle',
+                  )}
+                >
+                  <span>{tx(opt.label)}</span>
+                  {selected && <Check size={14} aria-hidden="true" className="shrink-0 text-fg-brand" />}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }

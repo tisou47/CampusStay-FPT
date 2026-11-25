@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Check, Download, Maximize2, Repeat, SearchX, X } from 'lucide-react'
+import { ArrowDown, ArrowRight, CalendarClock, Check, Download, Maximize2, Repeat, SearchX, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
@@ -9,18 +9,17 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Radio } from '@/components/ui/Choice'
 import { Card, Note } from '@/components/ui/Display'
-import { Field, SearchInput, Select, Textarea } from '@/components/ui/Field'
+import { Field, FilterSelect, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { SlaBadge, StatusTag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime } from '@/lib/format'
+import { formatDate, formatDateTime, formatTime } from '@/lib/format'
 import { RoomChangeModeSwitch } from './SwapRequests'
-import { useRoleBase } from '@/lib/useRoleBase'
-import { OverdueReassign, OverdueRequests, OverdueSwitch } from '@/pages/manager/Escalations'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-REQ-10 Room-Change Queue (Figma 60:2696) — next-Term Room-Change Requests of the requests window (Change Spec v2
 // phase 6, spec §6.10): approving moves the student's next-Term Bed; nothing is invoiced or refunded.
@@ -232,31 +231,63 @@ function Review({ request: r, onReject }) {
   const bedItems = beds.data?.items ?? []
 
   return (
-    <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto" aria-label={t('Review {id}', { id: r.id })}>
+    <Card className="flex min-h-0 w-80 shrink-0 flex-col gap-3 overflow-y-auto 2xl:w-95" aria-label={t('Review {id}', { id: r.id })}>
       <div className="flex flex-col gap-0.5">
-        <p className="text-sm font-medium text-fg-tertiary">{r.id}</p>
+        <p className="text-sm font-medium text-fg-tertiary tabular">
+          {r.id}
+          {r.studentCode && <span className="font-normal"> · {r.studentCode}</span>}
+        </p>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-h3 font-semibold text-fg">{r.studentName}</h2>
-          {!pending && <ChangeStatus status={r.status} />}
+          <h2 className="min-w-0 truncate text-h3 font-semibold text-fg">{r.studentName}</h2>
+          <ChangeStatus status={r.status} />
         </div>
       </div>
-      <dl className="flex flex-col gap-2.5">
-        <Row label="From">
-          {r.from.room} · {r.from.bed} · {tr(r.from.roomClassName)}
-        </Row>
-        <Row label="To">{target(r)}</Row>
-        <Row label="Reason">{tr(r.reason) || '—'}</Row>
-        <Row label="Decide by">{formatDateTime(r.dueAt)}</Row>
-        {!pending && r.decision && (
-          <>
-            {r.decision.bed && <Row label="New bed">{r.decision.bed}</Row>}
-            {r.decision.reason && <Row label="Rejection reason">{tr(r.decision.reason)}</Row>}
-            <Row label="Decided">
-              {r.decision.by} · {formatDate(r.decision.at)}
-            </Row>
-          </>
-        )}
+
+      {/* The move itself: where the student is next term, and what they asked for. */}
+      <dl className="flex flex-col rounded-lg border border-line bg-subtle/60 px-3 py-2.5">
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-sm text-fg-tertiary">{t('From')}</dt>
+          <dd className="flex flex-wrap items-baseline gap-x-2 text-base">
+            <span className="font-semibold text-fg tabular">
+              {r.from.room} · {r.from.bed}
+            </span>
+            <span className="text-sm text-fg-secondary">
+              {tr(r.from.roomTypeName)} · {tr(r.from.roomClassName)}
+            </span>
+          </dd>
+        </div>
+        <ArrowDown size={16} className="my-1 ml-0.5 text-fg-tertiary" aria-hidden="true" />
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-sm text-fg-tertiary">{t('To')}</dt>
+          <dd className="text-base font-semibold text-fg">{target(r)}</dd>
+        </div>
       </dl>
+
+      <dl className="flex flex-col gap-2.5">
+        <Row label="Reason" valueClassName="text-fg">
+          {tr(r.reason) || '—'}
+        </Row>
+        <Row label="Decide by">
+          <span className="inline-flex flex-wrap items-center justify-end gap-2 tabular">
+            {formatDateTime(r.dueAt)}
+            {pending && <SlaBadge dueAt={r.dueAt} done={false} warnHours={48} />}
+          </span>
+        </Row>
+      </dl>
+
+      {!pending && r.decision && (
+        <dl className="flex flex-col gap-2.5 border-t border-line pt-3">
+          {r.decision.bed && (
+            <Row label="New bed" valueClassName="font-semibold text-fg tabular">
+              {r.decision.bed}
+            </Row>
+          )}
+          {r.decision.reason && <Row label="Rejection reason">{tr(r.decision.reason)}</Row>}
+          <Row label="Decided">
+            {r.decision.by} · <span className="tabular">{formatDate(r.decision.at)}</span>
+          </Row>
+        </dl>
+      )}
 
       {!pending ? (
         r.decision?.note && <Note>{tr(r.decision.note)}</Note>
@@ -298,10 +329,10 @@ function Review({ request: r, onReject }) {
             )}
           </QueryState>
           <div className="flex gap-2">
-            <Button variant="danger" icon={X} onClick={onReject}>
+            <Button variant="danger" icon={X} className="flex-1" onClick={onReject}>
               Reject
             </Button>
-            <Button variant="primary" icon={Check} disabled={!bed || approve.pending} onClick={() => approve.run()}>
+            <Button variant="primary" icon={Check} className="flex-1" disabled={!bed || approve.pending} onClick={() => approve.run()}>
               {t('Approve')}
             </Button>
           </div>
@@ -326,25 +357,7 @@ function Review({ request: r, onReject }) {
 }
 
 export default function RoomChangeQueue() {
-  const base = useRoleBase()
-  const [params] = useSearchParams()
-  const manager = base === '/manager'
-  if (manager && params.get('view') === 'overdue') {
-    return (
-      <>
-        <PageHeader
-          title="Next-term room changes"
-          actions={<RoomChangeModeSwitch mode="changes" />}
-        />
-        <OverdueSwitch kind="room-change" />
-        <OverdueRequests kind="room-change" />
-      </>
-    )
-  }
-  return <RoomChangeList manager={manager} switcher={manager ? <OverdueSwitch kind="room-change" /> : null} />
-}
-
-function RoomChangeList({ switcher, manager }) {
+  const atManager = useRoleBase() === '/manager'
   const [params] = useSearchParams()
   const scope = useScopeQuery()
   const { notifyError } = useToast()
@@ -372,6 +385,7 @@ function RoomChangeList({ switcher, manager }) {
     <>
       <PageHeader
         title="Next-term room changes"
+        description={atManager ? undefined : query.data?.window ? t('{term} · requests until {closes}, decisions by {due}. Approving moves the next-term bed; nothing is charged now.', { term: query.data.window.termName, closes: formatDateTime(query.data.window.closesAt), due: formatDateTime(query.data.window.decisionsDueAt) }) : 'Room-change requests of the next term, in your scope.'}
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
@@ -381,11 +395,20 @@ function RoomChangeList({ switcher, manager }) {
           </>
         }
       />
-      {switcher}
 
-      <div className="flex shrink-0 items-center gap-3">
-        <Select wrapperClassName="w-42" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
-        <Select wrapperClassName="w-60" aria-label={t('Change')} value={kind} onChange={filter(setKind)} options={changeFilters} />
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <FilterSelect
+          label="Status"
+          value={status}
+          onChange={(v) => filter(setStatus)({ target: { value: v } })}
+          options={statusFilters.map((o) => ({ value: o.value, label: t(o.label).replace(/^[^:]*:\s*/, '') }))}
+        />
+        <FilterSelect
+          label="Change"
+          value={kind}
+          onChange={(v) => filter(setKind)({ target: { value: v } })}
+          options={changeFilters.map((o) => ({ value: o.value, label: t(o.label).replace(/^[^:]*:\s*/, '') }))}
+        />
       </div>
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
@@ -394,37 +417,57 @@ function RoomChangeList({ switcher, manager }) {
             <THead>
               <tr>
                 <Th className="w-36">Request</Th>
-                <Th className="w-44">Student</Th>
+                <Th className="w-40">Student</Th>
                 <Th>From → To</Th>
-                <Th className="w-30">Submitted on</Th>
-                <Th className="w-26">Status</Th>
+                <Th className="w-28">Submitted on</Th>
+                <Th className="w-36">Status</Th>
               </tr>
             </THead>
             <TBody>
               <TableStatus query={query} colSpan={5} emptyIcon={Repeat} emptyTitle="No room-change requests match these filters" />
               {items.map((r) => (
                 <Tr key={r.id} selected={r.id === selected?.id} onClick={() => setSelectedId(r.id)}>
-                  <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
+                  <Td className="font-medium whitespace-nowrap text-fg-brand tabular">{r.id}</Td>
                   <Td>
                     <TwoLine primary={r.studentName} secondary={r.studentCode} />
                   </Td>
                   <Td className="max-w-0">
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <span className="truncate">
-                        {r.from.room} · {r.from.bed} → {target(r)}
+                    {/* From on the first line, the requested target under it: nothing is cut in the middle of the move. */}
+                    <div className="flex min-w-0 flex-col gap-0.5" title={`${r.from.room} · ${r.from.bed} · ${tr(r.from.roomTypeName)} · ${tr(r.from.roomClassName)} → ${target(r)}`}>
+                      <span className="flex min-w-0 items-baseline gap-2">
+                        <span className="shrink-0 font-medium text-fg tabular">
+                          {r.from.room} · {r.from.bed}
+                        </span>
+                        <span className="truncate text-sm text-fg-tertiary">
+                          {tr(r.from.roomTypeName)} · {tr(r.from.roomClassName)}
+                        </span>
                       </span>
-                      <span className="truncate text-sm text-fg-secondary">
-                        {tr(r.from.roomTypeName)} · {tr(r.from.roomClassName)}
-                        {r.dueAt ? ` · ${t('decide by {date}', { date: formatDate(r.dueAt) })}` : ''}
+                      <span className="flex min-w-0 items-center gap-1.5 text-sm text-fg-secondary">
+                        <ArrowRight size={14} className="shrink-0 text-fg-tertiary" aria-label={t('To')} />
+                        <span className="truncate">{target(r)}</span>
                       </span>
                     </div>
                   </Td>
-                  <Td>{formatDateTime(r.submittedAt)}</Td>
+                  <Td className="whitespace-nowrap tabular">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-fg">{formatDate(r.submittedAt)}</span>
+                      <span className="text-sm text-fg-tertiary">{formatTime(r.submittedAt)}</span>
+                    </div>
+                  </Td>
                   <Td>
-                    <span className="flex items-center gap-2">
-                      <ChangeStatus status={r.status} />
-                      <SlaBadge dueAt={r.dueAt} done={r.status !== 'Pending'} warnHours={48} />
-                    </span>
+                    <div className="flex flex-col items-start gap-1">
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <ChangeStatus status={r.status} />
+                        <SlaBadge dueAt={r.dueAt} done={r.status !== 'Pending'} warnHours={48} />
+                      </span>
+                      {r.dueAt && (
+                        <span className="flex items-center gap-1 text-sm whitespace-nowrap text-fg-tertiary tabular" title={t('decide by {date}', { date: formatDateTime(r.dueAt) })}>
+                          <CalendarClock size={13} aria-hidden="true" />
+                          <span className="sr-only">{t('Decide by')}</span>
+                          {formatDate(r.dueAt)}
+                        </span>
+                      )}
+                    </div>
                   </Td>
                 </Tr>
               ))}
@@ -445,12 +488,9 @@ function RoomChangeList({ switcher, manager }) {
         </div>
 
         {selected ? (
-          <div className="flex min-h-0 w-95 shrink-0 flex-col gap-4 overflow-y-auto">
-            {manager && <OverdueReassign requestId={selected.id} />}
-            <Review key={`${selected.id}-${selected.status}`} request={selected} onReject={() => setRejecting(selected)} />
-          </div>
+          <Review key={`${selected.id}-${selected.status}`} request={selected} onReject={() => setRejecting(selected)} />
         ) : (
-          <Card className="flex w-95 shrink-0 flex-col">
+          <Card className="flex w-80 shrink-0 flex-col 2xl:w-95">
             {missing ? (
               <EmptyBlock icon={Repeat} title="Request not on this page">
                 {t('{id} is not in this list. Change the filters or the page, or pick another request.', { id: selectedId })}

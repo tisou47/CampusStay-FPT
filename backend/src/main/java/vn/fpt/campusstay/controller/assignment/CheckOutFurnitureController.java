@@ -1,15 +1,23 @@
 package vn.fpt.campusstay.controller.assignment;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
@@ -30,6 +38,13 @@ class CheckOutFurnitureController {
             @DecimalMax(value = "999999999", message = "Enter a valid reading.") BigDecimal electricity,
             @DecimalMin(value = "0", message = "Enter a reading of 0 or more.")
             @DecimalMax(value = "999999999", message = "Enter a valid reading.") BigDecimal water) {
+    }
+
+    record DisputeRequest(@Size(max = 100) List<String> itemIds,
+            @Size(max = 500, message = "Keep the reason under 500 characters.") String reason) {
+    }
+
+    record DisputeAnswer(@Size(max = 500, message = "Keep the answer under 500 characters.") String answer) {
     }
 
     record ClaimRequest(String itemId, String condition,
@@ -78,6 +93,47 @@ class CheckOutFurnitureController {
     @GetMapping("/students/me/check-out")
     CheckOutFurnitureService.Charges mine() {
         return furniture.mine();
+    }
+
+    record MetersRequest(@DecimalMax("99999999") BigDecimal electricity, @DecimalMax("99999999") BigDecimal water) {
+    }
+
+    @PutMapping("/students/me/check-out/meters")
+    CheckOutFurnitureService.Charges saveMeters(@Valid @RequestBody MetersRequest body) {
+        return furniture.saveMyMeters(body.electricity(), body.water());
+    }
+
+    @PostMapping(path = "/students/me/check-out/meters/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    CheckOutFurnitureService.MeterPhoto addMeterPhoto(@RequestPart(name = "photo", required = false) MultipartFile photo) {
+        byte[] bytes;
+        try {
+            bytes = photo == null ? null : photo.getBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return furniture.addMyMeterPhoto(photo == null ? null : photo.getOriginalFilename(), bytes);
+    }
+
+    @DeleteMapping("/students/me/check-out/meters/photos/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void removeMeterPhoto(@PathVariable String id) {
+        furniture.removeMyMeterPhoto(id);
+    }
+
+    @PostMapping("/students/me/check-out/submit")
+    CheckOutFurnitureService.Charges submitDeclaration() {
+        return furniture.submitMyDeclaration();
+    }
+
+    @PostMapping("/students/me/check-out/dispute")
+    CheckOutFurnitureService.Charges dispute(@Valid @RequestBody DisputeRequest body) {
+        return furniture.disputeMine(body.itemIds(), body.reason());
+    }
+
+    @PostMapping("/check-outs/{allocationId}/dispute/answer")
+    CheckOutFurnitureService.Charges answerDispute(@PathVariable String allocationId,
+            @Valid @RequestBody DisputeAnswer body) {
+        return furniture.answerDispute(allocationId, body.answer());
     }
 
     @PostMapping("/students/me/check-out/agree")

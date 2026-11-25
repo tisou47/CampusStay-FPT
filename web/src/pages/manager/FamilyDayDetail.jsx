@@ -85,7 +85,7 @@ function Registrations({ day, manager }) {
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <h2 className="text-h3 font-semibold text-fg">{t('Registrations')}</h2>
         <SearchInput
-          wrapperClassName="w-72"
+          wrapperClassName="w-96 max-w-full"
           placeholder="Student, student code or guest"
           value={q}
           onChange={(e) => {

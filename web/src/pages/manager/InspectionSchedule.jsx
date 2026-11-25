@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, CalendarDays, ClipboardCheck, Plus, Repeat } from 'lucide-react'
+import { CalendarDays, ClipboardCheck, Plus } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -9,14 +9,12 @@ import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Card, ProgressBar } from '@/components/ui/Display'
 import { Field, Input, SearchInput, Select } from '@/components/ui/Field'
-import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, LoadingState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
-import { daysFromToday, formatDate, formatDateTime } from '@/lib/format'
-import { cx } from '@/lib/cx'
+import { formatDate, formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-MNT-20 Inspection Schedule (Figma 99:2569). Two views of the same Blocks: the schedules (with the editor beside
@@ -29,68 +27,12 @@ import { t, tr } from '@/i18n'
 //   block, blocks }
 // POST /inspection-schedules · PUT /inspection-schedules/:id
 
-const tone = { Active: 'success', Planned: 'info', Paused: 'neutral', 'In progress': 'info', Done: 'success', Completed: 'success' }
+const tone = { Active: 'success', Planned: 'info', Paused: 'neutral', Submitted: 'info', 'In progress': 'info', Done: 'success', Completed: 'success' }
+const scheduleDisplayStatus = (s) => (s?.status !== 'Completed' && s?.latestRunSubmitted ? 'Submitted' : s?.status)
 const blank = { name: '', checklistId: '', scope: '', repeat: '', assignee: '', dueWithinDays: 3, createRequests: true, notifyResidents: true }
 const NEW_ITEM = {}
 const ALL = 'all'
 const PRE_ARRIVAL_KEYS = ['pre-arrival', 'incoming']
-
-// "Kiểm tra an ninh · Tòa A" → "Kiểm tra an ninh": the block has its own column and title.
-const shortName = (name) => (tr(name) ?? '').replace(/\s*·\s*(Tòa|Block)\s+\S+\s*$/i, '')
-
-/** The runs a schedule started (same block and name), newest first. */
-const runsOf = (schedule, runs) =>
-  (runs ?? [])
-    .filter((r) => r.block === schedule.block && shortName(r.scheduleName) === shortName(schedule.name))
-    .sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))
-
-/** When the schedule starts its next run, in words. */
-function NextRun({ item }) {
-  if (item.status === 'Paused') return <span className="text-fg-tertiary">{t('Paused')}</span>
-  if (!item.nextRunAt) return <span className="text-fg-tertiary">{item.repeat === 'ONCE' ? t('Ran once') : '—'}</span>
-  const days = daysFromToday(item.nextRunAt)
-  return (
-    <span className="flex flex-col">
-      <span className="text-fg tabular">{formatDate(item.nextRunAt)}</span>
-      <span className="text-sm text-fg-tertiary">{days <= 0 ? t('Today') : days === 1 ? t('Tomorrow') : t('In {n} days', { n: days })}</span>
-    </span>
-  )
-}
-
-/** The latest runs of a schedule with their progress; one opens in the runs view. */
-function RecentRuns({ runs, onOpen }) {
-  return (
-    <section className="flex flex-col gap-2 border-t border-line pt-3">
-      <h3 className="text-sm font-semibold text-fg">{t('Latest runs of this schedule')}</h3>
-      {runs.length === 0 ? (
-        <p className="text-sm text-fg-tertiary">{t('No run yet: the first one starts on the next run date.')}</p>
-      ) : (
-        <ul className="flex flex-col gap-1.5">
-          {runs.slice(0, 3).map((r) => {
-            const done = r.inspected + r.unreachable
-            return (
-              <li key={r.id}>
-                <button type="button" onClick={() => onOpen(r.id)} className="flex w-full flex-col gap-1 rounded-lg border border-line px-3 py-2 text-left hover:border-line-strong hover:bg-subtle/40">
-                  <span className="flex items-center justify-between gap-2 text-sm">
-                    <span className="font-medium text-fg-brand">{r.id}</span>
-                    <span className="flex gap-1">
-                      {r.overdue && <Tag tone="error">Overdue</Tag>}
-                      <Tag tone={tone[r.status] ?? 'neutral'}>{r.status}</Tag>
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-2 text-sm text-fg-secondary">
-                    <ProgressBar value={done} max={r.rooms || 1} tone={r.status === 'Completed' ? 'success' : 'accent'} className="flex-1" />
-                    <span className="shrink-0 tabular">{t('{n}/{total} rooms', { n: done, total: r.rooms })}</span>
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </section>
-  )
-}
 
 // A schedule is pre-arrival by its scope only (WEB-OPS-07): names are free text in any language.
 function isPreArrivalSchedule(s) {
@@ -135,78 +77,48 @@ function Editor({ item, options, block, onSaved, onCancel }) {
   const opt = (list, placeholder = 'Choose…') => [{ value: '', label: placeholder, disabled: true }, ...(list ?? [])]
   const complete = form.name.trim() && form.checklistId && form.scope && form.repeat && form.assignee
   const checklist = options?.checklists?.find((c) => c.value === form.checklistId)
+  const assigneePlaceholder = block ? t('-- Choose a staff member of Block {code} --', { code: block }) : t('-- Choose a staff member --')
 
   return (
-    <Modal
-      open
-      width={880}
-      onClose={onCancel}
-      title={isNew ? t('New inspection schedule') : t('Edit {name}', { name: shortName(form.name) })}
-      description={[block && t('Block {code}', { code: block }), item.createdAt ? t('Created {date}', { date: formatDate(item.createdAt) }) : null].filter(Boolean).join(' · ') || undefined}
-      footer={
-        <>
-          <Button onClick={onCancel}>Cancel</Button>
-          {!isNew && (
-            <Button onClick={() => pause.run()} disabled={pause.pending}>
-              {item.status === 'Paused' ? t('Resume') : t('Pause')}
-            </Button>
-          )}
-          <Button variant="primary" onClick={() => save.run()} disabled={!complete || save.pending}>
-            {isNew ? t('Create schedule') : t('Save')}
-          </Button>
-        </>
-      }
-    >
-      {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
-      <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2">
-        <div className="flex flex-col gap-5">
-          <EditorStep n={1} title={t('What to check')}>
-            {isNew && <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. Air-conditioner filters" />}</Field>}
-            <Field label="Checklist" helper={t('The list of items staff tick in each room (Admin › Inspection checklists).')}>
-              {(id) => <Select id={id} value={form.checklistId} onChange={set('checklistId')} options={opt(options?.checklists, t('Choose a checklist'))} />}
-            </Field>
-          </EditorStep>
-          <EditorStep n={2} title={t('Which rooms')}>
-            <Field label="Scope">{(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={opt(options?.scopes, t('Choose the rooms'))} />}</Field>
-          </EditorStep>
-        </div>
-        <div className="flex flex-col gap-5">
-          <EditorStep n={3} title={t('How often')}>
-            <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
-              <Field label="Repeats">{(id) => <Select id={id} value={form.repeat} onChange={set('repeat')} options={opt(options?.repeats, t('Choose…'))} />}</Field>
-              <Field label="Days to finish" tip={t('Each run must be finished within this many days after it starts.')}>
-                {(id) => <Input id={id} value={form.dueWithinDays} onChange={set('dueWithinDays')} inputMode="numeric" />}
-              </Field>
-            </div>
-          </EditorStep>
-          <EditorStep n={4} title={t('Who does it')}>
-            <Field label="Assign to">{(id) => <Select id={id} value={form.assignee} onChange={set('assignee')} options={opt(options?.assignees, t('Choose a staff member of Block {code}', { code: block }))} />}</Field>
-          </EditorStep>
-          <EditorStep n={5} title={t('After the inspection')}>
-            <Checkbox label="Create maintenance requests for failed items" checked={form.createRequests} onChange={(e) => setForm((f) => ({ ...f, createRequests: e.target.checked }))} />
-            <Checkbox label="Notify residents when the inspection starts" checked={form.notifyResidents} onChange={(e) => setForm((f) => ({ ...f, notifyResidents: e.target.checked }))} />
-          </EditorStep>
-        </div>
+    <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
+      <div className="flex flex-col gap-0.5">
+        <h2 className="text-h3 font-semibold text-fg">{tr(form.name) || t('New schedule')}</h2>
+        <p className="text-sm text-fg-secondary">
+          {[block && t('Block {code}', { code: block }), item.createdAt ? t('Created {date}', { date: formatDate(item.createdAt) }) : t('Not saved yet')].filter(Boolean).join(' · ')}
+        </p>
       </div>
-    </Modal>
-  )
-}
-
-/** One numbered step of the schedule editor. */
-function EditorStep({ n, title, children }) {
-  return (
-    <section className="flex flex-col gap-2.5">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-fg">
-        <span className="flex size-5 items-center justify-center rounded-full bg-primary-subtle text-xs text-fg-brand">{n}</span>
-        {title}
-      </h3>
-      <div className="flex flex-col gap-3 pl-7">{children}</div>
-    </section>
+      {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
+      {isNew && <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. Air-conditioner filters" />}</Field>}
+      <Field label="Checklist" helper={checklist ? undefined : t('{n} published checklists to choose from.', { n: options?.checklists?.length ?? 0 })}>
+        {(id) => <Select id={id} value={form.checklistId} onChange={set('checklistId')} options={opt(options?.checklists, t('-- Choose a checklist --'))} />}
+      </Field>
+      <Field label="Scope">{(id) => <Select id={id} value={form.scope} onChange={set('scope')} options={opt(options?.scopes, t('-- Choose a scope --'))} />}</Field>
+      <Field label="Repeats">{(id) => <Select id={id} value={form.repeat} onChange={set('repeat')} options={opt(options?.repeats, t('-- Choose how often --'))} />}</Field>
+      <Field label="Assign to">{(id) => <Select id={id} value={form.assignee} onChange={set('assignee')} options={opt(options?.assignees, assigneePlaceholder)} />}</Field>
+      <Field label="Due within (days)">{(id) => <Input id={id} value={form.dueWithinDays} onChange={set('dueWithinDays')} inputMode="numeric" />}</Field>
+      <Checkbox label="Create maintenance requests for failed items" checked={form.createRequests} onChange={(e) => setForm((f) => ({ ...f, createRequests: e.target.checked }))} />
+      <Checkbox label="Notify residents when the inspection starts" checked={form.notifyResidents} onChange={(e) => setForm((f) => ({ ...f, notifyResidents: e.target.checked }))} />
+      <div className="flex justify-end gap-2">
+        {!isNew && onCancel && (
+          <Button onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+        {!isNew && (
+          <Button onClick={() => pause.run()} disabled={pause.pending}>
+            {item.status === 'Paused' ? t('Resume') : t('Pause')}
+          </Button>
+        )}
+        <Button variant="primary" onClick={() => save.run()} disabled={!complete || save.pending}>
+          Save
+        </Button>
+      </div>
+    </Card>
   )
 }
 
 /** Compact card for an already-assigned schedule: shows Pause/Resume and a small Edit button. */
-function ScheduleCard({ item, options, onEdit, runs, onOpenRun }) {
+function ScheduleCard({ item, options, linkedRunId, onEdit, onViewRun }) {
   const { notify, notifyError } = useToast()
   const pause = useMutation(() => api.inspections.updateSchedule(item.id, { status: item.status === 'Paused' ? 'Active' : 'Paused' }), {
     invalidates: ['inspection-schedules'],
@@ -220,16 +132,18 @@ function ScheduleCard({ item, options, onEdit, runs, onOpenRun }) {
   })
   const assigneeName = options?.assignees?.find((a) => a.value === item.assignee)?.label
   const isCompleted = item.status === 'Completed'
+  const displayStatus = scheduleDisplayStatus(item)
+  const targetRunId = item.latestRunId ?? linkedRunId
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{shortName(item.name)}</h2>
+          <h2 className="text-h3 font-semibold text-fg">{tr(item.name)}</h2>
           <p className="text-sm text-fg-secondary">
             {[item.block && t('Block {code}', { code: item.block }), item.createdAt ? t('Created {date}', { date: formatDate(item.createdAt) }) : null].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <Tag tone={tone[item.status] ?? 'neutral'}>{item.status}</Tag>
+        <Tag tone={tone[displayStatus] ?? 'neutral'}>{displayStatus}</Tag>
       </div>
       <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
         <dt className="text-fg-secondary">{t('Scope')}</dt>
@@ -240,44 +154,55 @@ function ScheduleCard({ item, options, onEdit, runs, onOpenRun }) {
         <dd className="font-medium text-fg">{assigneeName || '—'}</dd>
         <dt className="text-fg-secondary">{t('Next run')}</dt>
         <dd className="text-fg">{item.nextRunAt ? formatDateTime(item.nextRunAt) : '—'}</dd>
-        <dt className="text-fg-secondary">{t('Time to finish')}</dt>
-        <dd className="text-fg">{t('{n} days per run', { n: item.dueWithinDays })}</dd>
+        <dt className="text-fg-secondary">{t('Due within (days)')}</dt>
+        <dd className="text-fg">{item.dueWithinDays}</dd>
       </dl>
       {!isCompleted && item.latestRunSubmitted && (
         <Alert type="success" title="Staff submitted the inspection results">
           {t('Staff submitted the report of this schedule’s run. You can record it as done and end the schedule.')}
         </Alert>
       )}
-      {!isCompleted && (
-        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-          <Button size="sm" onClick={onEdit}>
-            Edit
-          </Button>
-          <Button onClick={() => pause.run()} disabled={pause.pending}>
-            {item.status === 'Paused' ? t('Resume') : t('Pause')}
-          </Button>
-          {item.latestRunSubmitted && (
+      {!isCompleted ? (
+        item.latestRunSubmitted ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+            {targetRunId && (
+              <Button onClick={() => onViewRun?.(targetRunId)}>
+                {t('View stats & details')}
+              </Button>
+            )}
             <Button variant="primary" onClick={() => completeSchedule.run()} disabled={completeSchedule.pending}>
-              End schedule
+              {t('Complete schedule')}
             </Button>
-          )}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+            <Button size="sm" onClick={onEdit}>
+              Edit
+            </Button>
+            <Button onClick={() => pause.run()} disabled={pause.pending}>
+              {item.status === 'Paused' ? t('Resume') : t('Pause')}
+            </Button>
+          </div>
+        )
+      ) : targetRunId ? (
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+          <Button variant="primary" onClick={() => onViewRun?.(targetRunId)}>
+            {t('View stats & details')}
+          </Button>
         </div>
-      )}
-      <RecentRuns runs={runs} onOpen={onOpenRun} />
+      ) : null}
     </Card>
   )
 }
 
 /** Every Block is shown: a schedule is read here and changed in its own Block. */
-function ScheduleSummary({ item, onOpenBlock, runs, onOpenRun }) {
+function ScheduleSummary({ item, linkedRunId, onOpenBlock, onViewRun }) {
+  const targetRunId = item.latestRunId ?? linkedRunId
   return (
     <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-3 overflow-y-auto">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="text-h3 font-semibold text-fg">{shortName(item.name)}</h2>
-          <p className="text-sm text-fg-secondary">{t('Block {code}', { code: item.block })}</p>
-        </div>
-        <Tag tone={tone[item.status] ?? 'neutral'}>{item.status}</Tag>
+      <div className="flex flex-col gap-0.5">
+        <h2 className="text-h3 font-semibold text-fg">{tr(item.name)}</h2>
+        <p className="text-sm text-fg-secondary">{t('Block {code}', { code: item.block })}</p>
       </div>
       <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
         <dt className="text-fg-secondary">{t('Scope')}</dt>
@@ -286,13 +211,29 @@ function ScheduleSummary({ item, onOpenBlock, runs, onOpenRun }) {
         <dd className="text-fg">{tr(item.repeatLabel)}</dd>
         <dt className="text-fg-secondary">{t('Next run')}</dt>
         <dd className="text-fg">{item.nextRunAt ? formatDateTime(item.nextRunAt) : '—'}</dd>
-        <dt className="text-fg-secondary">{t('Time to finish')}</dt>
-        <dd className="text-fg">{t('{n} days per run', { n: item.dueWithinDays })}</dd>
+        <dt className="text-fg-secondary">{t('Due within (days)')}</dt>
+        <dd className="text-fg">{item.dueWithinDays}</dd>
+        <dt className="text-fg-secondary">{t('Status')}</dt>
+        <dd>
+          {(() => {
+            const displayStatus = scheduleDisplayStatus(item)
+            return <Tag tone={tone[displayStatus] ?? 'neutral'}>{displayStatus}</Tag>
+          })()}
+        </dd>
       </dl>
-      <Button variant="text" icon={ArrowRight} className="self-start" onClick={() => onOpenBlock(item.block)} tip="A schedule is changed in its own block.">
-        {t('Edit in Block {code}', { code: item.block })}
-      </Button>
-      <RecentRuns runs={runs} onOpen={onOpenRun} />
+      <Alert type="info" title="Changed in its own Block">
+        {t('Every Block is shown. Open Block {code} to change this schedule or create one there.', { code: item.block })}
+      </Alert>
+      <div className="flex flex-wrap justify-end gap-2">
+        {targetRunId && (
+          <Button onClick={() => onViewRun?.(targetRunId)}>
+            {t('View stats & details')}
+          </Button>
+        )}
+        <Button variant="primary" onClick={() => onOpenBlock(item.block)}>
+          {t('Open Block {code}', { code: item.block })}
+        </Button>
+      </div>
     </Card>
   )
 }
@@ -451,7 +392,6 @@ export default function InspectionSchedule() {
   const [selectedId, setSelectedId] = useState(null)
   const [selectedRun, setSelectedRun] = useState(null)
   const [editing, setEditing] = useState(false)
-  const [creating, setCreating] = useState(false)
   useEffect(() => {
     setFilter(scopeBlock ?? ALL)
     setSelectedId(null)
@@ -463,20 +403,7 @@ export default function InspectionSchedule() {
   const query = useQuery(
     ['inspection-schedules', effectiveFilter],
     ({ signal }) => api.inspections.schedules({ block: effectiveFilter }, { signal }),
-    { keepPrevious: false },
   )
-  // Staff send their results from their own screens: read the runs again when the Manager comes back to this window
-  // and every 30 seconds, so a run sent shows as Completed with its results without reloading the page.
-  const reloadRuns = query.reload
-  useEffect(() => {
-    const refresh = () => document.visibilityState === 'visible' && reloadRuns()
-    window.addEventListener('focus', refresh)
-    const timer = setInterval(refresh, 30_000)
-    return () => {
-      window.removeEventListener('focus', refresh)
-      clearInterval(timer)
-    }
-  }, [reloadRuns])
   const one = effectiveFilter !== ALL
   const needle = q.trim().toLowerCase()
   const matches = (...texts) => !needle || texts.some((x) => (x ?? '').toLowerCase().includes(needle))
@@ -502,20 +429,21 @@ export default function InspectionSchedule() {
       if (da !== db) return da - db
       return String(b.date ?? '').localeCompare(String(a.date ?? ''))
     })
-  const selected = items.find((s) => s.id === selectedId) ?? items[0]
-  const run = runs.find((r) => r.id === selectedRun) ?? runs[0]
-  // The API lists only the chosen block once one is chosen: keep every block seen (and the session's) in the list.
-  const [knownBlocks, setKnownBlocks] = useState([])
-  useEffect(() => {
-    const list = query.data?.blocks ?? []
-    if (list.length) setKnownBlocks((all) => [...new Set([...all, ...list])].sort())
-  }, [query.data?.blocks])
-  const allBlocks = [...new Set([...(blocks ?? []), ...knownBlocks])].sort()
-  const blockOptions = [{ value: ALL, label: t('Every block') }, ...allBlocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]
-  const openRun = (id) => {
-    setSelectedRun(id)
+  const selected = selectedId === 'new' ? NEW_ITEM : items.find((s) => s.id === selectedId) ?? items[0]
+  const allRuns = query.data?.runs ?? []
+  const linkedRunOf = (s) => {
+    if (!s || !s.id) return null
+    if (s.latestRunId) return s.latestRunId
+    const found = allRuns.find((r) => r.scheduleId === s.id || (r.block === s.block && r.scheduleName === s.name))
+    return found?.id ?? null
+  }
+  const openRunStats = (runId) => {
+    if (runId) setSelectedRun(runId)
+    setQ('')
     setView('runs')
   }
+  const run = runs.find((r) => r.id === selectedRun) ?? runs[0]
+  const blockOptions = [{ value: ALL, label: t('Every Block in use') }, ...(query.data?.blocks ?? blocks).map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))]
   const openBlock = (code) => {
     setFilter(code)
     setSelectedId(null)
@@ -528,7 +456,7 @@ export default function InspectionSchedule() {
       <PageHeader
         title={one ? t('Inspection schedules · Block {code}', { code: effectiveFilter }) : 'Inspection schedules'}
         actions={
-          <Button variant="primary" icon={Plus} onClick={() => { setView('schedules'); setCreating(true) }} disabled={!query.data || !one} tip={one ? undefined : 'Choose a Block to create a schedule in it.'}>
+          <Button variant="primary" icon={Plus} onClick={() => { setView('schedules'); setSelectedId('new'); setEditing(true) }} disabled={!query.data || !one} tip={one ? undefined : 'Choose a Block to create a schedule in it.'}>
             New schedule
           </Button>
         }
@@ -538,13 +466,13 @@ export default function InspectionSchedule() {
           value={view}
           onChange={setView}
           options={[
-            { value: 'schedules', label: t('Schedules · {n}', { n: query.data?.items?.length ?? 0 }) },
-            { value: 'runs', label: t('Runs · {n}', { n: query.data?.runs?.length ?? 0 }) },
+            { value: 'schedules', label: t('Schedules in use · {n}', { n: query.data?.items?.length ?? 0 }) },
+            { value: 'runs', label: t('Inspection runs · {n}', { n: query.data?.runs?.length ?? 0 }) },
           ]}
         />
         {!scopeBlock && (
           <Select
-            wrapperClassName="w-44"
+            fit wrapperClassName="max-w-80"
             aria-label={t('Block')}
             value={effectiveFilter}
             onChange={(e) => {
@@ -558,70 +486,35 @@ export default function InspectionSchedule() {
         )}
         <SearchInput wrapperClassName="w-72" aria-label={t('Search')} placeholder={view === 'runs' ? 'Run code, staff or schedule' : 'Schedule name or scope'} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
-      <p className="-mt-1 flex shrink-0 items-center gap-1.5 text-sm text-fg-tertiary">
-        <Repeat size={14} aria-hidden="true" />
-        {view === 'runs'
-          ? t('A run is one round of a schedule: the rooms a staff member inspects by a date, with what was found.')
-          : t('A schedule is the plan (what, where, how often, who). Each time it is due it starts a run for staff.')}
-      </p>
 
-      {one && (creating || (editing && selected)) && (
-        <Editor
-          key={`${effectiveFilter}-${creating ? 'new' : selected.id}`}
-          item={creating ? NEW_ITEM : selected}
-          options={query.data?.options}
-          block={effectiveFilter}
-          onSaved={(id) => {
-            if (id) setSelectedId(id)
-            setCreating(false)
-            setEditing(false)
-          }}
-          onCancel={() => {
-            setCreating(false)
-            setEditing(false)
-          }}
-        />
-      )}
       {view === 'schedules' ? (
         <div className="flex min-h-0 flex-1 items-stretch gap-4">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
             <Table fill>
               <THead>
                 <tr>
-                  <Th>Schedule</Th>
+                  <Th className="w-56">Schedule</Th>
                   {!one && <Th className="w-20">Block</Th>}
+                  <Th>Scope</Th>
                   <Th className="w-36">Repeats</Th>
-                  <Th className="w-36">Next run</Th>
-                  <Th className="w-36">Status</Th>
+                  <Th className="w-28">Next run</Th>
+                  <Th className="w-25">Status</Th>
                 </tr>
               </THead>
               <TBody>
-                <TableStatus query={query} colSpan={one ? 4 : 5} rows={items} emptyIcon={CalendarDays} emptyTitle="No schedules yet" emptyText="Create one to send inspection runs to staff." />
+                <TableStatus query={query} colSpan={one ? 5 : 6} rows={items} emptyIcon={CalendarDays} emptyTitle="No schedules yet" emptyText="Create one to send inspection runs to staff." />
                 {items.map((s) => (
                   <Tr key={s.id} selected={s.id === selected?.id} onClick={() => { setSelectedId(s.id); setEditing(false) }} className="[&>td]:h-15.5">
-                    <Td>
-                      <span className="flex flex-col">
-                        <span className="font-medium text-fg-brand">{shortName(s.name)}</span>
-                        <span className="text-sm text-fg-tertiary">{tr(s.scopeLabel)}</span>
-                      </span>
-                    </Td>
-                    {!one && (
-                      <Td>
-                        <Tag dot={false}>{s.block}</Tag>
-                      </Td>
-                    )}
+                    <Td className="font-medium text-fg-brand">{tr(s.name)}</Td>
+                    {!one && <Td>{s.block}</Td>}
+                    <Td>{tr(s.scopeLabel)}</Td>
                     <Td>{tr(s.repeatLabel)}</Td>
+                    <Td>{s.nextRunAt ? formatDate(s.nextRunAt) : s.repeat === 'ONCE' ? <span className="text-sm text-fg-tertiary">{t('One-off (started)')}</span> : '—'}</Td>
                     <Td>
-                      <NextRun item={s} />
-                    </Td>
-                    <Td>
-                      <span className="flex flex-col items-start gap-1">
-                        <Tag tone={tone[s.status] ?? 'neutral'}>{s.status}</Tag>
-                        {(() => {
-                          const open = runsOf(s, query.data?.runs).filter((r) => r.status !== 'Completed').length
-                          return open > 0 ? <span className="text-xs text-fg-tertiary">{t('{n} runs open', { n: open })}</span> : null
-                        })()}
-                      </span>
+                      {(() => {
+                        const displayStatus = scheduleDisplayStatus(s)
+                        return <Tag tone={tone[displayStatus] ?? 'neutral'}>{displayStatus}</Tag>
+                      })()}
                     </Td>
                   </Tr>
                 ))}
@@ -633,9 +526,29 @@ export default function InspectionSchedule() {
               <LoadingState />
             </Card>
           ) : selected && one ? (
-            <ScheduleCard item={selected} options={query.data?.options} onEdit={() => setEditing(true)} runs={runsOf(selected, query.data?.runs)} onOpenRun={openRun} />
+            editing || selectedId === 'new' || !selected.assignee ? (
+              <Editor
+                key={`${effectiveFilter}-${selected.id ?? 'new'}`}
+                item={selected}
+                options={query.data?.options}
+                block={effectiveFilter}
+                onSaved={(id) => {
+                  if (id) setSelectedId(id)
+                  setEditing(false)
+                }}
+                onCancel={selected.assignee ? () => setEditing(false) : undefined}
+              />
+            ) : (
+              <ScheduleCard
+                item={selected}
+                options={query.data?.options}
+                linkedRunId={linkedRunOf(selected)}
+                onEdit={() => setEditing(true)}
+                onViewRun={openRunStats}
+              />
+            )
           ) : selected?.id ? (
-            <ScheduleSummary item={selected} onOpenBlock={openBlock} runs={runsOf(selected, query.data?.runs)} onOpenRun={openRun} />
+            <ScheduleSummary item={selected} linkedRunId={linkedRunOf(selected)} onOpenBlock={openBlock} onViewRun={openRunStats} />
           ) : (
             <Card className="flex w-95 shrink-0 flex-col">
               <EmptyBlock icon={CalendarDays} title="Select a schedule" />
@@ -645,6 +558,9 @@ export default function InspectionSchedule() {
       ) : (
         <div className="flex min-h-0 flex-1 items-stretch gap-4">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5">
+            <p className="shrink-0 px-0.5 text-sm text-fg-tertiary">
+              {t('Actual execution runs generated from the schedules (code, assigned staff, room progress and items not passed).')}
+            </p>
             <Table fill>
               <THead>
                 <tr>
@@ -662,22 +578,13 @@ export default function InspectionSchedule() {
                 {runs.map((r) => (
                   <Tr key={r.id} selected={r.id === run?.id} onClick={() => setSelectedRun(r.id)} className="[&>td]:h-15.5">
                     <Td className="font-medium text-fg-brand">{r.id}</Td>
-                    {!one && (
-                      <Td>
-                        <Tag dot={false}>{r.block}</Tag>
-                      </Td>
-                    )}
+                    {!one && <Td>{r.block}</Td>}
                     <Td>
-                      <TwoLine primary={shortName(r.scheduleName) || '—'} secondary={r.assigneeName ?? '—'} />
+                      <TwoLine primary={tr(r.scheduleName) || '—'} secondary={r.assigneeName ?? '—'} />
                     </Td>
                     <Td>{r.date ? formatDate(r.date) : '—'}</Td>
-                    <Td>
-                      <span className="flex flex-col gap-1">
-                        <span className="text-sm tabular">
-                          {r.inspected + r.unreachable} / {r.rooms}
-                        </span>
-                        <ProgressBar value={r.inspected + r.unreachable} max={r.rooms || 1} tone={r.status === 'Completed' ? 'success' : 'accent'} className="h-1.5 w-20" />
-                      </span>
+                    <Td className="tabular">
+                      {r.inspected + r.unreachable} / {r.rooms}
                     </Td>
                     <Td className={r.failed ? 'font-semibold text-error-fg tabular' : 'tabular'}>{r.failed}</Td>
                     <Td>

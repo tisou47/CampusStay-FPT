@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { KpiTile } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { DetailRows } from '@/components/ui/Display'
-import { Field, FilePicker, Input, SearchInput, Select } from '@/components/ui/Field'
+import { Field, FilePicker, FilterSelect, Input, SearchInput, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
@@ -176,55 +176,51 @@ export default function Payments() {
         />
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
         <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select
-          wrapperClassName="w-38"
-          aria-label={t('Type')}
+        <FilterSelect
+          label="Type"
           value={type}
-          onChange={filter(setType)}
+          onChange={(v) => filter(setType)({ target: { value: v } })}
           options={[
-            { value: '', label: 'Type: All' },
-            { value: 'deposit', label: 'Type: deposit' },
-            { value: 'balance', label: 'Type: balance' },
-            { value: 'termFee', label: 'Type: Next-term fee' },
-            { value: 'utility', label: 'Type: utility' },
-            { value: 'roomChange', label: 'Type: room change' },
+            { value: '', label: 'All' },
+            { value: 'deposit', label: 'deposit' },
+            { value: 'balance', label: 'balance' },
+            { value: 'termFee', label: 'Next-term fee' },
+            { value: 'utility', label: 'utility' },
+            { value: 'roomChange', label: 'room change' },
           ]}
         />
-        <Select
-          wrapperClassName="w-44"
-          aria-label={t('Status')}
+        <FilterSelect
+          label="Status"
           value={status}
-          onChange={filter(setStatus)}
+          onChange={(v) => filter(setStatus)({ target: { value: v } })}
           options={[
-            { value: '', label: 'Status: All' },
-            { value: AWAITING, label: 'Status: Awaiting' },
-            { value: 'Paid', label: 'Status: Paid' },
-            { value: 'Unpaid', label: 'Status: Unpaid' },
+            { value: '', label: 'All' },
+            { value: AWAITING, label: 'Awaiting' },
+            { value: 'Paid', label: 'Paid' },
+            { value: 'Unpaid', label: 'Unpaid' },
           ]}
         />
-        <Select
-          wrapperClassName="w-39"
-          aria-label={t('Method')}
+        <FilterSelect
+          label="Method"
           value={method}
-          onChange={filter(setMethod)}
+          onChange={(v) => filter(setMethod)({ target: { value: v } })}
           options={[
-            { value: '', label: 'Method: All' },
-            { value: 'Bank transfer', label: 'Method: Bank transfer' },
-            { value: 'VietQR', label: 'Method: VietQR' },
-            { value: 'Manual transfer', label: 'Method: Manual' },
+            { value: '', label: 'All' },
+            { value: 'Bank transfer', label: 'Bank transfer' },
+            { value: 'VietQR', label: 'VietQR' },
+            { value: 'Manual transfer', label: 'Manual' },
           ]}
         />
-        <Select
-          wrapperClassName="w-42"
-          aria-label={t('Date')}
+        <FilterSelect
+          label="Date"
           value={date}
-          onChange={filter(setDate)}
+          onChange={(v) => filter(setDate)({ target: { value: v } })}
           options={[
-            { value: 'today', label: 'Date: Today' },
-            { value: '7d', label: 'Date: Last 7 days' },
-            { value: 'term', label: 'Date: This term' },
+            { value: 'today', label: 'Today' },
+            { value: '7d', label: 'Last 7 days' },
+            { value: 'term', label: 'This term' },
           ]}
         />
       </div>

@@ -10,7 +10,7 @@ import {
   Clock,
   KeyRound,
   PackageCheck,
-  ScanLine,
+  Search,
   UserX,
   Zap,
 } from 'lucide-react'
@@ -25,6 +25,7 @@ import { Field, FilePicker, SearchInput, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState, QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
+import { InfoTip } from '@/components/ui/Tooltip'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
 import { t, tr } from '@/i18n'
@@ -485,6 +486,37 @@ function sideStudentBadge(r, side) {
   return null
 }
 
+/** Shared row item for both the desk sidebar list and its "View all" modal. */
+function SideStudentRow({ r, side, active, onSelect }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => r.studentCode && onSelect(r.studentCode)}
+        disabled={!r.studentCode}
+        className={cx(
+          'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors',
+          active ? 'bg-brand-subtle' : 'bg-subtle/40 hover:bg-subtle',
+        )}
+      >
+        {side === 'inProgress' ? (
+          <KeyRound size={15} aria-hidden="true" className="shrink-0 text-warning-fg" />
+        ) : (
+          <Clock size={15} aria-hidden="true" className={cx('shrink-0', side === 'blocked' ? 'text-error-fg' : 'text-fg-brand')} />
+        )}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate text-sm font-medium text-fg">{r.name}</span>
+          <span className="truncate text-xs text-fg-secondary">{[r.studentCode, r.bed, r.handoverId].filter(Boolean).join(' · ')}</span>
+        </span>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {sideStudentBadge(r, side)}
+          {r.at && <span className="text-xs text-fg-tertiary tabular">{formatTime(r.at)}</span>}
+        </div>
+      </button>
+    </li>
+  )
+}
+
 /** A count of the desk's side panel; a click lists its students below. */
 function SideTile({ label, value, tone, active, onClick }) {
   return (
@@ -493,7 +525,7 @@ function SideTile({ label, value, tone, active, onClick }) {
       aria-pressed={active}
       onClick={onClick}
       className={cx(
-        'flex items-center justify-between rounded-lg px-3 py-2 text-left ring-primary transition-colors',
+        'flex flex-col items-start justify-between gap-1 rounded-lg px-2.5 py-2 text-left ring-primary transition-colors',
         tone === 'error'
           ? 'bg-error-bg/60 hover:bg-error-bg'
           : tone === 'warning'
@@ -502,15 +534,15 @@ function SideTile({ label, value, tone, active, onClick }) {
         active && 'ring-2',
       )}
     >
-      <span className="text-fg-secondary">{t(label)}</span>
       <span
         className={cx(
-          'font-semibold tabular',
+          'text-sm font-semibold tabular',
           tone === 'error' ? 'text-error-fg' : tone === 'warning' ? 'text-warning-fg' : 'text-fg',
         )}
       >
         {value}
       </span>
+      <span className="text-[11px] leading-tight text-fg-secondary">{t(label)}</span>
     </button>
   )
 }
@@ -543,8 +575,10 @@ export default function CheckInDesk() {
   const lookup = useQuery(['check-in', 'lookup', scope.termId, search], ({ signal }) => api.desk.checkInLookup({ termId: scope.termId, q: search }, { signal }), { enabled: Boolean(search), keepPrevious: false })
   const d0 = today.data
   const person = search ? lookup.data?.student : null
-  // The side list: checked-in students, in-room inventory in progress, waiting at the desk or blocked; a click opens the student here.
+  // The side list: checked-in students, in-room inventory in progress, waiting to start or blocked; a click opens the student here.
   const [side, setSide] = useState('recent')
+  const [listOpen, setListOpen] = useState(false)
+  const [listQuery, setListQuery] = useState('')
   const sideRows =
     (side === 'inProgress'
       ? d0?.inProgressList
@@ -553,23 +587,31 @@ export default function CheckInDesk() {
         : side === 'blocked'
           ? d0?.blockedList
           : d0?.checkedInList ?? d0?.recent) ?? []
+  const needle = listQuery.trim().toLowerCase()
+  const modalRows = needle
+    ? sideRows.filter((r) =>
+        [r.name, r.studentCode, r.bed, r.handoverId].filter(Boolean).some((v) => v.toLowerCase().includes(needle)),
+      )
+    : sideRows
   const openStudent = (code) => {
     setQ(code)
     setSearch(code)
+    setListOpen(false)
   }
 
   return (
     <>
       <PageHeader
-        title="Check-in desk"
-        actions={<DeskModeSwitch mode="in" />}
+        title="Check-in"
+        tip="Search by student code or name to open a check-in record."
+        badge={d0?.date && <Tag tone="neutral">{formatDate(d0.date)}</Tag>}
       />
 
       <div className="flex shrink-0 items-center gap-3">
         <SearchInput
           ref={input}
           size="lg"
-          wrapperClassName="w-120"
+          wrapperClassName="w-full max-w-[480px]"
           aria-label={t('Student code or name')}
           placeholder="Student code or name"
           value={q}
@@ -577,14 +619,13 @@ export default function CheckInDesk() {
           onKeyDown={(e) => e.key === 'Enter' && setSearch(q.trim())}
           autoFocus
         />
-        {/* A QR scanner types the pass into this focused box and presses Enter: no separate scan button. */}
       </div>
 
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
+      <div className="flex min-h-[540px] flex-1 items-stretch gap-4">
         {!search ? (
           <Card padding="none" className="flex min-w-0 flex-1 flex-col">
-            <EmptyBlock icon={ScanLine} title="Waiting for the next student">
-              Scan a QR pass or type a student code.
+            <EmptyBlock icon={Search} title="Waiting for the next student">
+              Enter a student code or name above to open their record.
             </EmptyBlock>
           </Card>
         ) : lookup.loading && !lookup.data ? (
@@ -609,18 +650,18 @@ export default function CheckInDesk() {
         ) : (
           <Card padding="none" className="flex min-w-0 flex-1 flex-col">
             <EmptyBlock icon={UserX} title={t('No student matches “{q}”', { q: search })}>
-              Check the student code, or ask the student to open the QR pass in the Android app.
+              Check the student code or name and try again.
             </EmptyBlock>
           </Card>
         )}
 
-        <div className="flex w-90 shrink-0 flex-col gap-4 overflow-y-auto">
-          <Card className="flex shrink-0 flex-col gap-3">
+        <div className="flex w-96 shrink-0 flex-col gap-3">
+          <Card className="flex shrink-0 flex-col gap-2.5 p-4">
             <h2 className="text-h3 font-semibold text-fg">{t('Today')}{d0?.block ? ` · ${t('Block {code}', { code: d0.block })}` : ''}</h2>
             <QueryState query={today} compact>
               {(d) => (
                 <>
-                  <div className="flex flex-col gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2">
                     <SideTile label="Checked in" value={t('{n} of {total}', { n: formatNumber(d.checkedIn), total: formatNumber(d.expected) })} active={side === 'recent'} onClick={() => setSide('recent')} />
                     <SideTile label="In room · Inventory in progress" value={formatNumber(d.inProgress ?? 0)} tone="warning" active={side === 'inProgress'} onClick={() => setSide('inProgress')} />
                     <SideTile label="Awaiting room inventory" value={formatNumber(d.waiting)} active={side === 'waiting'} onClick={() => setSide('waiting')} />
@@ -632,42 +673,72 @@ export default function CheckInDesk() {
             </QueryState>
           </Card>
 
-          <Card className="flex min-h-40 flex-1 flex-col gap-2.5">
-            <h2 className="shrink-0 text-h3 font-semibold text-fg">{t(sideTitles[side])}</h2>
-            <p className="shrink-0 text-xs text-fg-secondary">{t('Click a student to open them at the desk.')}</p>
-            <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
+          <Card className="flex min-h-0 flex-1 flex-col gap-2.5 p-4">
+            <div className="flex shrink-0 items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <h2 className="truncate text-h3 font-semibold text-fg">{t(sideTitles[side])}</h2>
+                <InfoTip label={t('Click a student to open them at the desk.')} side="bottom" align="start" />
+              </div>
+              {sideRows.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="text"
+                  onClick={() => {
+                    setListQuery('')
+                    setListOpen(true)
+                  }}
+                >
+                  {t('View all ({n})', { n: formatNumber(sideRows.length) })}
+                </Button>
+              )}
+            </div>
+            <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-0.5">
               {sideRows.map((r) => (
-                <li key={`${r.studentCode ?? r.name}-${r.bed}`}>
-                  <button
-                    type="button"
-                    onClick={() => r.studentCode && openStudent(r.studentCode)}
-                    disabled={!r.studentCode}
-                    className={cx(
-                      'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors',
-                      person?.studentCode === r.studentCode ? 'bg-brand-subtle' : 'bg-subtle/40 hover:bg-subtle',
-                    )}
-                  >
-                    {side === 'inProgress' ? (
-                      <KeyRound size={15} aria-hidden="true" className="shrink-0 text-warning-fg" />
-                    ) : (
-                      <Clock size={15} aria-hidden="true" className={cx('shrink-0', side === 'blocked' ? 'text-error-fg' : 'text-fg-brand')} />
-                    )}
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate text-sm font-medium text-fg">{r.name}</span>
-                      <span className="truncate text-xs text-fg-secondary">{[r.studentCode, r.bed, r.handoverId].filter(Boolean).join(' · ')}</span>
-                    </span>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      {sideStudentBadge(r, side)}
-                      {r.at && <span className="text-xs text-fg-tertiary tabular">{formatTime(r.at)}</span>}
-                    </div>
-                  </button>
-                </li>
+                <SideStudentRow
+                  key={`${r.studentCode ?? r.name}-${r.bed}`}
+                  r={r}
+                  side={side}
+                  active={person?.studentCode === r.studentCode}
+                  onSelect={openStudent}
+                />
               ))}
               {d0 && !sideRows.length && <li className="text-sm text-fg-secondary">{t(sideEmpty[side])}</li>}
             </ul>
           </Card>
         </div>
       </div>
+
+      <Modal
+        open={listOpen}
+        onClose={() => setListOpen(false)}
+        title={t(sideTitles[side])}
+        description={t('Click a student to open them at the desk.')}
+        width={640}
+      >
+        <SearchInput
+          aria-label={t('Filter by name, student code or bed')}
+          placeholder="Filter by name, student code or bed"
+          value={listQuery}
+          onChange={(e) => setListQuery(e.target.value)}
+          autoFocus
+        />
+        <ul className="flex max-h-[55dvh] flex-col gap-1.5 overflow-y-auto pr-0.5">
+          {modalRows.map((r) => (
+            <SideStudentRow
+              key={`${r.studentCode ?? r.name}-${r.bed}`}
+              r={r}
+              side={side}
+              active={person?.studentCode === r.studentCode}
+              onSelect={openStudent}
+            />
+          ))}
+          {!modalRows.length && (
+            <li className="py-6 text-center text-sm text-fg-secondary">
+              {sideRows.length ? t('No student matches “{q}”', { q: listQuery.trim() }) : t(sideEmpty[side])}
+            </li>
+          )}
+        </ul>
+      </Modal>
     </>
   )
 }

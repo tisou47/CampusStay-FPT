@@ -17,6 +17,8 @@ import vn.fpt.campusstay.event.CheckInInventorySubmitted;
 import vn.fpt.campusstay.event.CheckInToAgree;
 import vn.fpt.campusstay.event.CheckInVisit;
 import vn.fpt.campusstay.event.CheckOutCompleted;
+import vn.fpt.campusstay.event.CheckOutDisputeAnswered;
+import vn.fpt.campusstay.event.CheckOutDisputed;
 import vn.fpt.campusstay.event.CheckOutToAgree;
 import vn.fpt.campusstay.event.DamageToAcknowledge;
 
@@ -78,13 +80,25 @@ class HandoverNotificationListener {
     @EventListener
     void on(DamageToAcknowledge e) {
         notifier.notify(e.studentId(), "DAMAGE_TO_ACKNOWLEDGE", Map.of("item", e.item(), "room", e.room(),
-                "condition", e.condition(), "dueAt", when(e.dueAt()), "amount", money(e.amount())), "/student/room/inventory");
+                "condition", e.condition(), "dueAt", when(e.dueAt()), "amount", money(e.amount())), "/student/room/check-out");
     }
 
     @EventListener
     void on(CheckOutToAgree e) {
         notifier.notify(e.studentId(), "CHECK_OUT_TO_AGREE", Map.of("room", e.room(), "amount", money(e.amount())),
-                "/student/room/inventory");
+                "/student/room/check-out");
+    }
+
+    @EventListener
+    void on(CheckOutDisputed e) {
+        notifier.notify(e.staffId(), "CHECK_OUT_DISPUTED", Map.of("student", e.student(), "room", e.room(),
+                "reason", e.reason()), "/staff/check-out");
+    }
+
+    @EventListener
+    void on(CheckOutDisputeAnswered e) {
+        notifier.notify(e.studentId(), "CHECK_OUT_DISPUTE_ANSWERED", Map.of("room", e.room(),
+                "amount", money(e.amount()), "answer", e.answer()), "/student/room/check-out");
     }
 
     @EventListener

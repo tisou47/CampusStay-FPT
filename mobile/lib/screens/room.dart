@@ -8,6 +8,7 @@ import '../common.dart';
 import '../files.dart';
 import 'activity.dart';
 import 'applications.dart';
+import 'checkout.dart';
 import 'handover.dart';
 import 'apply.dart';
 import 'payments.dart';
@@ -164,8 +165,20 @@ class _RoomState extends State<_Room> {
           ],
         ),
         ...switch (_tab) {
-          'furniture' => [_FurnitureCard(items: _furniture, report: () => _open(const NewMaintenanceScreen()))],
+          'furniture' => [
+            _FurnitureCard(
+              items: _furniture,
+              report: () => _open(const NewMaintenanceScreen()),
+              changed: (items) => setState(() => _furniture = items),
+            ),
+          ],
           'contract' => [
+            _CheckOutCard(
+              data: data,
+              furniture: _furniture,
+              open: _open,
+              showFurniture: () => setState(() => _tab = 'furniture'),
+            ),
             _StayContract(data: data, open: _open),
             _StayMilestones(data: data),
             _NextTermCard(data: data, reload: widget.reload),
@@ -424,13 +437,31 @@ class _Roommates extends StatelessWidget {
   }
 }
 
-/// Furniture & equipment (web `FurnitureCard`): one tile per type with its count and the status of its items (never
-/// the asset codes), and "Report broken equipment".
+/// Furniture & equipment (web `FurnitureCard`): one tile per type with its count, the status of its items (never the
+/// asset codes) and what the student declared; "Report broken equipment", and the in-stay declaration of a worn,
+/// damaged or missing item that Staff check at check-out. `PUT /students/me/furniture/report`.
 class _FurnitureCard extends StatelessWidget {
-  const _FurnitureCard({required this.items, required this.report});
+  const _FurnitureCard({required this.items, required this.report, required this.changed});
 
   final List<Json>? items;
   final VoidCallback report;
+
+  /// The Room's items after a declaration (the API answers with them).
+  final ValueChanged<List<Json>> changed;
+
+  String _place(Json i) => i.flag('personal') && i.str('bed') != null
+      ? t('Bed ${i.text('bed')}', 'Giường ${i.text('bed')}')
+      : t('Shared', 'Dùng chung');
+
+  /// Declaring needs a photo of the item, taken on the Check-out page; the items are read again after it.
+  Future<void> _declare(BuildContext context, List<Json> reportable, Json? item) async {
+    await push(context, const CheckOutScreen());
+    try {
+      changed((await Api.get('/students/me/furniture')).objects('items'));
+    } on ApiException {
+      // the list on screen stays
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -440,13 +471,18 @@ class _FurnitureCard extends StatelessWidget {
         child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()),
       );
     }
-    final groups = <String, Map<String, int>>{};
+    final reportable = list.where((i) => i.str('itemId') != null && i['reportable'] != false).toList();
+    final reported = list.where((i) => i.str('reportedCondition') != null).toList();
+    final groups = <String, List<Json>>{};
     for (final i in list) {
-      final statuses = groups.putIfAbsent(furnitureName(i), () => {});
-      statuses.update(i.str('status') ?? 'In use', (n) => n + 1, ifAbsent: () => 1);
+      groups.putIfAbsent(furnitureName(i), () => []).add(i);
     }
-    Widget tile(MapEntry<String, Map<String, int>> g) {
-      final count = g.value.values.fold(0, (s, n) => s + n);
+
+    Widget tile(MapEntry<String, List<Json>> g) {
+      final statuses = <String, int>{};
+      for (final i in g.value) {
+        statuses.update(i.str('status') ?? 'In use', (n) => n + 1, ifAbsent: () => 1);
+      }
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: Tokens.subtle, borderRadius: BorderRadius.circular(12)),
@@ -474,7 +510,7 @@ class _FurnitureCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(999)),
                   child: Text(
-                    '× $count',
+                    '× ${g.value.length}',
                     style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Tokens.fgBrand),
                   ),
                 ),
@@ -484,8 +520,16 @@ class _FurnitureCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: [
-                for (final MapEntry(key: status, value: n) in g.value.entries)
-                  Tag(g.value.length > 1 ? '${label(status)} ($n)' : label(status), tone: toneOf(status)),
+                for (final MapEntry(key: status, value: n) in statuses.entries)
+                  Tag(statuses.length > 1 ? '${label(status)} ($n)' : label(status), tone: toneOf(status)),
+                for (final i in g.value.where((i) => i.str('reportedCondition') != null))
+                  Tag(
+                    t(
+                      'Declared: ${conditionName(i.str('reportedCondition'))}',
+                      'Đã kê khai: ${conditionName(i.str('reportedCondition'))}',
+                    ),
+                    tone: conditionTone(i.str('reportedCondition')),
+                  ),
               ],
             ),
           ],
@@ -497,11 +541,94 @@ class _FurnitureCard extends StatelessWidget {
     return Section(
       title: '${t('Furniture & equipment', 'Nội thất & Thiết bị')} (${list.length})',
       children: [
-        BusyButton(
-          label: t('Report broken equipment', 'Báo cáo hỏng hóc'),
-          icon: Icons.build_outlined,
-          onPressed: report,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 8,
+          children: [
+            BusyButton(
+              label: t('Report broken equipment', 'Báo cáo hỏng hóc'),
+              icon: Icons.build_outlined,
+              onPressed: report,
+            ),
+            if (reportable.isNotEmpty)
+              BusyButton(
+                label: t('Declare damaged / missing', 'Kê khai hư hỏng / mất'),
+                icon: Icons.edit_note,
+                outlined: true,
+                onPressed: () => _declare(context, reportable, null),
+              ),
+          ],
         ),
+        if (reported.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 6, 6),
+            decoration: BoxDecoration(
+              color: Tone.warning.bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Tone.warning.mark.withValues(alpha: 0.4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  spacing: 8,
+                  children: [
+                    Icon(Icons.warning_amber_rounded, size: 18, color: Tone.warning.fg),
+                    Expanded(
+                      child: Text(
+                        t(
+                          'Declared furniture issues during stay (${reported.length})',
+                          'Nội thất bạn đã kê khai hư hỏng / mất trong kỳ ở (${reported.length})',
+                        ),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: Tone.warning.fg),
+                      ),
+                    ),
+                  ],
+                ),
+                for (final i in reported)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            spacing: 4,
+                            children: [
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    '${furnitureName(i)} · ${_place(i)}',
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  Tag(
+                                    conditionName(i.str('reportedCondition')),
+                                    tone: conditionTone(i.str('reportedCondition')),
+                                  ),
+                                ],
+                              ),
+                              if (i.str('reportedNote') != null)
+                                Text(
+                                  i.text('reportedNote'),
+                                  style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (i['reportable'] != false)
+                        TextButton(
+                          onPressed: () => _declare(context, reportable, i),
+                          child: Text(t('Update', 'Cập nhật')),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
         if (list.isEmpty)
           Text(
             t('No furniture recorded in this Room.', 'Chưa ghi nhận nội thất nào trong phòng này.'),
@@ -526,11 +653,191 @@ class _FurnitureCard extends StatelessWidget {
           ),
         Note(
           t(
-            'Something broken? Report it from requests so Staff can repair it.',
-            'Có đồ bị hỏng? Hãy báo trong mục Yêu cầu để nhân viên sửa.',
+            'You can declare worn, damaged or missing furniture during your stay so Staff can verify it when you check out. Something to repair? Report it from Requests.',
+            'Bạn có thể kê khai nội thất hao mòn, hư hỏng hoặc mất trong quá trình ở để nhân viên đối chiếu khi trả phòng. Cần sửa chữa? Hãy báo trong mục Yêu cầu.',
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Check-out (the student's side of the web's check-out at the desk): shown when the stay ends (a termination, no Bed
+/// next Term) or Staff have recorded the furniture charges. The day to check out by, the three steps at the desk
+/// (final meters, the furniture against the check-in record and what the student declared, the Utility Deposit
+/// settlement), and the charges to answer. `GET /students/me/check-out`.
+class _CheckOutCard extends StatefulWidget {
+  const _CheckOutCard({required this.data, required this.furniture, required this.open, required this.showFurniture});
+
+  final Json data;
+  final List<Json>? furniture;
+  final Future<void> Function(Widget page) open;
+
+  /// Opens the Furniture & equipment tab (to declare an item before check-out).
+  final VoidCallback showFurniture;
+
+  @override
+  State<_CheckOutCard> createState() => _CheckOutCardState();
+}
+
+class _CheckOutCardState extends State<_CheckOutCard> {
+  Json? _charges;
+
+  @override
+  void initState() {
+    super.initState();
+    Api.get('/students/me/check-out').then((d) {
+      if (mounted) setState(() => _charges = d);
+    }, onError: (_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = widget.data;
+    final termination = data.obj('termination');
+    final next = data.obj('nextTerm');
+    final leaving = next?.str('state') == 'Not continuing';
+    final c = _charges;
+    final saved = c?.flag('saved') ?? false;
+    final claims = c?.objects('claims').where((x) => x.str('status') == 'Pending').length ?? 0;
+    final agreed = c?.str('agreedAt') != null;
+    final checkedOut = termination?.str('status') == 'Checked out';
+    if (termination == null && !leaving && !saved && claims == 0) return const SizedBox.shrink();
+    final by = termination?.str('moveOutBy') ?? next?.obj('window')?.str('checkOutBy') ?? next?.str('checkOutBy');
+    final declared = (widget.furniture ?? const <Json>[]).where((i) => i.str('reportedCondition') != null).length;
+
+    return Panel(
+      border: claims > 0 || (saved && !agreed) ? Tone.warning.mark.withValues(alpha: 0.5) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12,
+        children: [
+          Row(
+            spacing: 10,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(9)),
+                child: const Icon(Icons.logout, size: 19, color: Tokens.fgBrand),
+              ),
+              Expanded(
+                child: Text(
+                  t('Check-out', 'Trả phòng'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Tag(
+                checkedOut
+                    ? t('Checked out', 'Đã trả phòng')
+                    : agreed
+                    ? t('Charges agreed', 'Đã đồng ý khoản đền')
+                    : t('Coming up', 'Sắp trả phòng'),
+                tone: checkedOut || agreed ? Tone.success : Tone.warning,
+              ),
+            ],
+          ),
+          if (by != null && !checkedOut)
+            InfoRow(
+              icon: Icons.event_outlined,
+              name: t('Check out at the desk by', 'Trả phòng tại quầy trước'),
+              value: day(by),
+            ),
+          if (termination != null)
+            InfoRow(
+              icon: Icons.info_outline,
+              name: t('Reason', 'Lý do'),
+              value: joinDot([label(termination.str('reason')), termination.str('note')]),
+            )
+          else if (leaving && next?.str('endReason') != null)
+            InfoRow(icon: Icons.info_outline, name: t('Reason', 'Lý do'), value: label(next!.str('endReason'))),
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            decoration: BoxDecoration(
+              color: Tokens.subtle.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Milestones(
+              items: [
+                (
+                  title: t('Final meter reading', 'Chỉ số công tơ cuối'),
+                  text: t(
+                    'Staff read the Room\'s electricity and water meters when you leave.',
+                    'Nhân viên ghi chỉ số điện, nước của phòng khi bạn rời đi.',
+                  ),
+                  time: null,
+                  done: saved,
+                  current: !saved,
+                ),
+                (
+                  title: t('Furniture check', 'Đối chiếu nội thất'),
+                  text: t(
+                    'Each item is compared with your check-in record; only what got worse since is charged.',
+                    'Từng món được so với biên bản nhận phòng; chỉ phần xấu đi sau đó mới bị tính.',
+                  ),
+                  time: null,
+                  done: saved && claims == 0,
+                  current: saved && claims > 0,
+                ),
+                (
+                  title: t('Utility Deposit settlement', 'Quyết toán cọc điện nước'),
+                  text: t(
+                    'The deposit pays the last Utility share and the charges; the rest is refunded to your refund account.',
+                    'Cọc điện nước trừ phần điện nước cuối và khoản đền; phần còn lại được hoàn vào tài khoản nhận hoàn tiền.',
+                  ),
+                  time: c?.str('agreedAt') == null ? null : moment(c!.str('agreedAt')),
+                  done: agreed || checkedOut,
+                  current: saved && claims == 0 && !agreed,
+                ),
+              ],
+            ),
+          ),
+          if (claims > 0)
+            Alert(
+              tone: Tone.warning,
+              title: t('Confirm or decline the damage', 'Xác nhận hoặc từ chối hư hỏng'),
+              body: t(
+                'Staff ask you to confirm damage to a shared item.',
+                'Nhân viên đề nghị bạn xác nhận hư hỏng một món đồ chung.',
+              ),
+            )
+          else if (saved && !agreed)
+            Alert(
+              tone: Tone.warning,
+              title: t('Read the charges and agree', 'Hãy xem khoản đền và bấm đồng ý'),
+              body: t(
+                'Staff can complete your check-out once you agree.',
+                'Nhân viên hoàn tất trả phòng sau khi bạn đồng ý.',
+              ),
+            ),
+          if (saved || claims > 0)
+            BusyButton(
+              label: t('View furniture charges', 'Xem tiền đền nội thất'),
+              icon: Icons.receipt_long_outlined,
+              outlined: !(claims > 0 || (saved && !agreed)),
+              onPressed: () => widget.open(const CheckOutScreen()),
+            )
+          else if (!checkedOut)
+            Text(
+              declared > 0
+                  ? t(
+                      'You declared $declared items during your stay; Staff check them at the desk.',
+                      'Bạn đã kê khai $declared món trong kỳ ở; nhân viên sẽ đối chiếu tại quầy.',
+                    )
+                  : t(
+                      'Something worn, damaged or missing? Declare it before you check out.',
+                      'Có món hao mòn, hư hỏng hoặc mất? Hãy kê khai trước khi trả phòng.',
+                    ),
+              style: const TextStyle(fontSize: 13.5, color: Tokens.fgSecondary),
+            ),
+          if (!checkedOut && !saved)
+            BusyButton(
+              label: t('Open check-out & furniture report', 'Mở trả phòng & kê khai nội thất'),
+              icon: Icons.edit_note,
+              onPressed: () => widget.open(const CheckOutScreen()),
+            ),
+        ],
+      ),
     );
   }
 }

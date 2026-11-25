@@ -35,6 +35,7 @@ export default function FinancialReport() {
     <>
       <PageHeader
         title="Financial report"
+        description={[term?.name, d?.asOf && t('as of {date}', { date: formatDateTime(d.asOf) })].filter(Boolean).join(' · ')}
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>

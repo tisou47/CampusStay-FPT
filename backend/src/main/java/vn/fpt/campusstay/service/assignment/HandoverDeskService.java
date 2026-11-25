@@ -300,6 +300,7 @@ public class HandoverDeskService {
                     "Enter the electricity reading (kWh).");
             errors.check(v.water() == null || v.water().signum() >= 0, "water", "Enter the water reading (m³).");
             errors.throwIfAny();
+            core.checkReadings(h, v.electricity(), v.water(), true);
             jdbc.sql("""
                     UPDATE asg_handover SET verified_electricity = coalesce(:e, verified_electricity),
                            verified_water = coalesce(:w, verified_water), version = version + 1

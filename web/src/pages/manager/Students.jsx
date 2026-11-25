@@ -65,6 +65,7 @@ export default function Students() {
     <>
       <PageHeader
         title="Students"
+        description={manages ? undefined : 'Residents of your blocks.'}
         actions={
           manages && (
             <>
@@ -81,23 +82,26 @@ export default function Students() {
         }
       />
       <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search name, email or student code" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-56" aria-label={t('Verification')} value={filters.verification} onChange={setFilter('verification')} options={options('Verification', d?.options?.verifications)} />
-        <Select wrapperClassName="w-48" aria-label={t('Enrollment')} value={filters.enrollment} onChange={setFilter('enrollment')} options={options('Enrollment', d?.options?.enrollments)} />
-        <Select wrapperClassName="w-36" aria-label={t('Gender')} value={filters.gender} onChange={setFilter('gender')} options={options('Gender', d?.options?.genders)} />
-        <Select wrapperClassName="w-36" aria-label={t('Cohort')} value={filters.cohort} onChange={setFilter('cohort')} options={options('Cohort', d?.options?.cohorts)} />
-        <Select
-          wrapperClassName="w-40"
-          aria-label={t('Resident')}
-          value={filters.resident}
-          onChange={setFilter('resident')}
-          options={[
-            { value: '', label: t('Resident: All') },
-            { value: 'yes', label: t('Resident: Yes') },
-            { value: 'no', label: t('Resident: No') },
-          ]}
-        />
-        <Select wrapperClassName="w-35" aria-label={t('Block')} value={filters.block} onChange={setFilter('block')} options={[{ value: '', label: 'Block: All' }, ...(d?.options?.blocks ?? []).map((b) => ({ value: b, label: t('Block: {b}', { b }) }))]} />
+        <SearchInput wrapperClassName="min-w-72 flex-1" aria-label={t('Search')} placeholder="Search name, email or student code" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Verification')} value={filters.verification} onChange={setFilter('verification')} options={options('Verification', d?.options?.verifications)} />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Enrollment')} value={filters.enrollment} onChange={setFilter('enrollment')} options={options('Enrollment', d?.options?.enrollments)} />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Gender')} value={filters.gender} onChange={setFilter('gender')} options={options('Gender', d?.options?.genders)} />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Cohort')} value={filters.cohort} onChange={setFilter('cohort')} options={options('Cohort', d?.options?.cohorts)} />
+          <Select
+            fit
+            wrapperClassName="max-w-80"
+            aria-label={t('Resident')}
+            value={filters.resident}
+            onChange={setFilter('resident')}
+            options={[
+              { value: '', label: t('Resident: All') },
+              { value: 'yes', label: t('Resident: Yes') },
+              { value: 'no', label: t('Resident: No') },
+            ]}
+          />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Block')} value={filters.block} onChange={setFilter('block')} options={[{ value: '', label: 'Block: All' }, ...(d?.options?.blocks ?? []).map((b) => ({ value: b, label: t('Block: {b}', { b }) }))]} />
+        </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <Table fill>

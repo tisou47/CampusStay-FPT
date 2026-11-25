@@ -40,6 +40,39 @@ Tone _tone(String? condition) => switch (condition) {
   _ => Tone.neutral,
 };
 
+/// The four furniture conditions (Good, Worn, Damaged, Missing), for other screens (the in-stay declaration).
+const furnitureConditions = _conditions;
+
+/// A furniture condition's name in the language in use (the Admin's level name when [levels] has it).
+String conditionName(String? condition, [List<Json> levels = const []]) => _name(condition, levels);
+
+/// A furniture condition's tone (web `conditionTone`).
+Tone conditionTone(String? condition) => _tone(condition);
+
+/// Photos as thumbnails (a tap shows one full size), for other screens (the check-out declaration); [onRemove] adds a
+/// remove mark.
+class PhotoThumbs extends StatelessWidget {
+  const PhotoThumbs({super.key, required this.photos, this.onRemove});
+
+  final List<Json> photos;
+  final void Function(String id)? onRemove;
+
+  @override
+  Widget build(BuildContext context) => _Photos(photos: photos, onRemove: onRemove);
+}
+
+/// The furniture charges of a check-out with the Utility Deposit settlement (`GET /students/me/check-out`), for other
+/// screens (the Check-out page); nothing until Staff save the charges or ask to confirm damage.
+class FurnitureCharges extends StatelessWidget {
+  const FurnitureCharges({super.key, required this.data, required this.reload});
+
+  final Json data;
+  final Future<void> Function() reload;
+
+  @override
+  Widget build(BuildContext context) => _Charges(data: data, reload: reload);
+}
+
 /// How a final inventory was recorded.
 String _source(String? source) => switch (source) {
   'Checked in the Room' => t('checked in the Room', 'đã kiểm tại phòng'),
@@ -101,7 +134,7 @@ class _HandoverCardState extends State<HandoverCard> {
     final status = h.str('status');
     final c = _charges;
     final claims = c?.objects('claims').where((x) => x.str('status') == 'Pending').length ?? 0;
-    final toAgree = c != null && c.flag('saved') && c.flag('studentPresent') && c.str('agreedAt') == null;
+    final toAgree = c != null && c.flag('saved') && c.str('agreedAt') == null;
     final (String? title, String? body, Tone tone, String action) = switch (status) {
       'Ready' => (
         t('You can receive your Room', 'Bạn đã có thể nhận phòng'),
@@ -185,23 +218,14 @@ class _HandoverCardState extends State<HandoverCard> {
 class HandoverScreen extends StatelessWidget {
   const HandoverScreen({super.key});
 
+  // Only the check-in: the furniture charges and everything of the check-out are on the Check-out page.
   @override
   Widget build(BuildContext context) {
     return SubPage(
       title: t('Check-in inventory', 'Kiểm kê nhận phòng'),
-      body: Loader<(Json, Json?)>(
-        fetch: () async {
-          final inventory = await Api.get('/students/me/handover');
-          Json? charges;
-          try {
-            charges = await Api.get('/students/me/check-out');
-          } on ApiException {
-            charges = null;
-          }
-          return (inventory, charges);
-        },
-        builder: (context, d, reload) {
-          final (h, charges) = d;
+      body: Loader<Json>(
+        fetch: () => Api.get('/students/me/handover'),
+        builder: (context, h, reload) {
           final status = h.str('status');
           return Cards(
             children: [
@@ -217,7 +241,6 @@ class HandoverScreen extends StatelessWidget {
                 _Form(key: ValueKey(h.str('id')), data: h, reload: reload)
               else
                 _Summary(data: h, reload: reload),
-              if (charges != null) _Charges(data: charges, reload: reload),
             ],
           );
         },
@@ -1277,6 +1300,7 @@ class _Charges extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dispute = data.obj('dispute');
     final pending = data.objects('claims').where((c) => c.str('status') == 'Pending').toList();
     if (!data.flag('saved') && pending.isEmpty) return const SizedBox.shrink();
     final levels = data.objects('conditionLevels');
@@ -1462,7 +1486,7 @@ class _Charges extends StatelessWidget {
                     const SizedBox(height: 6),
                     amountLine(t('Utility Deposit held', 'Cọc điện nước đang giữ'), money(s.number('held'))),
                     amountLine(
-                      '${t('Final Utility share', 'Phần điện nước cuối')}${s.str('periodLabel') == null ? '' : ' (${s.text('periodLabel')})'}',
+                      '${t('Final Utility share', 'Phần điện nước cuối')}${s.str('periodLabel') == null ? '' : ' (${s.text('periodLabel').replaceFirst('since ', t('since ', 'từ '))})'}',
                       '− ${money(s.number('share'))}',
                     ),
                     if ((s.number('unpaid') ?? 0) > 0)
@@ -1494,29 +1518,59 @@ class _Charges extends StatelessWidget {
                   ],
                 ),
               ),
-            if (data.flag('studentPresent') && data.str('agreedAt') == null)
-              BusyButton(
-                label: t('Agree with the charges', 'Đồng ý với khoản đền'),
-                icon: Icons.check_circle_outline,
-                onPressed: () async {
-                  final ok = await confirm(
-                    context,
-                    title: t('Agree with the charges?', 'Đồng ý với khoản đền?'),
-                    body:
-                        '${t('Total', 'Tổng')}: ${money(data.number('total'))}. ${t('Staff then complete your check-out with this amount.', 'Nhân viên sẽ hoàn tất trả phòng với số tiền này.')}',
-                    yes: t('Agree', 'Đồng ý'),
-                    no: t('Back', 'Quay lại'),
-                  );
-                  if (!ok) return;
-                  final done = await attempt(
-                    () => Api.post('/students/me/check-out/agree'),
-                    success: t(
-                      'Agreed. Staff can complete your check-out.',
-                      'Đã đồng ý. Nhân viên có thể hoàn tất trả phòng cho bạn.',
+            if (dispute != null && dispute.str('status') == 'Open')
+              Alert(
+                tone: Tone.warning,
+                title: t('You do not agree: Staff are checking again', 'Bạn không đồng ý: nhân viên đang kiểm tra lại'),
+                body:
+                    '${t('Your reason', 'Lý do của bạn')}: ${dispute.text('reason')}\n${t('You get a notification when they answer; then you agree.', 'Bạn sẽ nhận thông báo khi nhân viên trả lời; sau đó bạn đồng ý.')}',
+              )
+            else if (dispute != null && data.str('agreedAt') == null)
+              Alert(
+                tone: Tone.info,
+                title: t('Staff checked the furniture again', 'Nhân viên đã kiểm tra lại nội thất'),
+                body: '${t('Answer', 'Trả lời')}: ${dispute.text('answer')}',
+              ),
+            if (data.str('checkedOutAt') == null && data.str('agreedAt') == null && dispute?.str('status') != 'Open')
+              Row(
+                spacing: 10,
+                children: [
+                  Expanded(
+                    child: BusyButton(
+                      label: t('Disagree', 'Không đồng ý'),
+                      icon: Icons.thumb_down_alt_outlined,
+                      outlined: true,
+                      onPressed: () async {
+                        if (await _disagree(context, data)) await reload();
+                      },
                     ),
-                  );
-                  if (done != null) await reload();
-                },
+                  ),
+                  Expanded(
+                    child: BusyButton(
+                      label: t('Agree with the charges', 'Đồng ý với khoản đền'),
+                      icon: Icons.check_circle_outline,
+                      onPressed: () async {
+                        final ok = await confirm(
+                          context,
+                          title: t('Agree with the charges?', 'Đồng ý với khoản đền?'),
+                          body:
+                              '${t('Total', 'Tổng')}: ${money(data.number('total'))}. ${t('Staff then complete your check-out with this amount.', 'Nhân viên sẽ hoàn tất trả phòng với số tiền này.')}',
+                          yes: t('Agree', 'Đồng ý'),
+                          no: t('Back', 'Quay lại'),
+                        );
+                        if (!ok) return;
+                        final done = await attempt(
+                          () => Api.post('/students/me/check-out/agree'),
+                          success: t(
+                            'Agreed. Staff can complete your check-out.',
+                            'Đã đồng ý. Nhân viên có thể hoàn tất trả phòng cho bạn.',
+                          ),
+                        );
+                        if (done != null) await reload();
+                      },
+                    ),
+                  ),
+                ],
               ),
             if (data.str('agreedAt') != null)
               Text(
@@ -1531,4 +1585,119 @@ class _Charges extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The student does not agree with the charges: which items (those charged) and why. The Staff member who recorded them
+/// checks again and answers; resolves to true once sent (`POST /students/me/check-out/dispute`).
+Future<bool> _disagree(BuildContext context, Json data) async {
+  final charged = data.objects('items').where((i) => (i.number('amount') ?? 0) > 0).toList();
+  final picked = {for (final i in charged) i.text('itemId')};
+  final reason = TextEditingController();
+  var busy = false;
+  String? error;
+  final sent = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    backgroundColor: Tokens.surface,
+    constraints: const BoxConstraints(minWidth: double.infinity),
+    builder: (sheet) => StatefulBuilder(
+      builder: (context, setState) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 12,
+            children: [
+              Text(
+                t('Disagree with the charges', 'Không đồng ý khoản đền'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              Text(
+                t(
+                  'The Staff member who checked your Room looks again and answers you. You agree after their answer.',
+                  'Nhân viên đã kiểm tra phòng sẽ xem lại và trả lời bạn. Bạn đồng ý sau khi có câu trả lời.',
+                ),
+                style: const TextStyle(color: Tokens.fgSecondary),
+              ),
+              if (charged.isNotEmpty) ...[
+                Text(
+                  t('Items you do not agree with', 'Món bạn không đồng ý'),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Tokens.fgSecondary),
+                ),
+                for (final i in charged)
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: picked.contains(i.text('itemId')),
+                    onChanged: (v) =>
+                        setState(() => v == true ? picked.add(i.text('itemId')) : picked.remove(i.text('itemId'))),
+                    title: Text('${furnitureName(i)} · ${i.text('assetCode')}'),
+                    subtitle: Text(money(i.number('amount'))),
+                  ),
+              ],
+              Input(
+                controller: reason,
+                label: '${t('Why do you not agree?', 'Vì sao bạn không đồng ý?')} *',
+                hint: t('e.g. The scratch was there at check-in.', 'Ví dụ: Vết xước đã có từ lúc nhận phòng.'),
+                lines: 3,
+                maxLength: 500,
+                error: error,
+              ),
+              Row(
+                spacing: 10,
+                children: [
+                  Expanded(
+                    child: BusyButton(
+                      label: t('Back', 'Quay lại'),
+                      outlined: true,
+                      onPressed: () => Navigator.pop(sheet),
+                    ),
+                  ),
+                  Expanded(
+                    child: BusyButton(
+                      label: t('Send to Staff', 'Gửi nhân viên'),
+                      icon: Icons.send_outlined,
+                      busy: busy,
+                      onPressed: () async {
+                        if (reason.text.trim().isEmpty) {
+                          setState(() => error = t('Write why you do not agree.', 'Hãy ghi lý do bạn không đồng ý.'));
+                          return;
+                        }
+                        setState(() {
+                          busy = true;
+                          error = null;
+                        });
+                        try {
+                          await Api.post('/students/me/check-out/dispute', {
+                            'itemIds': picked.toList(),
+                            'reason': reason.text.trim(),
+                          });
+                          toast(
+                            t(
+                              'Sent. Staff check again and answer you.',
+                              'Đã gửi. Nhân viên sẽ xem lại và trả lời bạn.',
+                            ),
+                          );
+                          if (sheet.mounted) Navigator.pop(sheet, true);
+                        } on ApiException catch (e) {
+                          setState(() {
+                            busy = false;
+                            error = e.fields['reason'];
+                          });
+                          if (e.fields.isEmpty) toast(e.message, error: true);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  return sent == true;
 }

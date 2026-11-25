@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { BedDouble, Check, ChevronLeft, ChevronRight, CircleCheck, ClipboardList, Droplets, Gauge, KeyRound, Printer, Trash2, Users, Zap } from 'lucide-react'
+import { BedDouble, Check, ChevronLeft, ChevronRight, CircleCheck, ClipboardList, Droplets, Gauge, KeyRound, Printer, ThumbsDown, Trash2, Users, Zap } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -83,7 +83,7 @@ function PhotoViewer({ photos, start, editable, onClose }) {
 }
 
 /** Thumbnails that open the photo large (to view it, or delete it while editable). */
-function PhotoStrip({ photos, editable = false, size = 'md' }) {
+export function PhotoStrip({ photos, editable = false, size = 'md' }) {
   const [open, setOpen] = useState(null)
   if (!photos?.length) return null
   return (
@@ -658,7 +658,67 @@ function InventoryReport({ data, visited }) {
   )
 }
 
-function FurnitureCharges() {
+/** The student does not agree with the charges: the items and why; the Staff member who recorded them answers. */
+function DisagreeModal({ items, onClose }) {
+  const { notify, notifyError } = useToast()
+  const [picked, setPicked] = useState(() => items.map((i) => i.itemId))
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState(null)
+  const send = useMutation(() => api.checkOutFurniture.dispute({ itemIds: picked, reason: reason.trim() }), {
+    invalidates: ['check-out-furniture'],
+    onSuccess: () => {
+      notify({ title: 'Sent to Staff', message: 'Staff check again and answer you.' })
+      onClose()
+    },
+    onError: (e) => notifyError(e, 'Could not send'),
+  })
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Disagree with the charges"
+      description="The Staff member who checked your Room looks again and answers you. You agree after their answer."
+      footer={
+        <>
+          <Button onClick={onClose}>Back</Button>
+          <Button
+            variant="primary"
+            disabled={send.pending}
+            onClick={() => (reason.trim() ? send.run() : setError(t('Write why you do not agree.')))}
+          >
+            Send to Staff
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {items.length > 0 && (
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="mb-1 text-sm font-semibold text-fg-secondary">{t('Items you do not agree with')}</legend>
+            {items.map((i) => (
+              <label key={i.itemId} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={picked.includes(i.itemId)}
+                  onChange={(e) => setPicked((p) => (e.target.checked ? [...p, i.itemId] : p.filter((x) => x !== i.itemId)))}
+                />
+                <span className="flex-1">
+                  {typeName(i)} · <span className="font-mono">{i.assetCode}</span>
+                </span>
+                <span className="font-mono tabular">{formatCurrency(i.amount)}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+        <Field label="Why do you not agree?" required error={error}>
+          <Textarea rows={3} maxLength={500} value={reason} placeholder={t('e.g. The scratch was there at check-in.')} onChange={(e) => setReason(e.target.value)} />
+        </Field>
+      </div>
+    </Modal>
+  )
+}
+
+export function FurnitureCharges() {
   const { notify, notifyError } = useToast()
   const query = useQuery(['check-out-furniture', 'mine'], ({ signal }) => api.checkOutFurniture.mine(undefined, { signal }))
   const agree = useMutation(() => api.checkOutFurniture.agree(), {
@@ -671,9 +731,12 @@ function FurnitureCharges() {
     onSuccess: (_, __, acknowledge) => notify({ title: acknowledge ? 'Damage confirmed' : 'Damage declined', message: acknowledge ? 'It is charged at check-out.' : 'You are not charged for it.' }),
     onError: (e) => notifyError(e, 'Could not answer'),
   })
+  const [disagree, setDisagree] = useState(false)
   const d = query.data
   if (!d) return null
   const pending = d.claims?.filter((c) => c.status === 'Pending') ?? []
+  const dispute = d.dispute
+  const open = dispute?.status === 'Open'
   if (!d.saved && !pending.length) return null
   const s = d.settlement
   return (
@@ -769,7 +832,7 @@ function FurnitureCharges() {
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-fg-secondary">
                     {t('Final utility share')}
-                    {s.periodLabel ? ` (${s.periodLabel})` : ''}
+                    {s.periodLabel ? ` (${s.periodLabel.replace(/^since /, `${t('since')} `)})` : ''}
                   </dt>
                   <dd className="font-medium text-fg tabular">− {formatCurrency(s.share)}</dd>
                 </div>
@@ -800,13 +863,27 @@ function FurnitureCharges() {
             </div>
           )}
 
-          {d.studentPresent && !d.agreedAt && (
-            <div className="flex justify-end">
+          {open && (
+            <Alert type="warning" title="You do not agree: Staff are checking again">
+              {t('Your reason: {reason}', { reason: dispute.reason })} {t('You get a notification when they answer; then you agree.')}
+            </Alert>
+          )}
+          {dispute && !open && !d.agreedAt && (
+            <Alert type="info" title="Staff checked the furniture again">
+              {t('Answer: {answer}', { answer: dispute.answer ?? '' })}
+            </Alert>
+          )}
+          {!d.checkedOutAt && !d.agreedAt && !open && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button icon={ThumbsDown} onClick={() => setDisagree(true)}>
+                Disagree
+              </Button>
               <Button variant="primary" icon={CircleCheck} onClick={() => agree.run()} disabled={agree.pending}>
                 Agree with the charges
               </Button>
             </div>
           )}
+          {disagree && <DisagreeModal items={d.items.filter((i) => i.amount > 0)} onClose={() => setDisagree(false)} />}
           {d.agreedAt && <p className="text-sm text-fg-secondary">{t('You agreed on {date}.', { date: formatDateTime(d.agreedAt) })}</p>}
         </>
       )}

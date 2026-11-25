@@ -76,10 +76,12 @@ public class OperationalMoveService {
      * @param nextTermAllocation the Allocation is itself a next-Term one (moved for the next Term)
      * @param feesIssued         its Term's next-Term fees are issued (only a Manager moves it then)
      * @param resident           the student lives in the Room: a move needs the meter readings of both Rooms
+     * @param meters             Room code → its latest meter reading (old Room and offered Rooms; residents only)
      */
     public record Options(String allocationId, Person student, TermRef term, Place from, boolean resident,
             boolean nextTermAllocation,
-            boolean feesIssued, NextTermRef nextTerm, List<BedOption> beds, List<String> reasons) {
+            boolean feesIssued, NextTermRef nextTerm, List<BedOption> beds, List<String> reasons,
+            Map<String, Billing.MeterValue> meters) {
     }
 
     /**
@@ -158,23 +160,41 @@ public class OperationalMoveService {
         TermSummary term = terms.findPublished(p.termId()).orElseThrow();
         Names names = names();
         NextTermRef next = own.isPresent() ? null : nextTermOf(p, names).orElse(null);
-        List<BedOption> beds = moves.freeBeds(p.termId(), p.gender()).stream()
+        List<Moves.FreeBed> free = moves.freeBeds(p.termId(), p.gender()).stream()
                 .filter(b -> b.roomId() != p.roomId() && mayMoveInto(user, b.buildingId()))
-                .limit(200)
+                .limit(MAX_BEDS)
+                .toList();
+        // One Inventory read and one price per Room Type × Room Class (was one of each per Bed).
+        Map<Long, Inventory.BedSlot> slots = inventory.beds(p.termId(), free.stream().map(Moves.FreeBed::bedId).toList());
+        Map<String, OptionalLong> prices = new HashMap<>();
+        List<BedOption> beds = free.stream()
                 .map(b -> {
-                    var slot = inventory.beds(p.termId(), List.of(b.bedId())).get(b.bedId());
+                    var slot = slots.get(b.bedId());
                     OptionalLong price = slot == null ? OptionalLong.empty()
-                            : fees.termPrice(p.termId(), slot.roomTypeId(), slot.roomClassId());
+                            : prices.computeIfAbsent(slot.roomTypeId() + ":" + slot.roomClassId(),
+                                    k -> fees.termPrice(p.termId(), slot.roomTypeId(), slot.roomClassId()));
                     return new BedOption(b.code(), b.room(), b.bed(), b.block(), b.floor(),
                             slot == null ? null : names.type(slot.roomTypeId()),
                             slot == null ? null : names.roomClass(slot.roomClassId()), b.roommates(),
                             price.isPresent() ? price.getAsLong() : null);
                 })
                 .toList();
+        boolean resident = p.residentAt() != null;
+        Map<String, Billing.MeterValue> meters = new HashMap<>();
+        if (resident) {
+            // The latest reading of the old Room and of every offered Room, shown under the meter fields.
+            Map<Long, String> rooms = new HashMap<>();
+            rooms.put(p.roomId(), p.room());
+            free.forEach(b -> rooms.put(b.roomId(), b.room()));
+            billing.lastReadings(rooms.keySet()).forEach((id, value) -> meters.put(rooms.get(id), value));
+        }
         return new Options(String.valueOf(p.allocationId()), person(p.studentId()),
-                new TermRef(String.valueOf(term.id()), term.name()), place(p, names), p.residentAt() != null, own.isPresent(),
-                ownWindow.map(w -> w.feesIssuedAt() != null).orElse(false), next, beds, reasons());
+                new TermRef(String.valueOf(term.id()), term.name()), place(p, names), resident, own.isPresent(),
+                ownWindow.map(w -> w.feesIssuedAt() != null).orElse(false), next, beds, reasons(), meters);
     }
+
+    /** Free Beds offered in one answer. */
+    private static final int MAX_BEDS = 500;
 
     @Transactional
     public Moved move(MoveCommand cmd) {

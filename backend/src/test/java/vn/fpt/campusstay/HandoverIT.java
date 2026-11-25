@@ -255,6 +255,36 @@ class HandoverIT {
     }
 
     /**
+     * TC-ASG-063: Report 1 (Staff's inspection before arrival) bounds the student's meters even when Billing's latest
+     * reading is lower: a reading below it is refused, one far above the accepted use is refused as a typo, and one
+     * within the misreading allowance matches.
+     */
+    @Test
+    void readingsAreBoundedByReportOne() throws Exception {
+        newcomer(29, "A-205", "A");
+        doorCode("A-205");
+        meterCut("A-205", 100, 10);
+        String student = bearer(mvc, StayFlow.student(29));
+        String id = JsonPath.read(json(send(post("/students/me/handover/start"), student, "")), "$.id");
+        // Report 1: Staff read 1703 kWh and 45 m³ before the student arrived.
+        jdbc.sql("UPDATE asg_handover SET baseline_electricity = 1703, baseline_water = 45 WHERE id = :id")
+                .param("id", Long.parseLong(id.replace("HO-", ""))).update();
+        String view = json(mvc.perform(get("/students/me/handover").header(HttpHeaders.AUTHORIZATION, student)));
+
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 1450, 45))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.electricity").isString());
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 1703, 40))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.water").isString());
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 9000, 45))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.electricity").isString());
+        send(post("/students/me/handover/submit"), student, answers(view, "Good", 1703, 45))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("Final"));
+    }
+
+    /**
      * TC-ASG-061: with the student in the Room, Staff sign the Final report there: the inventory is final at once
      * (no agreement on the app), the student is checked in, and check-out compares with that Final report.
      */
@@ -397,6 +427,56 @@ class HandoverIT {
         String student = bearer(mvc, StayFlow.student(38));
         send(post("/students/me/check-out/agree"), student, "").andExpect(status().isOk())
                 .andExpect(jsonPath("$.agreedAt").isNotEmpty()).andExpect(jsonPath("$.total").value(price / 2));
+    }
+
+    /**
+     * TC-ASG-077: a student who does not agree with the charges says which items and why; they cannot agree until the
+     * Staff member checks again and answers (a reason is required on both sides); then they agree.
+     */
+    @Test
+    void aStudentDisputesTheChargesAndStaffAnswer() throws Exception {
+        long allocation = newcomer(38, "A-209", "A");
+        jdbc.sql("""
+                UPDATE asg_allocation SET resident_at = now(), code_released_at = now(), checked_in_at = now()
+                WHERE id = :id
+                """).param("id", allocation).update();
+        jdbc.sql("""
+                INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, room_id, bed_id)
+                SELECT 'DESK-TEST-A209A', t.id, 'IN_USE', r.id, b.id
+                FROM inv_furniture_type t, inv_room r JOIN inv_bed b ON b.room_id = r.id AND b.label = 'A'
+                WHERE t.code = 'DESK' AND r.code = 'A-209'
+                """).update();
+        String itemId = jdbc.sql("SELECT 'furniture-' || id FROM inv_furniture_item WHERE asset_code = 'DESK-TEST-A209A'")
+                .query(String.class).single();
+        String staff = bearer(mvc, STAFF_A);
+        String student = bearer(mvc, StayFlow.student(38));
+        send(put("/check-outs/" + allocation + "/furniture"), staff,
+                "{\"items\":[{\"itemId\":\"" + itemId + "\",\"condition\":\"Damaged\"}],\"studentPresent\":true}")
+                .andExpect(status().isOk());
+
+        send(post("/students/me/check-out/dispute"), student, "{\"itemIds\":[\"" + itemId + "\"],\"reason\":\" \"}")
+                .andExpect(status().isBadRequest());
+        send(post("/students/me/check-out/dispute"), student,
+                "{\"itemIds\":[\"" + itemId + "\"],\"reason\":\"The desk was scratched at check-in.\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dispute.status").value("Open"))
+                .andExpect(jsonPath("$.dispute.itemIds[0]").value(itemId));
+        send(post("/students/me/check-out/agree"), student, "").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DISPUTE_OPEN"));
+        mvc.perform(get("/check-outs/" + allocation + "/furniture").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dispute.reason").value("The desk was scratched at check-in."));
+
+        // Staff check again: the desk was only worn; they record it and answer.
+        send(put("/check-outs/" + allocation + "/furniture"), staff,
+                "{\"items\":[{\"itemId\":\"" + itemId + "\",\"condition\":\"Worn\"}],\"studentPresent\":true}")
+                .andExpect(status().isOk());
+        send(post("/check-outs/" + allocation + "/dispute/answer"), staff, "{\"answer\":\"\"}")
+                .andExpect(status().isBadRequest());
+        send(post("/check-outs/" + allocation + "/dispute/answer"), staff, "{\"answer\":\"Only worn: charged as Worn.\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dispute.status").value("Answered"));
+        send(post("/check-outs/" + allocation + "/dispute/answer"), staff, "{\"answer\":\"Again\"}")
+                .andExpect(status().isConflict());
+        send(post("/students/me/check-out/agree"), student, "").andExpect(status().isOk())
+                .andExpect(jsonPath("$.agreedAt").isNotEmpty());
     }
 
     /**

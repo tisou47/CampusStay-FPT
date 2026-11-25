@@ -6,6 +6,7 @@ import '../links.dart';
 import '../session.dart';
 import 'applications.dart';
 import 'apply.dart';
+import 'checkout.dart';
 import 'family_day.dart';
 import 'handover.dart';
 import 'notifications.dart';
@@ -43,6 +44,8 @@ class HomeScreen extends StatelessWidget {
     _optional('/students/me/roommate-invitation'),
     _optional('/notifications?limit=1'),
     _optional('/students/me/handover'),
+    _optional('/students/me/check-out'),
+    _optional('/students/me/allocation'),
   ]);
 
   @override
@@ -60,10 +63,10 @@ class HomeScreen extends StatelessWidget {
         final requests = (home.number('openRequests') ?? 0).toInt();
         final left = timeLeft(card?.str('countdownTo'));
         final app = home.obj('application');
-        // The check-in inventory: shown once the student has a Room (or an inventory), with what it asks now.
+        // Check-in and Check-out are always there (before a Room, during the stay and after the check-out); their
+        // notes say what each asks now.
         final handover = data[5];
         final checkIn = handover?.str('status');
-        final showCheckIn = checkIn != null && (checkIn != 'Not needed' || home.obj('allocation') != null);
         final checkInTodo = switch (checkIn) {
           'Ready' || 'Draft' => 1,
           'Verifying' when handover!.flag('toAgree') => 1,
@@ -78,6 +81,20 @@ class HomeScreen extends StatelessWidget {
           'Final' => t('Final', 'Đã chốt'),
           _ => null,
         };
+        // At check-out (the stay ends: a termination or no Bed next Term; or Staff recorded the furniture charges, or
+        // ask to confirm damage) the tile becomes Check-out.
+        final checkOut = data[6];
+        final stay = data.length > 7 ? data[7] : null;
+        final claims = checkOut?.objects('claims').where((c) => c.str('status') == 'Pending').length ?? 0;
+        final leaving = stay?.obj('termination') != null || stay?.obj('nextTerm')?.str('state') == 'Not continuing';
+        // Check-in and Check-out are two tiles of their own: Check-out shows for a student with a Room, at check-out,
+        // and after it (the page then says the check-out is done).
+        final checkedOut = checkOut?.str('checkedOutAt') != null;
+        final toAgree =
+            !checkedOut &&
+            (checkOut?.flag('saved') ?? false) &&
+            checkOut?.str('agreedAt') == null &&
+            checkOut?.obj('dispute')?.str('status') != 'Open';
 
         Future<void> open(Widget page) async {
           await push(context, page);
@@ -143,15 +160,30 @@ class HomeScreen extends StatelessWidget {
             FeatureSection(
               title: t('Dormitory life', 'Sinh hoạt KTX'),
               tiles: [
-                if (showCheckIn)
-                  FeatureTile(
-                    icon: Icons.vpn_key_rounded,
-                    color: const Color(0xFFF97316),
-                    label: t('Check-in', 'Nhận phòng'),
-                    badge: checkInTodo,
-                    note: checkInNote,
-                    onTap: () => open(const HandoverScreen()),
-                  ),
+                FeatureTile(
+                  icon: Icons.vpn_key_rounded,
+                  color: const Color(0xFFF97316),
+                  label: t('Check-in', 'Nhận phòng'),
+                  badge: checkInTodo,
+                  note: checkInNote,
+                  onTap: () => open(const HandoverScreen()),
+                ),
+                FeatureTile(
+                  icon: Icons.logout_rounded,
+                  color: const Color(0xFFEF4444),
+                  label: t('Check-out', 'Trả phòng'),
+                  badge: claims + (toAgree ? 1 : 0),
+                  note: checkedOut
+                      ? t('Checked out', 'Đã trả phòng')
+                      : claims > 0 || toAgree
+                      ? t('Answer now', 'Cần trả lời')
+                      : checkOut?.str('agreedAt') != null
+                      ? t('Agreed', 'Đã đồng ý')
+                      : leaving
+                      ? t('Check-out period', 'Kỳ trả phòng')
+                      : null,
+                  onTap: () => open(const CheckOutScreen()),
+                ),
                 FeatureTile(
                   icon: Icons.build_rounded,
                   color: const Color(0xFF10B981),

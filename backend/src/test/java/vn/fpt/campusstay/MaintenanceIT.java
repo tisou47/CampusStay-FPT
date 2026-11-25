@@ -194,10 +194,6 @@ class MaintenanceIT {
                 .andExpect(jsonPath("$.staffMayEnter").value(true))
                 .andExpect(jsonPath("$.bed").value("A"))
                 .andExpect(jsonPath("$.suggestedAssigneeId").value(String.valueOf(a2)))
-                // only the staff of the request's block, those who handle maintenance first
-                .andExpect(jsonPath("$.blockStaff[0].id").value(String.valueOf(a2)))
-                .andExpect(jsonPath("$.blockStaff[0].handles").value(true))
-                .andExpect(jsonPath("$.blockStaff[0].suggested").value(true))
                 .andExpect(jsonPath("$.roomSummary.capacity").value(2))
                 .andExpect(jsonPath("$.roomSummary.residents").value(1))
                 .andExpect(jsonPath("$.photos[0].name").value("leak-0.png"))

@@ -64,23 +64,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
         return Cards(
           children: [
-            Text(
-              (summary?.number('outstanding') ?? 0) > 0
-                  ? t(
-                      'You have ${money(summary!.number('outstanding'))} to pay. Transfer each Invoice before its due date, then press I have transferred.',
-                      'Bạn còn ${money(summary.number('outstanding'))} cần thanh toán. Hãy chuyển khoản từng hóa đơn trước hạn, rồi bấm Tôi đã chuyển khoản.',
-                    )
-                  : pending > 0
-                  ? t(
-                      'Everything is paid. ${money(pending)} is being refunded to you.',
-                      'Bạn đã thanh toán đủ. ${money(pending)} đang được hoàn cho bạn.',
-                    )
-                  : t(
-                      'Everything is paid. Your Invoices and refunds are listed here.',
-                      'Bạn đã thanh toán đủ. Hóa đơn và các khoản hoàn của bạn được liệt kê tại đây.',
-                    ),
-              style: const TextStyle(color: Tokens.fgSecondary),
-            ),
+            _Hero(summary: summary, pending: pending),
             if (warning != null)
               Alert(
                 tone: warning.str('level') == 'Final warning' ? Tone.error : Tone.warning,
@@ -106,7 +90,6 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   '$awaiting khoản chuyển của bạn đang chờ xác nhận. Hạn thanh toán của chúng được tạm dừng.',
                 ),
               ),
-            _Summary(summary: summary),
             RefundAccountCard(pendingAmount: pending),
             TabStrip(
               value: _tab,
@@ -145,12 +128,6 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               ),
             if (_tab == 'invoices')
               _Part(
-                icon: Icons.receipt_long_outlined,
-                title: t('Invoices & fees', 'Hóa đơn & Tiền phí'),
-                text: t(
-                  'Open an Invoice to see its lines, pay it or get the receipt.',
-                  'Mở một hóa đơn để xem chi tiết, thanh toán hoặc lấy biên lai.',
-                ),
                 children: [
                   if (items.isEmpty)
                     EmptyState(
@@ -164,8 +141,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   else
                     for (final inv in items)
                       _Row(
-                        icon: Icons.credit_card,
-                        title: '${label(inv.str('typeLabel') ?? inv.str('title'))} · ${money(inv.number('amount'))}',
+                        icon: _typeIcon(inv.str('type') ?? inv.str('typeLabel')),
+                        title: label(inv.str('typeLabel') ?? inv.str('title')),
+                        amount: money(inv.number('amount')),
+                        paid: inv.str('status') == 'Paid',
                         note:
                             '${inv.text('id')} · ${inv.str('status') == 'Paid' ? t('paid ${day(inv.str('paidAt'))}', 'đã thanh toán ${day(inv.str('paidAt'))}') : t('due ${day(inv.str('dueAt'))}', 'hạn ${day(inv.str('dueAt'))}')}',
                         tag: inv.str('status') == 'Upcoming'
@@ -259,160 +238,14 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 }
 
-/// The three summary tiles (web `Summary`): outstanding (orange when there is money to pay), paid this Term (green),
-/// and the next Invoice; a zero steps back in grey.
-class _Summary extends StatelessWidget {
-  const _Summary({required this.summary});
-
-  final Json? summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = summary;
-    final outstanding = s?.number('outstanding') ?? 0;
-    final paid = s?.number('paidTotal') ?? 0;
-    final due = (s?.number('dueCount') ?? 0).toInt();
-    final payments = (s?.number('paidCount') ?? 0).toInt();
-    final upcoming = s?.obj('upcoming');
-    return Column(
-      spacing: 10,
-      children: [
-        _Tile(
-          icon: Icons.payments_outlined,
-          title: t('Outstanding', 'Còn phải trả'),
-          value: s == null ? '—' : money(outstanding),
-          tone: s == null ? null : (outstanding > 0 ? Tone.brand : Tone.neutral),
-          muted: s != null && outstanding == 0,
-          note: due > 0
-              ? t(
-                  '$due Invoices due · next ${day(s!.str('nextDueAt'))}',
-                  '$due hóa đơn cần trả · gần nhất ${day(s.str('nextDueAt'))}',
-                )
-              : t('Nothing to pay right now', 'Hiện chưa có khoản cần trả'),
-          noteIcon: s == null ? null : (due > 0 ? Icons.schedule : Icons.check_circle_outline),
-          noteColor: s == null ? null : (due > 0 ? Tokens.fgBrand : Tone.success.fg),
-        ),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: 10,
-            children: [
-              Expanded(
-                child: _Tile(
-                  icon: Icons.credit_card,
-                  title: t('Paid', 'Đã trả'),
-                  value: s == null ? '—' : money(paid),
-                  tone: s == null ? null : (paid > 0 ? Tone.success : Tone.neutral),
-                  muted: s != null && paid == 0,
-                  note: payments > 0
-                      ? t('$payments payments', '$payments lần thanh toán')
-                      : t('No payments yet', 'Chưa có thanh toán'),
-                ),
-              ),
-              Expanded(
-                child: _Tile(
-                  icon: Icons.event_outlined,
-                  title: t('Next invoice', 'Hóa đơn tiếp theo'),
-                  value: upcoming == null ? '—' : money(upcoming.number('amount')),
-                  muted: upcoming == null,
-                  note: upcoming == null
-                      ? t('No upcoming Invoice this Term', 'Học kỳ này chưa có hóa đơn sắp tới')
-                      : joinDot([label(upcoming.str('typeLabel')), label(upcoming.str('note'))]),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// One summary tile: a glyph chip and the name, the figure, and a note under it.
-class _Tile extends StatelessWidget {
-  const _Tile({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.note,
-    this.tone,
-    this.muted = false,
-    this.noteIcon,
-    this.noteColor,
-  });
-
-  final IconData icon;
-  final String title;
-  final String value;
-  final String note;
-  final Tone? tone;
-  final bool muted;
-  final IconData? noteIcon;
-  final Color? noteColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final chipBg = muted || tone == null ? Tokens.subtle : (tone == Tone.brand ? Tokens.brandSubtle : tone!.bg);
-    final chipFg = muted ? Tokens.fgTertiary : (tone == Tone.brand ? Tokens.fgBrand : (tone?.fg ?? Tokens.fgSecondary));
-    final valueColor = muted
-        ? Tokens.fgTertiary
-        : (tone == Tone.brand ? Tokens.fgBrand : (tone == Tone.success ? Tone.success.fg : Tokens.fg));
-    return Panel(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 8,
-        children: [
-          Row(
-            spacing: 8,
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, size: 16, color: chipFg),
-              ),
-              Expanded(
-                child: Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w500, color: Tokens.fgSecondary),
-                ),
-              ),
-            ],
-          ),
-          Text(
-            value,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: valueColor),
-          ),
-          Row(
-            spacing: 5,
-            children: [
-              if (noteIcon != null) Icon(noteIcon, size: 14, color: noteColor),
-              Expanded(
-                child: Text(
-                  note,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12.5, color: noteColor ?? Tokens.fgTertiary),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// A section of Payments (web `SectionHeader` and its card): a glyph, the title and a line under it, then the rows
 /// divided by hairlines.
 class _Part extends StatelessWidget {
-  const _Part({required this.icon, required this.title, required this.text, required this.children, this.aside});
+  const _Part({this.icon, this.title, this.text, required this.children, this.aside});
 
-  final IconData icon;
-  final String title;
-  final String text;
+  final IconData? icon;
+  final String? title;
+  final String? text;
   final Widget? aside;
   final List<Widget> children;
 
@@ -423,50 +256,71 @@ class _Part extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 10,
-              children: [
-                Row(
-                  spacing: 12,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(10)),
-                      child: Icon(icon, size: 20, color: Tokens.fgBrand),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: 2,
-                        children: [
-                          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                          Text(text, style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary)),
-                        ],
+          if (title != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 10,
+                children: [
+                  Row(
+                    spacing: 12,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(10)),
+                        child: Icon(icon ?? Icons.receipt_long_outlined, size: 20, color: Tokens.fgBrand),
                       ),
-                    ),
-                  ],
-                ),
-                ?aside,
-              ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 2,
+                          children: [
+                            Text(title!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            Text(text ?? '', style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  ?aside,
+                ],
+              ),
             ),
-          ),
-          for (final child in children) ...[const Divider(height: 1), child],
+          for (final (n, child) in children.indexed) ...[if (title != null || n > 0) const Divider(height: 1), child],
         ],
       ),
     );
   }
 }
 
-/// One Invoice in [_Part]: a glyph, the type and amount, the code and date, and its status (web `StatusRow`).
+/// The glyph of an Invoice type.
+IconData _typeIcon(String? type) => switch ((type ?? '').toLowerCase()) {
+  final x when x.contains('deposit') && x.contains('utility') => Icons.bolt_outlined,
+  final x when x.contains('deposit') => Icons.savings_outlined,
+  final x when x.contains('utility') => Icons.bolt_outlined,
+  final x when x.contains('damage') => Icons.handyman_outlined,
+  final x when x.contains('balance') || x.contains('fee') || x.contains('room') => Icons.bed_outlined,
+  _ => Icons.receipt_long_outlined,
+};
+
+/// One Invoice in [_Part]: its type with a glyph, the amount on the right, the code and date, and its status.
 class _Row extends StatelessWidget {
-  const _Row({required this.icon, required this.title, required this.note, required this.tag, required this.onTap});
+  const _Row({
+    required this.icon,
+    required this.title,
+    required this.amount,
+    required this.paid,
+    required this.note,
+    required this.tag,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String title;
+  final String amount;
+  final bool paid;
   final String note;
   final Widget tag;
   final VoidCallback onTap;
@@ -476,30 +330,153 @@ class _Row extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
         child: Row(
           spacing: 12,
           children: [
             Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(color: Tokens.subtle, shape: BoxShape.circle),
-              child: Icon(icon, size: 18, color: Tokens.fgSecondary),
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: paid ? Tone.success.bg : Tokens.brandSubtle,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 20, color: paid ? Tone.success.fg : Tokens.fgBrand),
             ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 4,
+                spacing: 3,
                 children: [
                   Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
                   Text(note, style: const TextStyle(fontSize: 12.5, color: Tokens.fgTertiary)),
-                  tag,
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Tokens.fgTertiary),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              spacing: 4,
+              children: [
+                Text(
+                  amount,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: paid ? Tokens.fgSecondary : Tokens.fg,
+                  ),
+                ),
+                tag,
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The top of Payments: what is left to pay, large, on the brand colour (green when everything is paid), with what
+/// was paid and the next Invoice under it, and money on its way back.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.summary, required this.pending});
+
+  final Json? summary;
+  final num pending;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = summary;
+    final outstanding = s?.number('outstanding') ?? 0;
+    final due = (s?.number('dueCount') ?? 0).toInt();
+    final paid = s?.number('paidTotal') ?? 0;
+    final payments = (s?.number('paidCount') ?? 0).toInt();
+    final upcoming = s?.obj('upcoming');
+    final clear = outstanding <= 0;
+    final colors = clear ? const [Color(0xFF15803D), Color(0xFF16A34A)] : const [Color(0xFFC2410C), Color(0xFFEA580C)];
+    const white70 = Color(0xB3FFFFFF);
+
+    Widget stat(String name, String value, String note) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 2,
+        children: [
+          Text(name, style: const TextStyle(fontSize: 12, color: white70)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+          Text(
+            note,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11.5, color: white70),
+          ),
+        ],
+      ),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 6,
+        children: [
+          Row(
+            spacing: 8,
+            children: [
+              Icon(clear ? Icons.verified_outlined : Icons.payments_outlined, size: 18, color: Colors.white),
+              Text(
+                clear ? t('All paid', 'Đã thanh toán đủ') : t('Left to pay', 'Còn phải trả'),
+                style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
+          ),
+          Text(
+            money(outstanding),
+            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white),
+          ),
+          Text(
+            clear
+                ? (pending > 0
+                      ? t('${money(pending)} is on its way back to you.', '${money(pending)} đang được hoàn cho bạn.')
+                      : t('Nothing to pay right now.', 'Hiện chưa có khoản cần trả.'))
+                : t(
+                    '$due Invoices to pay · next due ${day(s?.str('nextDueAt'))}. Transfer, then press I have transferred.',
+                    '$due hóa đơn cần trả · hạn gần nhất ${day(s?.str('nextDueAt'))}. Chuyển khoản rồi bấm Tôi đã chuyển khoản.',
+                  ),
+            style: const TextStyle(fontSize: 13, color: white70),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              spacing: 12,
+              children: [
+                stat(
+                  t('Paid', 'Đã trả'),
+                  money(paid),
+                  payments > 0 ? t('$payments payments', '$payments lần thanh toán') : t('No payments yet', 'Chưa có'),
+                ),
+                Container(width: 1, height: 36, color: Colors.white24),
+                stat(
+                  t('Next invoice', 'Hóa đơn tiếp theo'),
+                  upcoming == null ? '—' : money(upcoming.number('amount')),
+                  upcoming == null
+                      ? t('None this Term', 'Kỳ này chưa có')
+                      : joinDot([label(upcoming.str('typeLabel')), label(upcoming.str('note'))]),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

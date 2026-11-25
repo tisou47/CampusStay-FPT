@@ -18,6 +18,7 @@ import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { useRoleBase } from '@/lib/useRoleBase'
 
 // SCR-INV-12 Door codes (Change Spec v2 phase 3, ADR-23, spec §6.8). Shared by Staff (their Blocks) and Managers.
 // GET /door-codes?block&status&q&page&pageSize → { items: [{ room, block, floor, status (Change needed, Not set, Active),
@@ -179,10 +180,11 @@ function ImportModal({ onClose }) {
 }
 
 export default function DoorCodes() {
+  const atManager = useRoleBase() === '/manager'
   const { block } = useSession()
   const { notify, notifyError } = useToast()
   const [params] = useSearchParams()
-  const [status, setStatus] = useState(params.get('room') ? '' : 'Change needed')
+  const [status, setStatus] = useState('')
   const [q, setQ] = useState(params.get('room') ?? '')
   const [search, setSearch] = useState(params.get('room') ?? '')
   const [page, setPage] = useState(1)
@@ -218,6 +220,7 @@ export default function DoorCodes() {
     <>
       <PageHeader
         title="Door codes"
+        description={atManager ? undefined : "One 6-digit code per room. Set the new code on the lock, then confirm it here; residents are told without the code."}
         actions={
           <Button icon={Upload} onClick={() => setModal({ type: 'import' })}>
             Import codes
@@ -232,21 +235,22 @@ export default function DoorCodes() {
             setPage(1)
           }}
           items={[
+            // All rooms first, then by urgency: rooms to re-key, codes set on the lock but unconfirmed, rooms with no code, done.
+            { key: '', label: 'All rooms', count: counts ? (counts.toChange ?? 0) + (counts.notSet ?? 0) + (counts.active ?? 0) : undefined },
             { key: 'Change needed', label: 'Change needed', count: counts?.toChange },
-            { key: 'Not set', label: 'Not set', count: counts?.notSet },
             { key: 'Waiting for confirmation', label: 'Waiting for confirmation', count: counts?.proposed },
+            { key: 'Not set', label: 'Not set', count: counts?.notSet },
             { key: 'Active', label: 'Active', count: counts?.active },
-            { key: '', label: 'All rooms' },
           ]}
         />
         <SearchInput wrapperClassName="w-60" aria-label={t('Search')} placeholder="Room code" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <Table fill>
+        <Table fill tableClassName="min-w-4xl table-fixed">
           <THead>
             <tr>
               <Th className="w-32">Room</Th>
-              <Th className="w-56">Status</Th>
+              <Th className="w-44">Status</Th>
               <Th className="w-24" align="right">
                 Living here
               </Th>
@@ -258,52 +262,68 @@ export default function DoorCodes() {
           </THead>
           <TBody>
             <TableStatus query={query} colSpan={5} rows={d?.items} emptyIcon={KeyRound} emptyTitle="No rooms here" emptyText={status === 'Change needed' ? 'No door code needs to change.' : undefined} />
-            {(d?.items ?? []).map((r) => (
-              <Tr key={r.room} className="[&>td]:h-14">
-                <Td>
-                  <TwoLine primary={r.room} secondary={t('Block {code} · Floor {n}', { code: r.block, n: r.floor })} />
-                </Td>
-                <Td>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <StatusTag status={r.status} />
-                    {r.proposed && <Tag tone="info" dot={false}>New code waiting</Tag>}
-                  </div>
-                </Td>
-                <Td align="right" className="tabular">
-                  {r.residents}
-                </Td>
-                <Td className="text-sm text-fg-secondary">
-                  {r.task
-                    ? t('{reason} · {date}', { reason: tr(r.task.reason), date: formatDateTime(r.task.since) })
-                    : r.activeSince
-                      ? t('Active since {date}', { date: formatDateTime(r.activeSince) })
-                      : '—'}
-                </Td>
-                <Td>
-                  <div className="flex justify-end gap-1">
-                    {(r.status === 'Active' || r.proposed) && (
-                      <Button tip="Show the current code. Every view is written to the audit log." variant="text" icon={Eye} onClick={() => reveal.run(r.room)} disabled={reveal.pending}>
-                        Show code
-                      </Button>
-                    )}
-                    {r.proposed ? (
-                      <>
-                        <Button tip="Discard the new code that is not on the lock yet. The current code stays." variant="text" icon={X} onClick={() => cancel.run(r.room)} disabled={cancel.pending}>
-                          Drop
-                        </Button>
-                        <Button tip="Confirm once the new code is set on the lock. Residents are told, without the code." variant="primary" size="sm" icon={Check} onClick={() => confirm.run(r.room)} disabled={confirm.pending}>
-                          Confirm
-                        </Button>
-                      </>
-                    ) : (
-                      <Button tip="Generate or type a new 6-digit code for this room." size="sm" icon={Shuffle} onClick={() => setModal({ type: 'set', room: r })}>
-                        Set new code
-                      </Button>
-                    )}
-                  </div>
-                </Td>
-              </Tr>
-            ))}
+            {(d?.items ?? []).map((r) => {
+              const why = r.task
+                ? t('{reason} · {date}', { reason: tr(r.task.reason), date: formatDateTime(r.task.since) })
+                : r.activeSince
+                  ? t('Active since {date}', { date: formatDateTime(r.activeSince) })
+                  : '—'
+              return (
+                <Tr key={r.room} className="[&>td]:h-16">
+                  <Td>
+                    <TwoLine primary={r.room} secondary={t('Block {code} · Floor {n}', { code: r.block, n: r.floor })} />
+                  </Td>
+                  <Td>
+                    <div className="flex flex-col items-start gap-1">
+                      <StatusTag status={r.status} />
+                      {r.proposed && (
+                        <Tag tone="info" dot={false}>
+                          New code pending
+                        </Tag>
+                      )}
+                    </div>
+                  </Td>
+                  <Td align="right" className="tabular">
+                    {r.residents}
+                  </Td>
+                  <Td wrap={false} className="text-sm text-fg-secondary">
+                    <span className="block truncate" title={why}>
+                      {why}
+                    </span>
+                  </Td>
+                  <Td>
+                    {/* Three fixed slots (show · drop · main action) so the buttons line up from row to row. */}
+                    <div className="grid grid-cols-3 items-center gap-2">
+                      <div>
+                        {(r.status === 'Active' || r.proposed) && (
+                          <Button block tip="Show the current code. Every view is written to the audit log." variant="text" size="sm" icon={Eye} onClick={() => reveal.run(r.room)} disabled={reveal.pending}>
+                            Show code
+                          </Button>
+                        )}
+                      </div>
+                      <div>
+                        {r.proposed && (
+                          <Button block tip="Discard the new code that is not on the lock yet. The current code stays." variant="text" size="sm" icon={X} onClick={() => cancel.run(r.room)} disabled={cancel.pending}>
+                            Drop
+                          </Button>
+                        )}
+                      </div>
+                      <div>
+                        {r.proposed ? (
+                          <Button block tip="Confirm once the new code is set on the lock. Residents are told, without the code." variant="primary" size="sm" icon={Check} onClick={() => confirm.run(r.room)} disabled={confirm.pending}>
+                            Confirm
+                          </Button>
+                        ) : (
+                          <Button block tip="Generate or type a new 6-digit code for this room." size="sm" icon={Shuffle} onClick={() => setModal({ type: 'set', room: r })}>
+                            Set new code
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </Td>
+                </Tr>
+              )
+            })}
           </TBody>
         </Table>
         <div className="flex shrink-0 justify-end">

@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react'
-import { Bed, FileText, History, Package } from 'lucide-react'
+import { Bed, FileText, History, LogOut, Package } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -82,8 +82,31 @@ function Room({ data }) {
   return (
     <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
       <HandoverBanner />
+      {!termination && data.nextTerm?.state === 'Not continuing' && (
+        <Alert
+          type="warning"
+          title="Check-out period"
+          action={
+            <Button size="sm" variant="primary" icon={LogOut} to="/student/room/check-out">
+              Open check-out
+            </Button>
+          }
+          className="shrink-0"
+        >
+          {t('You do not continue next Term. Photograph every item and the meters, declare what is not Good, and submit before you check out at the desk.')}
+        </Alert>
+      )}
       {termination && (
-        <Alert type="error" title={termination.status === 'Checked out' ? 'Stay ended' : 'Your stay is terminated'} className="shrink-0">
+        <Alert
+          type="error"
+          title={termination.status === 'Checked out' ? 'Stay ended' : 'Your stay is terminated'}
+          action={
+            <Button size="sm" variant="primary" icon={LogOut} to="/student/room/check-out">
+              Open check-out
+            </Button>
+          }
+          className="shrink-0"
+        >
           {t('Reason: {reason}.', { reason: tr(termination.reason) })}
           {termination.note ? ' ' + termination.note : ''}
           {termination.status !== 'Checked out' && ' ' + t('Check out at the desk by {date}.', { date: formatDate(termination.moveOutBy) })}
@@ -125,6 +148,7 @@ function Room({ data }) {
 export default function MyRoom() {
   const { term } = useSession()
   const query = useQuery(['allocation', term?.id], ({ signal }) => api.me.allocation({ termId: term?.id }, { signal }))
+  const checkOut = useQuery(['check-out-furniture', 'mine'], ({ signal }) => api.checkOutFurniture.mine(undefined, { signal }))
   const data = query.data
   const tm = data?.term ?? term
   const description = tm ? `${tm.name}${tm.stayStart ? ` · ${formatDateRange(tm.stayStart, tm.stayEnd)}` : ''}` : undefined
@@ -147,9 +171,17 @@ export default function MyRoom() {
             icon={Bed}
             title="No room assigned yet"
             action={
-              <Button variant="primary" size="lg" to={data.application ? `/student/applications/${data.application.id}` : '/student/apply/term'}>
-                {data.application ? t('View application') : t('Start application')}
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button variant="primary" size="lg" to={data.application ? `/student/applications/${data.application.id}` : '/student/apply/term'}>
+                  {data.application ? t('View application') : t('Start application')}
+                </Button>
+                {/* After a check-out the room is gone, but its record stays reachable. */}
+                {checkOut.data?.checkedOutAt && (
+                  <Button size="lg" icon={LogOut} to="/student/room/check-out">
+                    Check-out
+                  </Button>
+                )}
+              </div>
             }
           >
             {t('The dormitory assigns your room and bed after review.')}
