@@ -786,4 +786,5 @@ export default {
   "Could not download your data": "Không tải được dữ liệu của bạn",
   "Could not send the request": "Không gửi được yêu cầu",
   "Could not save your answer": "Không lưu được câu trả lời",
+  "Stop": "Dừng",
 }

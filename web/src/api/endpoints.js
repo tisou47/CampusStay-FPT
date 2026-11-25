@@ -1,4 +1,4 @@
-import { download, http } from './client'
+import { download, http, stream } from './client'
 
 /*
  * CampusStay API endpoints used by the web app. Paths are relative to VITE_API_BASE_URL.
@@ -102,6 +102,8 @@ export const api = {
     assistant: g('/students/me/assistant'),
     /** { messages: [{ role: 'user' | 'assistant', content }] } ending with the question → { reply }. */
     askAssistant: (body) => http.post('/students/me/assistant/chat', body),
+    /** D6: the same question answered as it is written: onEvent(delta {text} | reset | done {reply, signature} | error {code, message}). */
+    streamAssistant: (body, opts) => stream('/students/me/assistant/chat/stream', body, opts),
     /** Family Days of the student's Block (ADR-29, A-69): { resident, items }. */
     familyDays: g('/students/me/family-days'),
     familyDay: (id, opts) => http.get(`/students/me/family-days/${id}`, undefined, opts),
