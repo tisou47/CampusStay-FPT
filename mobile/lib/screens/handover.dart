@@ -558,7 +558,7 @@ class _Charges extends StatelessWidget {
             tone: Tone.warning,
             title: '${t('Did you damage', 'Bạn có làm hỏng')} ${furnitureName(c)} ${c.text('assetCode')}?',
             body:
-                '${t('Confirm by', 'Xác nhận trước')} ${moment(c.str('dueAt'))}: ${money(c.number('amount'))} ${t('is charged at check-out. Decline: nobody is charged.', 'sẽ tính khi trả phòng. Từ chối: không ai bị tính.')}',
+                '${t('Confirm by', 'Xác nhận trước')} ${moment(c.str('dueAt'))}: ${money(c.number('amount'))} ${t('is charged at check-out. Decline: a Manager reviews it and decides.', 'sẽ tính khi trả phòng. Từ chối: ban quản lý xem xét và quyết định.')}',
             action: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

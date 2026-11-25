@@ -649,6 +649,8 @@ export const api = {
     record: (allocationId, body) => http.put(`/check-outs/${allocationId}/furniture`, body),
     reviews: g('/check-out-reviews'),
     decide: (allocationId, itemId, body) => http.post(`/check-out-reviews/${allocationId}/${itemId}`, body),
+    /** Shared damage the student declined (owner decision 25/11/2026): { keep, note }. */
+    decideClaim: (claimId, body) => http.post(`/check-out-reviews/claims/${claimId}`, body),
     mine: g('/students/me/check-out'),
     agree: () => http.post('/students/me/check-out/agree'),
     answerClaim: (id, body) => http.post(`/students/me/damage-claims/${id}`, body),

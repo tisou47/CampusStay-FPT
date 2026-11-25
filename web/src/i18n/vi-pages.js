@@ -1560,4 +1560,6 @@ export default {
   "Waiting since {date}": "Chờ từ {date}",
   "{n} waiting, {overdue} overdue": "{n} việc đang chờ, {overdue} việc quá hạn",
   "{n} overdue": "{n} quá hạn",
+  "Maintenance Requests nobody has taken": "Yêu cầu bảo trì chưa ai nhận",
+  "Check-out charges to decide": "Phí trả phòng chờ quyết định",
 }

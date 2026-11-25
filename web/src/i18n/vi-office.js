@@ -2248,4 +2248,5 @@ export default {
   "Keep the rule the refund was opened with, or apply a rule the Admin added.": "Giữ quy tắc lúc mở khoản hoàn, hoặc áp một quy tắc do Admin thêm.",
   "As opened: {rule}": "Như lúc mở: {rule}",
   "Refund rule": "Quy tắc hoàn tiền",
+  "Declined by the student": "Sinh viên đã từ chối",
 }

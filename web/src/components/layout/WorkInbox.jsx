@@ -19,6 +19,7 @@ const KEY = 'work-summary'
 /** What each kind of work is, in the words of the list (the kinds of GET /work/summary). */
 const KINDS = {
   maintenance: 'Maintenance Requests assigned to you',
+  'maintenance-unassigned': 'Maintenance Requests nobody has taken',
   inspection: 'Inspections assigned to you',
   'room-change': 'Room-Change Requests assigned to you',
   swap: 'Agreed swaps to carry out',
@@ -31,6 +32,7 @@ const KINDS = {
   application: 'Applications to review',
   assignment: 'Blocks submitted for approval',
   'late-check-in': 'Late check-in requests',
+  'check-out-charge': 'Check-out charges to decide',
   'termination-overdue': 'Terminations past the move-out date',
   'swap-manager': 'Swaps across Blocks to approve',
   escalation: 'Overdue requests escalated to you',

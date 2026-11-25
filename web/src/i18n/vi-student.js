@@ -659,11 +659,9 @@ export default {
   "Your comment": "Ý kiến của bạn",
   "Only what got worse while you lived here is charged; items that were already damaged and normal wear are not.": "Chỉ tính phần xấu đi trong thời gian bạn ở; món hỏng từ trước và hao mòn tự nhiên không bị tính.",
   "Did you damage {item}?": "Bạn có làm hỏng {item} không?",
-  "Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: nobody is charged.": "Nhân viên ghi nhận món này là {condition}. Nếu đúng do bạn, hãy xác nhận trước {date}: {amount} sẽ được tính khi trả phòng. Nếu không, hãy từ chối: không ai bị tính.",
   "Damage confirmed": "Đã xác nhận hư hỏng",
   "Damage declined": "Đã từ chối hư hỏng",
   "It is charged at check-out.": "Khoản này được tính khi trả phòng.",
-  "You are not charged for it.": "Bạn không bị tính khoản này.",
   "Could not answer": "Không gửi được câu trả lời",
   "Total {amount}": "Tổng {amount}",
   "Agree with the charges": "Đồng ý với khoản đền",
@@ -786,4 +784,6 @@ export default {
   "Your door code is above. File the check-in inventory: record the condition of your Bed's items, the shared items and the meters.": "Mã cửa của bạn ở phía trên. Hãy nộp biên bản kiểm kê nhận phòng: ghi tình trạng đồ của giường bạn, đồ dùng chung và chỉ số điện nước.",
   "Do it at the Room. Submit it by {date}: after that the Room's recorded condition is used and you can no longer report damage that was already there.": "Hãy làm khi đang ở phòng. Nộp trước {date}: sau thời hạn này, tình trạng phòng theo biên bản của ký túc xá được dùng và bạn không báo được hư hỏng có sẵn nữa.",
   "Answer each item and the meters, then submit before the deadline.": "Khai từng món và chỉ số điện nước, rồi nộp trước hạn.",
+  "A Manager reviews it and decides whether it is charged.": "Ban quản lý sẽ xem xét và quyết định có tính khoản này hay không.",
+  "Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: a Manager reviews it and decides.": "Nhân viên ghi nhận món này là {condition}. Nếu đúng do bạn, hãy xác nhận trước {date}: {amount} sẽ được tính khi trả phòng. Nếu không, hãy từ chối: ban quản lý sẽ xem xét và quyết định.",
 }

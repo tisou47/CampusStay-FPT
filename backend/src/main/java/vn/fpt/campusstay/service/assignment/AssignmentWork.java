@@ -13,7 +13,8 @@ import vn.fpt.campusstay.service.inventory.Inventory;
 
 /**
  * Assignment: Staff get the check-in inventories to review or visit and the overdue leavers of their Blocks;
- * Managers the Blocks submitted for approval, late check-in requests and overdue leavers of every Block.
+ * Managers the Blocks submitted for approval, late check-in requests, check-out charges to decide (lines Staff
+ * sent and shared damage the student declined) and overdue leavers of every Block.
  */
 @Component
 class AssignmentWork implements WorkSource {
@@ -52,6 +53,13 @@ class AssignmentWork implements WorkSource {
             WorkSource.tally(jdbc, "late-check-in", "/manager/approvals", """
                     SELECT NULL::timestamptz AS due, created_at AS since FROM asg_late_check_in WHERE status = 'PENDING'""",
                     Map.of(), now).ifPresent(out::add);
+            WorkSource.tally(jdbc, "check-out-charge", "/manager/approvals/check-out-charges", """
+                    SELECT NULL::timestamptz AS due, c.updated_at AS since
+                    FROM asg_check_out_damage d JOIN asg_check_out c ON c.id = d.check_out_id
+                    WHERE d.manager_review = 'PENDING'
+                    UNION ALL
+                    SELECT NULL::timestamptz, answered_at FROM asg_damage_claim
+                    WHERE status = 'DECLINED' AND manager_review IS NULL""", Map.of(), now).ifPresent(out::add);
             WorkSource.tally(jdbc, "termination-overdue", "/manager/terminations", """
                     SELECT overdue_at AS due, overdue_at AS since FROM asg_termination WHERE status = 'OVERDUE'""",
                     Map.of(), now).ifPresent(out::add);

@@ -392,7 +392,7 @@ function FurnitureCharges() {
   })
   const answer = useMutation((id, acknowledge) => api.checkOutFurniture.answerClaim(id, { acknowledge }), {
     invalidates: ['check-out-furniture'],
-    onSuccess: (_, __, acknowledge) => notify({ title: acknowledge ? 'Damage confirmed' : 'Damage declined', message: acknowledge ? 'It is charged at check-out.' : 'You are not charged for it.' }),
+    onSuccess: (_, __, acknowledge) => notify({ title: acknowledge ? 'Damage confirmed' : 'Damage declined', message: acknowledge ? 'It is charged at check-out.' : 'A Manager reviews it and decides whether it is charged.' }),
     onError: (e) => notifyError(e, 'Could not answer'),
   })
   const d = query.data
@@ -409,7 +409,7 @@ function FurnitureCharges() {
       {pending.map((c) => (
         <Alert key={c.id} type="warning" title={t('Did you damage {item}?', { item: `${typeName(c)} ${c.assetCode}` })}>
           <div className="flex flex-col gap-2">
-            <span>{t('Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: nobody is charged.', { condition: conditionName(c.condition, d.conditionLevels), date: formatDateTime(c.dueAt), amount: formatCurrency(c.amount) })}</span>
+            <span>{t('Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: a Manager reviews it and decides.', { condition: conditionName(c.condition, d.conditionLevels), date: formatDateTime(c.dueAt), amount: formatCurrency(c.amount) })}</span>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => answer.run(c.id, false)} disabled={answer.pending}>
                 Decline

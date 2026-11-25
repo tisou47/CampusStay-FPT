@@ -531,6 +531,47 @@ class HandoverIT {
     }
 
     /**
+     * TC-ASG-702 (owner decision 25/11/2026): shared damage the student declined waits for a Manager on the check-out
+     * charges; Staff cannot decide it; kept, it is charged as if acknowledged; dropped, nobody pays.
+     */
+    @Test
+    void declinedDamageIsDecidedByAManager() throws Exception {
+        long allocation = newcomer(39, "A-207", "A");
+        jdbc.sql("UPDATE asg_allocation SET resident_at = now(), code_released_at = now() WHERE id = :id")
+                .param("id", allocation).update();
+        List<String> shared = jdbc.sql("""
+                SELECT 'furniture-' || i.id FROM inv_furniture_item i JOIN inv_room r ON r.id = i.room_id
+                WHERE r.code = 'A-207' AND i.bed_id IS NULL ORDER BY i.id
+                """).query(String.class).list();
+        String staff = bearer(mvc, STAFF_A);
+        String manager = bearer(mvc, MANAGER_A);
+        String student = bearer(mvc, StayFlow.student(39));
+        String kept = JsonPath.read(json(send(post("/check-outs/" + allocation + "/damage-claims"), staff,
+                "{\"itemId\":\"" + shared.getFirst() + "\",\"condition\":\"Damaged\"}").andExpect(status().isOk())),
+                "$.id");
+        String dropped = JsonPath.read(json(send(post("/check-outs/" + allocation + "/damage-claims"), staff,
+                "{\"itemId\":\"" + shared.getLast() + "\",\"condition\":\"Missing\"}").andExpect(status().isOk())),
+                "$.id");
+        send(post("/students/me/damage-claims/" + kept), student, "{\"acknowledge\":false}").andExpect(status().isOk());
+        send(post("/students/me/damage-claims/" + dropped), student, "{\"acknowledge\":false}").andExpect(status().isOk());
+
+        mvc.perform(get("/check-out-reviews").header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].claimId").value(Matchers.hasItems(kept, dropped)));
+        send(post("/check-out-reviews/claims/" + kept), staff, "{\"keep\":true,\"note\":\"Seen in the Room\"}")
+                .andExpect(status().isForbidden());
+        send(post("/check-out-reviews/claims/" + kept), manager, "{\"keep\":true}").andExpect(status().isBadRequest());
+
+        send(post("/check-out-reviews/claims/" + dropped), manager, "{\"keep\":false,\"note\":\"Worn, not broken\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+        send(post("/check-out-reviews/claims/" + kept), manager, "{\"keep\":true,\"note\":\"Seen in the Room\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(Matchers.greaterThan(0)));
+        send(post("/check-out-reviews/claims/" + kept), manager, "{\"keep\":false,\"note\":\"again\"}")
+                .andExpect(status().isConflict());
+        mvc.perform(get("/check-out-reviews").header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].claimId").value(Matchers.not(Matchers.hasItems(kept))));
+    }
+
+    /**
      * TC-ASG-062: damage Staff record on a shared item at a check-out is split evenly among the Room's residents: the
      * leaver's line carries their share (with the rounding remainder), and when the check-out is completed each
      * roommate gets a DAMAGE Invoice for theirs, which becomes Overdue like any charge when it is not paid in time.

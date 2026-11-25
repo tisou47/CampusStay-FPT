@@ -40,7 +40,7 @@ class WorkSummaryIT {
 
     @AfterEach
     void cleanUp() {
-        jdbc.sql("DELETE FROM mnt_request WHERE code = 'MR-WORK-1'").update();
+        jdbc.sql("DELETE FROM mnt_request WHERE code IN ('MR-WORK-1', 'MR-WORK-2')").update();
         jdbc.sql("DELETE FROM inv_door_code_task WHERE created_at = timestamptz '2001-01-01 00:00Z'").update();
         jdbc.sql("DELETE FROM req_escalation WHERE title = 'work-summary-it'").update();
     }
@@ -115,5 +115,31 @@ class WorkSummaryIT {
         mvc.perform(get("/work/summary").header(HttpHeaders.AUTHORIZATION, bearer(mvc, TestAuth.STUDENT)))
                 .andExpect(status().isForbidden());
         assertThat(summary(ADMIN).keySet()).allMatch(k -> k.equals("term-request") || k.equals("job-failed"));
+    }
+
+    /**
+     * TC-RPT-021: a Maintenance Request nobody took counts for every Staff member of its Block, due when it would be
+     * escalated ({@code sla.unassigned_max_hours}, one hour in the seed: due soon); Staff of another Block do not see it.
+     */
+    @Test
+    void unassignedRequestsCountForTheBlocksStaff() throws Exception {
+        Map<String, List<Number>> before = summary(STAFF_A);
+        Map<String, List<Number>> otherBefore = summary(STAFF_B2);
+        long room = id("SELECT r.id FROM inv_room r JOIN inv_building b ON b.id = r.building_id WHERE b.code = 'A' "
+                + "ORDER BY r.id LIMIT 1");
+        long reporter = id("SELECT id FROM auth_user WHERE email = '" + STAFF_A + "'");
+        jdbc.sql("""
+                INSERT INTO mnt_request (code, building_id, room_code, room_id, reporter_id, title, description, category,
+                                         location, urgency, priority, status)
+                SELECT 'MR-WORK-2', building_id, code, id, :staff, 'Light', 'Light', 'ELECTRIC', 'ROOM', 'NORMAL', 'LOW',
+                       'SUBMITTED'
+                FROM inv_room WHERE id = :room
+                """).param("room", room).param("staff", reporter).update();
+
+        Map<String, List<Number>> after = summary(STAFF_A);
+        assertThat(count(after, "maintenance-unassigned", 0)).isEqualTo(count(before, "maintenance-unassigned", 0) + 1);
+        assertThat(count(after, "maintenance-unassigned", 2)).isEqualTo(count(before, "maintenance-unassigned", 2) + 1);
+        assertThat(count(summary(STAFF_B2), "maintenance-unassigned", 0))
+                .isEqualTo(count(otherBefore, "maintenance-unassigned", 0));
     }
 }
