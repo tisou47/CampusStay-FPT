@@ -292,15 +292,13 @@ async function allRooms(runId, signal) {
 }
 
 /**
- * The statistics of a run: Rooms by state, furniture found Worn, Damaged or Missing by type, and a short list of the
- * Rooms with something found. Read from the run's Rooms, so a run sent by Staff shows its final results at once.
+ * The statistics of a run: Rooms by state, furniture found Worn, Damaged or Missing by type, and every Room's report. Read from the run's Rooms, so a run sent by Staff shows its final results at once.
  */
 function RunStats({ run }) {
   const query = useQuery(['inspections', 'rooms', run.id, 'stats'], ({ signal }) => allRooms(run.id, signal))
   const rooms = query.data ?? []
   const stat = { done: 0, unreachable: 0, open: 0, Worn: 0, Damaged: 0, Missing: 0, failedChecks: 0 }
   const byType = new Map()
-  const found = []
   // Every Room of the run: what Staff found wrong (0 when fine), not reachable, or not inspected yet.
   const checked = []
   for (const r of rooms) {
@@ -317,14 +315,13 @@ function RunStats({ run }) {
         const row = byType.get(key) ?? { type: key, Worn: 0, Damaged: 0, Missing: 0 }
         row[x.condition] += 1
         byType.set(key, row)
-        items.push(`${typeName(check)}: ${conditionName(x.condition)}${x.note ? ` (${x.note})` : ''}`)
+        items.push({ name: typeName(check), condition: x.condition, label: conditionName(x.condition), note: x.note, damaged: x.condition !== 'Worn' })
       } else if (!check && x.result === 'Fail') {
         stat.failedChecks += 1
         const label = run.checklist?.items?.find((i) => String(i.id) === String(x.itemId))?.label
-        items.push(`${tr(label) ?? t('Checklist item')}: ${t('Fail')}${x.note ? ` (${x.note})` : ''}`)
+        items.push({ name: tr(label) ?? t('Checklist item'), condition: 'Fail', label: t('Fail'), note: x.note, damaged: true })
       }
     }
-    if (items.length) found.push({ room: r.room, items })
     checked.push({ room: r.room, state: r.status === 'Done' ? 'done' : r.status === 'Not reachable' ? 'unreachable' : 'open', items })
   }
   const types = [...byType.values()].sort((a, b) => b.Damaged + b.Missing - (a.Damaged + a.Missing))
@@ -368,21 +365,6 @@ function RunStats({ run }) {
               </ul>
             </div>
           )}
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-fg">{t('Rooms with something found ({n})', { n: found.length })}</span>
-            {found.length === 0 ? (
-              <p className="text-sm text-fg-secondary">{t('Nothing worn, damaged or missing was found.')}</p>
-            ) : (
-              <ul className="flex max-h-64 flex-col gap-1.5 overflow-y-auto">
-                {found.map((f) => (
-                  <li key={f.room} className="rounded-lg bg-subtle/40 px-3 py-2 text-sm">
-                    <span className="font-semibold text-fg">{f.room}</span>
-                    <span className="text-fg-secondary"> · {f.items.join(' · ')}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
           <RoomReportList run={run} rooms={checked} />
         </>
       )}
@@ -392,45 +374,67 @@ function RunStats({ run }) {
 
 
 /**
- * Every Room of the run, one line each: what was found wrong (listed, with the count) or "0 damaged items" when fine,
- * "Not reachable" or "Not inspected yet". A finished Room opens its report.
+ * Every Room of the run, one line each: the damaged items (Damaged, Missing or a failed check) counted apart from the
+ * Worn ones, "0 damaged items" when fine, "Not reachable" or "Not inspected yet", and a short chip per item found
+ * (its note in the tooltip). A finished Room opens its report.
  */
 function RoomReportList({ run, rooms }) {
   const navigate = useNavigate()
   if (!rooms.length) return null
   const order = { done: 0, unreachable: 1, open: 2 }
+  const damagedOf = (r) => r.items.filter((i) => i.damaged).length
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-fg">{t('Room reports ({n})', { n: rooms.length })}</span>
       <ul className="flex max-h-96 flex-col divide-y divide-line/70 overflow-y-auto rounded-lg border border-line text-sm">
         {[...rooms]
-          .sort((a, b) => order[a.state] - order[b.state] || b.items.length - a.items.length || a.room.localeCompare(b.room))
-          .map((r) => (
-            <li key={r.room}>
-              <button
-                type="button"
-                disabled={r.state === 'open'}
-                onClick={() => navigate(`/manager/inspections/${encodeURIComponent(run.id)}/rooms/${encodeURIComponent(r.room)}?from=schedule`)}
-                className="flex w-full flex-col gap-1 px-3 py-2 text-left enabled:hover:bg-subtle"
-              >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-fg tabular">{r.room}</span>
-                  {r.state === 'open' ? (
-                    <Tag tone="neutral">{t('Not inspected yet')}</Tag>
-                  ) : r.state === 'unreachable' ? (
-                    <Tag tone="warning">{t('Not reachable')}</Tag>
-                  ) : (
-                    <Tag tone={r.items.length ? 'error' : 'success'}>{t('{n} damaged items', { n: r.items.length })}</Tag>
+          .sort((a, b) => order[a.state] - order[b.state] || damagedOf(b) - damagedOf(a) || b.items.length - a.items.length || a.room.localeCompare(b.room))
+          .map((r) => {
+            const damaged = damagedOf(r)
+            const worn = r.items.length - damaged
+            return (
+              <li key={r.room}>
+                <button
+                  type="button"
+                  disabled={r.state === 'open'}
+                  onClick={() => navigate(`/manager/inspections/${encodeURIComponent(run.id)}/rooms/${encodeURIComponent(r.room)}?from=schedule`)}
+                  className="flex w-full flex-col gap-1.5 px-3 py-2 text-left enabled:hover:bg-subtle"
+                >
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="mr-auto font-semibold text-fg tabular">{r.room}</span>
+                    {r.state === 'open' ? (
+                      <Tag tone="neutral">{t('Not inspected yet')}</Tag>
+                    ) : r.state === 'unreachable' ? (
+                      <Tag tone="warning">{t('Not reachable')}</Tag>
+                    ) : (
+                      <>
+                        <Tag tone={damaged ? 'error' : 'success'}>{t('{n} damaged items', { n: damaged })}</Tag>
+                        {worn > 0 && <Tag tone="info">{t('{n} worn', { n: worn })}</Tag>}
+                      </>
+                    )}
+                  </span>
+                  {r.items.length > 0 && (
+                    <span className="flex flex-wrap gap-1">
+                      {r.items.map((i, k) => (
+                        <span
+                          key={`${i.name}-${k}`}
+                          title={i.note ? tr(i.note) : undefined}
+                          className={`rounded-md px-1.5 py-0.5 text-xs ${i.damaged ? 'bg-error-bg text-error-fg' : 'bg-subtle text-fg-secondary'}`}
+                        >
+                          {`${i.name} · ${i.label}`}
+                        </span>
+                      ))}
+                    </span>
                   )}
-                </span>
-                {r.items.length > 0 && <span className="text-fg-secondary">{r.items.join(' · ')}</span>}
-              </button>
-            </li>
-          ))}
+                </button>
+              </li>
+            )
+          })}
       </ul>
     </div>
   )
 }
+
 export default function InspectionSchedule() {
   const { block: scopeBlock, blocks } = useSession()
   const [filter, setFilter] = useState(scopeBlock ?? ALL)

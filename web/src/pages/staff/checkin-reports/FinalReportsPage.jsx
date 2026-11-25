@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { ChevronRight, FileText } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -10,13 +10,19 @@ import { FilterSelect, SearchInput } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
-
 import { Tag } from '@/components/ui/Tag'
 import { t, tr } from '@/i18n'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { severityOf } from './checkinReports'
 import { SeverityBadge } from './components/Badges'
+
+// Every report kept for the rooms, in one place (user decision 25/11/2026): the students' check-in inventories
+// (report 2), the rooms' final reports, report 1 (Staff's pre-arrival check) and every other inspection, one option per
+// checklist the Admin published (Wi-Fi, fire safety …). It reads the live data, so a report shows as soon as it is
+// filed or saved.
+// GET /handovers?block&status&comparison&q&page&pageSize → { items, total }
+// GET /inspection-reports?block&kind&checklist&q&page&pageSize → { items, total, checklists: [{ key, name, reports }] }
 
 const STATUS_TONE = {
   Final: 'success',
@@ -26,57 +32,44 @@ const STATUS_TONE = {
   Cancelled: 'error',
 }
 
-const updatedAtMs = (r) => {
-  const at = r.finalizedAt ?? r.submittedAt ?? r.openedAt
-  return at ? new Date(at).getTime() : 0
+const STUDENT_STATUSES = ['All', 'Draft', 'Submitted', 'Verifying', 'Final', 'Late report']
+
+/** A search box whose text is sent after a short pause. */
+function useDebounced(value, delay = 300) {
+  const [out, setOut] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setOut(value.trim()), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+  return out
 }
 
-// finalOnly: the Room's final reports (the inventories Staff closed); otherwise every student check-in inventory.
-function StudentReports({ finalOnly = false }) {
+function Count({ n }) {
+  return (
+    <span className="ml-auto rounded-full bg-subtle px-3 py-1 text-sm font-medium whitespace-nowrap text-fg-secondary tabular">
+      {t('{n} reports', { n: formatNumber(n) })}
+    </span>
+  )
+}
+
+// finalOnly: the rooms' final reports (the inventories that are final); otherwise every student check-in inventory.
+function StudentReports({ finalOnly = false, typeSelect }) {
   const navigate = useNavigate()
   const base = useRoleBase()
   const scope = useScopeQuery()
-  const [search, setSearch] = useState('')
-  const [chosenStatus, setStatusFilter] = useState('All')
-  const statusFilter = finalOnly ? 'Final' : chosenStatus
+  const [text, setText] = useState('')
+  const q = useDebounced(text)
+  const [chosenStatus, setStatus] = useState('All')
+  const status = finalOnly ? 'Final' : chosenStatus
   const [comparison, setComparison] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
+  useEffect(() => setPage(1), [q, status, comparison])
 
-  const query = useQuery(
-    ['handovers', 'list', scope, statusFilter, comparison || null, 'all-overview'],
-    ({ signal }) =>
-      api.handover.list(
-        {
-          ...scope,
-          status: statusFilter,
-          comparison: comparison || undefined,
-          page: 1,
-          pageSize: 100,
-        },
-        { signal },
-      ),
+  const query = useQuery(['handovers', 'list', scope, status, comparison, q, page, pageSize], ({ signal }) =>
+    api.handover.list({ ...scope, status, comparison: comparison || undefined, q: q || undefined, page, pageSize }, { signal }),
   )
-
-  const allRows = query.data?.items ?? []
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return allRows
-      .filter((r) => {
-        if (comparison && r.comparison !== comparison) return false
-        if (!q) return true
-        return [r.id, r.studentName, r.studentCode, r.room, r.block, r.status]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q))
-      })
-      .sort((a, b) => updatedAtMs(b) - updatedAtMs(a) || String(b.id).localeCompare(String(a.id)))
-  }, [allRows, search, comparison])
-
-  const paged = useMemo(() => {
-    const start = (page - 1) * pageSize
-    return filtered.slice(start, start + pageSize)
-  }, [filtered, page, pageSize])
+  const rows = query.data?.items ?? []
 
   const openReport = (r) => {
     if (r.status === 'Final') {
@@ -89,57 +82,28 @@ function StudentReports({ finalOnly = false }) {
 
   return (
     <>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchInput
-            wrapperClassName="w-84"
-            aria-label={t('Search')}
-            placeholder="Search report ID, student or room"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-          />
-          {!finalOnly && <FilterSelect
-            label="Status"
-            value={statusFilter}
-            onChange={(v) => {
-              setStatusFilter(v)
-              setPage(1)
-            }}
-            options={[
-              { value: 'All', label: 'All' },
-              { value: 'Draft', label: 'Draft' },
-              { value: 'Submitted', label: 'Submitted' },
-              { value: 'Verifying', label: 'Verifying' },
-              { value: 'Final', label: 'Final' },
-              { value: 'Late report', label: 'Late report' },
-              { value: 'Cancelled', label: 'Cancelled' },
-            ]}
-          />}
-          <FilterSelect
-            label="Comparison"
-            value={comparison}
-            onChange={(v) => {
-              setComparison(v)
-              setPage(1)
-            }}
-            options={[
-              { value: '', label: 'All' },
-              { value: 'Match', label: 'Matched' },
-              { value: 'Minor difference', label: 'Minor difference' },
-              { value: 'Major difference', label: 'Major difference' },
-            ]}
-          />
-        </div>
-        <span className="rounded-full bg-subtle px-3 py-1 text-sm font-medium text-fg-secondary tabular">
-          {t('{n} reports', { n: formatNumber(filtered.length) })}
-        </span>
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        {typeSelect}
+        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Student code, name, room or report ID" value={text} onChange={(e) => setText(e.target.value)} />
+        {!finalOnly && (
+          <FilterSelect label="Status" value={chosenStatus} onChange={setStatus} options={STUDENT_STATUSES.map((s) => ({ value: s, label: s }))} />
+        )}
+        <FilterSelect
+          label="Comparison"
+          value={comparison}
+          onChange={setComparison}
+          options={[
+            { value: '', label: 'All' },
+            { value: 'Matched', label: 'Matched' },
+            { value: 'Minor', label: 'Minor difference' },
+            { value: 'Major', label: 'Major difference' },
+          ]}
+        />
+        <Count n={query.data?.total ?? 0} />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <Table fill tableClassName="table-fixed">
+        <Table fill tableClassName="table-fixed min-w-[1000px]">
           <THead>
             <tr>
               <Th className="w-32">{t('Report ID')}</Th>
@@ -154,23 +118,13 @@ function StudentReports({ finalOnly = false }) {
             </tr>
           </THead>
           <TBody>
-            <TableStatus
-              query={query}
-              colSpan={7}
-              rows={paged}
-              emptyIcon={FileText}
-              emptyTitle="No reports found"
-            />
-            {paged.map((r) => {
+            <TableStatus query={query} colSpan={7} rows={rows} emptyIcon={FileText} emptyTitle="No reports found" />
+            {rows.map((r) => {
               const severity = severityOf(r.comparison)
               const at = r.finalizedAt ?? r.submittedAt ?? r.openedAt
               return (
-                <Tr
-                  key={r.id}
-                  onClick={() => openReport(r)}
-                  className="cursor-pointer [&>td]:h-15.5"
-                >
-                  <Td className="font-mono text-sm font-medium text-fg">{r.id}</Td>
+                <Tr key={r.id} onClick={() => openReport(r)} className="cursor-pointer [&>td]:h-15.5">
+                  <Td className="font-mono text-sm font-medium whitespace-nowrap text-fg">{r.id}</Td>
                   <Td>
                     <div className="flex min-w-0 items-center gap-2.5">
                       <Avatar name={r.studentName} size={32} />
@@ -187,7 +141,7 @@ function StudentReports({ finalOnly = false }) {
                     </div>
                   </Td>
                   <Td>
-                    <Tag tone={STATUS_TONE[r.status] ?? 'neutral'}>{r.status}</Tag>
+                    <Tag tone={STATUS_TONE[r.status] ?? 'neutral'}>{tr(r.status)}</Tag>
                   </Td>
                   <Td>
                     {severity ? (
@@ -198,9 +152,7 @@ function StudentReports({ finalOnly = false }) {
                       <span className="text-sm text-fg-tertiary">—</span>
                     )}
                   </Td>
-                  <Td className="text-sm text-fg-secondary tabular">
-                    {at ? formatDateTime(at) : '—'}
-                  </Td>
+                  <Td className="text-sm text-fg-secondary tabular">{at ? formatDateTime(at) : '—'}</Td>
                   <Td>
                     <ChevronRight size={16} aria-hidden="true" className="text-fg-tertiary" />
                   </Td>
@@ -211,7 +163,7 @@ function StudentReports({ finalOnly = false }) {
         </Table>
         <div className="flex shrink-0 justify-end">
           <Pagination
-            total={filtered.length}
+            total={query.data?.total ?? 0}
             page={page}
             pageSize={pageSize}
             onChange={setPage}
@@ -226,34 +178,27 @@ function StudentReports({ finalOnly = false }) {
   )
 }
 
-// Every finished Room report of the inspections the Managers scheduled (pre-arrival, Wi-Fi, fire safety …): one row
-// per inspected Room, kept with that Room (Rooms and beds shows the same reports). It opens the Room's results.
-function InspectionReports({ kind }) {
+// The inspection reports: report 1 (kind Pre-arrival) or the reports of one published checklist. One row per inspected
+// Room, kept with that Room (Rooms and beds shows the same reports); it opens the Room's results.
+function InspectionReports({ kind, checklist, typeSelect }) {
   const navigate = useNavigate()
   const base = useRoleBase()
   const scope = useScopeQuery()
-  const [q, setQ] = useState('')
-  const [search, setSearch] = useState('')
+  const [text, setText] = useState('')
+  const q = useDebounced(text)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(q.trim())
-      setPage(1)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [q])
-  const query = useQuery(['inspection-reports', scope, kind, search, page, pageSize], ({ signal }) =>
-    api.inspections.reports({ ...scope, kind, q: search || undefined, page, pageSize }, { signal }),
+  useEffect(() => setPage(1), [q])
+  const query = useQuery(['inspection-reports', scope, kind, checklist, q, page, pageSize], ({ signal }) =>
+    api.inspections.reports({ ...scope, kind, checklist, q: q || undefined, page, pageSize }, { signal }),
   )
   const items = query.data?.items ?? []
   return (
     <>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <SearchInput wrapperClassName="w-84" aria-label={t('Search')} placeholder="Search run, room or inspection" value={q} onChange={(e) => setQ(e.target.value)} />
-        <span className="rounded-full bg-subtle px-3 py-1 text-sm font-medium text-fg-secondary tabular">
-          {t('{n} reports', { n: formatNumber(query.data?.total ?? 0) })}
-        </span>
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        {typeSelect}
+        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Room or run code" value={text} onChange={(e) => setText(e.target.value)} />
+        <Count n={query.data?.total ?? 0} />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <InspectionReportTable query={query} items={items} onOpen={(r) => navigate(`${base}/inspections/${r.runId}/rooms/${r.room}?from=reports`)} />
@@ -274,10 +219,10 @@ function InspectionReports({ kind }) {
   )
 }
 
-/** The inspection reports as a table (also used by a Room's profile in Rooms and beds, without the Room column). */
+/** The inspection reports as a table. */
 export function InspectionReportTable({ query, items, onOpen, showRoom = true }) {
   return (
-    <Table fill tableClassName="table-fixed min-w-[1240px]">
+    <Table fill tableClassName="table-fixed min-w-[1180px]">
       <THead>
         <tr>
           <Th className="w-28">{t('Run')}</Th>
@@ -297,17 +242,17 @@ export function InspectionReportTable({ query, items, onOpen, showRoom = true })
             {showRoom && <Td className="font-medium tabular">{r.room}</Td>}
             <Td>
               <div className="flex min-w-0 flex-col">
-                <span className="truncate font-medium text-fg">{tr(r.name)}</span>
-                <span className="text-xs text-fg-secondary">{tr(r.kind)}</span>
+                <span className="truncate font-medium text-fg" title={tr(r.name)}>{tr(r.name)}</span>
+                <span className="truncate text-xs text-fg-secondary">{tr(r.checklistName ?? r.kind)}</span>
               </div>
             </Td>
             <Td>
               {r.status === 'Unreachable' ? (
                 <Tag tone="warning">{t('Unreachable')}</Tag>
               ) : r.failed > 0 ? (
-                <Tag tone="error">{t('{n} items failed', { n: r.failed })}</Tag>
+                <Tag tone="error">{t('{n} damaged items', { n: r.failed })}</Tag>
               ) : (
-                <Tag tone="success">{t('No item failed')}</Tag>
+                <Tag tone="success">{t('{n} damaged items', { n: 0 })}</Tag>
               )}
             </Td>
             <Td className="truncate">{r.inspector ?? '—'}</Td>
@@ -320,36 +265,33 @@ export function InspectionReportTable({ query, items, onOpen, showRoom = true })
   )
 }
 
-// Which reports the summary shows (user decision 25/11/2026): every report is kept with its Room.
-const REPORT_TYPES = [
-  { value: 'student', label: 'Student check-in inventories' },
-  { value: 'final', label: 'Final room reports' },
-  { value: 'report1', label: 'Report 1 · Staff pre-arrival check' },
-  { value: 'inspections', label: 'Other inspections (Wi-Fi, fire safety …)' },
-]
-
 export default function FinalReportsPage() {
+  const scope = useScopeQuery()
   const [params, setParams] = useSearchParams()
-  const asked = params.get('type') ?? (params.get('tab') === 'inspections' ? 'inspections' : null)
-  const type = REPORT_TYPES.some((x) => x.value === asked) ? asked : 'student'
+  // Every checklist the Admin published is a report type of its own (with how many reports used it).
+  const options = useQuery(['inspection-reports', 'checklists', scope], ({ signal }) => api.inspections.reports({ ...scope, pageSize: 1 }, { signal }))
+  const checklists = options.data?.checklists ?? []
+  const types = [
+    { value: 'student', label: t('Student check-in inventories') },
+    { value: 'final', label: t('Final room reports') },
+    { value: 'report1', label: t('Report 1 · Staff pre-arrival check') },
+    ...checklists.map((c) => ({ value: `cl:${c.key}`, label: `${tr(c.name)} (${formatNumber(c.reports)})` })),
+  ]
+  const asked = params.get('type') ?? 'student'
+  const type = asked.startsWith('cl:') || types.some((x) => x.value === asked) ? asked : 'student'
+  const typeSelect = (
+    <FilterSelect label="Report type" value={type} onChange={(v) => setParams(v === 'student' ? {} : { type: v }, { replace: true })} options={types} />
+  )
   return (
     <>
       <PageHeader
         title="Final reports"
-        description="Every report kept for the rooms: the students' check-in inventories, the rooms' final reports and the inspections Staff sent to the Managers. Students see only their own inventory and their room's final report."
-        actions={
-          <FilterSelect
-            label="Report type"
-            value={type}
-            onChange={(v) => setParams(v === 'student' ? {} : { type: v }, { replace: true })}
-            options={REPORT_TYPES}
-          />
-        }
+        tip="Every report kept for the rooms, updated as soon as one is filed: the students' check-in inventories, the rooms' final reports, report 1 and each inspection the Admin configured. Students see only their own inventory and their room's final report."
       />
-      {type === 'student' && <StudentReports key="student" />}
-      {type === 'final' && <StudentReports key="final" finalOnly />}
-      {type === 'report1' && <InspectionReports key="report1" kind="Pre-arrival" />}
-      {type === 'inspections' && <InspectionReports key="inspections" kind="Periodic" />}
+      {type === 'student' && <StudentReports key="student" typeSelect={typeSelect} />}
+      {type === 'final' && <StudentReports key="final" finalOnly typeSelect={typeSelect} />}
+      {type === 'report1' && <InspectionReports key="report1" kind="Pre-arrival" typeSelect={typeSelect} />}
+      {type.startsWith('cl:') && <InspectionReports key={type} checklist={type.slice(3)} typeSelect={typeSelect} />}
     </>
   )
 }

@@ -212,6 +212,12 @@ class HandoverIT {
                 .andExpect(jsonPath("$.status").value("Draft"));
         send(post("/students/me/handover/start"), student, "").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("INVENTORY_STARTED"));
+        // Staff find it by student code or Room.
+        String desk = bearer(mvc, STAFF_A);
+        mvc.perform(get("/handovers?status=All&q=SE190038").header(HttpHeaders.AUTHORIZATION, desk))
+                .andExpect(jsonPath("$.total").value(1));
+        mvc.perform(get("/handovers?status=All&q=a-204").header(HttpHeaders.AUTHORIZATION, desk))
+                .andExpect(jsonPath("$.items[*].room").value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("A-204"))));
         assertThat(jdbc.sql("""
                 SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id
                 WHERE u.email = :e AND n.event_key = 'CHECK_IN_AVAILABLE'

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
-import { Ban, Building, Check, ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Package, SearchX, Wrench } from 'lucide-react'
+import { Ban, Building, Check, ChevronDown, ChevronLeft, ChevronRight, Download, Package, SearchX, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -19,6 +19,7 @@ import { useRoleBase } from '@/lib/useRoleBase'
 import { saveXlsx } from '@/lib/xlsx'
 import { inventoryWorkbook } from './inventoryWorkbook'
 import { DoorCodeButton } from './inventory/DoorCodeButton'
+import { RoomReportList, useRoomReports } from './inventory/RoomReports'
 import { t, tr } from '@/i18n'
 
 // SCR-INV-10 Room and Bed Inventory (Figma 37:2075). Shared with the Manager portal.
@@ -518,69 +519,12 @@ function RoomProfile({ room, termId, prev, next, onStep, onSetOutOfService, onMa
 }
 
 
-/**
- * The room's reports (user decision 25/11/2026): the students' check-in inventories and every inspection Staff filed
- * for it (pre-arrival, Wi-Fi, fire safety …), newest first. Each opens its report on the Staff portal.
- */
+/** The room's reports (report 1, other inspections, check-in inventories), newest first. */
 function RoomReports({ room }) {
-  const base = useRoleBase()
-  const navigate = useNavigate()
-  const staff = base === '/staff'
-  const inspections = useQuery(['inspection-reports', 'room', room], ({ signal }) => api.inspections.reports({ room, pageSize: 50 }, { signal }))
-  const inventories = useQuery(['handovers', 'room', room], ({ signal }) => api.handover.list({ room, status: 'All', pageSize: 50 }, { signal }))
-  const rows = [
-    ...(inventories.data?.items ?? []).map((r) => ({
-      key: `h-${r.id}`,
-      at: r.finalizedAt ?? r.submittedAt ?? r.openedAt,
-      title: t('Check-in inventory · Bed {bed}', { bed: r.bed }),
-      meta: [r.id, r.studentName].filter(Boolean).join(' · '),
-      tag: <Tag tone={r.status === 'Final' ? 'success' : r.status === 'Submitted' ? 'warning' : 'neutral'}>{tr(r.status)}</Tag>,
-      to: r.status === 'Final' ? `${base}/check-in/inventories/${r.id}/report/3?from=done` : `${base}/check-in/inventories/${r.id}?from=review`,
-    })),
-    ...(inspections.data?.items ?? []).map((r) => ({
-      key: `i-${r.runId}`,
-      at: r.inspectedAt ?? r.submittedAt,
-      title: tr(r.name),
-      meta: [r.runId, tr(r.kind), r.inspector].filter(Boolean).join(' · '),
-      tag:
-        r.status === 'Unreachable' ? (
-          <Tag tone="warning">{t('Unreachable')}</Tag>
-        ) : r.failed > 0 ? (
-          <Tag tone="error">{t('{n} items failed', { n: r.failed })}</Tag>
-        ) : (
-          <Tag tone="success">{t('No item failed')}</Tag>
-        ),
-      to: `${base}/inspections/${r.runId}/rooms/${r.room}?from=room`,
-    })),
-  ].sort((a, b) => new Date(b.at ?? 0) - new Date(a.at ?? 0))
-  const loading = (inspections.loading && !inspections.data) || (inventories.loading && !inventories.data)
+  const { rows, loading } = useRoomReports(room)
   return (
     <Section id="inventory-reports" title="Reports" aside={rows.length > 0 && <span className="text-sm text-fg-tertiary tabular">{formatNumber(rows.length)}</span>}>
-      {loading ? (
-        <p className="text-sm text-fg-tertiary">{t('Loading…')}</p>
-      ) : rows.length === 0 ? (
-        <Note>{t('No reports for this room yet: check-in inventories and room inspections appear here once filed.')}</Note>
-      ) : (
-        <ul className="flex max-h-80 flex-col gap-2 overflow-y-auto">
-          {rows.map((r) => (
-            <li key={r.key}>
-              <button
-                type="button"
-                disabled={!staff && base !== '/manager'}
-                onClick={() => navigate(r.to)}
-                className="flex w-full items-center gap-3 rounded-lg border border-line px-3 py-2.5 text-left transition-colors enabled:hover:bg-subtle"
-              >
-                <FileText size={18} aria-hidden="true" className="shrink-0 text-fg-brand" />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-base font-semibold text-fg">{r.title}</span>
-                  <span className="truncate text-sm text-fg-tertiary">{[r.meta, r.at && formatDateTime(r.at)].filter(Boolean).join(' · ')}</span>
-                </span>
-                {r.tag}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <RoomReportList rows={rows} loading={loading} />
     </Section>
   )
 }
@@ -784,19 +728,8 @@ export default function Inventory() {
         <div className="flex min-w-0 items-center gap-3">
           <h1 className="text-h1 font-bold tracking-tight whitespace-nowrap text-fg">{t('Rooms and beds')}</h1>
           <InfoTip label={t('Rooms and beds in your scope. Click a room to see its details on the right.')} size={16} side="bottom" align="start" />
-          {/* The top bar already picks the Block; this picker only shows when the top bar is on every Block. */}
-          {blocks.length > 1 && (
-            <FilterSelect
-              aria-label={t('Block')}
-              value={block ?? ''}
-              onChange={(val) => {
-                const b = blocks.find((x) => x.block === val)
-                setBlock(b.block)
-                goFloor(b.floors[0])
-              }}
-              options={blocks.map((b) => ({ value: b.block, label: t('Block {code}', { code: b.block }) }))}
-            />
-          )}
+          {/* The Block comes from the top bar's Block filter (no second picker here); on every Block the page shows
+              the first one until the top bar picks another. */}
         </div>
         <div className="flex flex-wrap items-center gap-2 max-[720px]:w-full">
           <SearchInput

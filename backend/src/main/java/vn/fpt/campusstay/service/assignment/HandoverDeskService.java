@@ -132,12 +132,20 @@ public class HandoverDeskService {
      */
     @Transactional(readOnly = true)
     public Page list(String block, String status, String comparison, PageQuery page) {
-        return list(block, status, comparison, null, page);
+        return list(block, status, comparison, null, null, page);
     }
 
-    /** {@code room}: a Room code ({@code A-301}) keeps that Room's inventories (Rooms and beds). */
     @Transactional(readOnly = true)
     public Page list(String block, String status, String comparison, String room, PageQuery page) {
+        return list(block, status, comparison, room, null, page);
+    }
+
+    /**
+     * {@code room}: a Room code ({@code A-301}) keeps that Room's inventories (Rooms and beds); {@code q}: a student
+     * code or name, a Room or a report code ({@code HO-000123}), never logged.
+     */
+    @Transactional(readOnly = true)
+    public Page list(String block, String status, String comparison, String room, String q, PageQuery page) {
         currentUser.require(Permission.DESK);
         Set<Long> buildings = blockScope.resolve(block).ids();
         Map<Long, Inventory.BedSlot> beds = new HashMap<>();
@@ -145,6 +153,7 @@ public class HandoverDeskService {
         if (room != null && !room.isBlank()) {
             beds.values().removeIf(s -> !s.roomCode().equalsIgnoreCase(room.trim()));
         }
+        Search search = search(q, beds);
         if (beds.isEmpty()) {
             return new Page(List.of(), 0, Map.of());
         }
@@ -174,10 +183,14 @@ public class HandoverDeskService {
                                             AND (h.confirm_reason IS NULL OR h.confirm_reason NOT LIKE 'Late report%'))
                        OR h.status = :state)
                   AND (CAST(:level AS VARCHAR) IS NULL OR h.comparison = :level)
+                  AND (CAST(:any AS BOOLEAN) IS NULL OR h.id = :hid OR a.student_id IN (:students) OR a.bed_id IN (:qbeds))
                 ORDER BY CASE h.comparison WHEN 'MAJOR' THEN 0 WHEN 'MINOR' THEN 1 ELSE 2 END,
                          coalesce(h.submitted_at, h.opened_at), h.id
                 LIMIT :limit OFFSET :offset
                 """).param("beds", List.copyOf(beds.keySet())).param("state", state).param("level", level)
+                .param("any", search == null ? null : Boolean.TRUE).param("hid", search == null ? -1L : search.handoverId())
+                .param("students", search == null || search.students().isEmpty() ? List.of(-1L) : search.students())
+                .param("qbeds", search == null || search.beds().isEmpty() ? List.of(-1L) : search.beds())
                 .param("limit", page.limit()).param("offset", page.offset())
                 .query((rs, i) -> new Head(rs.getLong("id"), rs.getLong("allocation_id"), rs.getLong("student_id"),
                         rs.getLong("bed_id"), rs.getLong("term_id"), rs.getString("status"), rs.getString("comparison"),
@@ -195,6 +208,34 @@ public class HandoverDeskService {
         return new Page(rows(heads, beds), heads.isEmpty() ? 0 : heads.getFirst().total(), counts);
     }
 
+
+    private record Search(long handoverId, List<Long> students, List<Long> beds) {
+    }
+
+    /** What a search text matches among the Blocks' inventories: a report code, Rooms, or students by code or name. */
+    private Search search(String q, Map<Long, Inventory.BedSlot> beds) {
+        if (q == null || q.isBlank()) {
+            return null;
+        }
+        String needle = q.trim().toLowerCase(java.util.Locale.ROOT);
+        long handoverId = -1;
+        if (needle.matches("ho-?[0-9]+")) {
+            handoverId = Long.parseLong(needle.replaceAll("[^0-9]", ""));
+        }
+        List<Long> rooms = beds.values().stream()
+                .filter(b -> b.roomCode().toLowerCase(java.util.Locale.ROOT).contains(needle)
+                        || b.roomCode().replace("-", "").toLowerCase(java.util.Locale.ROOT).contains(needle))
+                .map(Inventory.BedSlot::bedId).toList();
+        List<Long> people = jdbc.sql("""
+                SELECT DISTINCT a.student_id FROM asg_handover h JOIN asg_allocation a ON a.id = h.allocation_id
+                WHERE a.bed_id IN (:beds) AND h.status <> 'CANCELLED'
+                """).param("beds", List.copyOf(beds.keySet())).query(Long.class).list();
+        List<Long> students = users.students(people).values().stream()
+                .filter(s -> s.studentCode() != null && s.studentCode().toLowerCase(java.util.Locale.ROOT).contains(needle)
+                        || s.name() != null && s.name().toLowerCase(java.util.Locale.ROOT).contains(needle))
+                .map(UserDirectory.Student::userId).toList();
+        return new Search(handoverId, students, rooms);
+    }
     @Transactional(readOnly = true)
     public Detail detail(String id) {
         currentUser.require(Permission.DESK);

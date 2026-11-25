@@ -108,9 +108,10 @@ class HandoverController {
     @GetMapping("/handovers")
     HandoverDeskService.Page list(@RequestParam(required = false) String block,
             @RequestParam(required = false) String status, @RequestParam(required = false) String comparison,
-            @RequestParam(required = false) String room, @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) String room, @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer pageSize) {
-        return desk.list(block, status, comparison, room, PageQuery.of(page, pageSize));
+        return desk.list(block, status, comparison, room, q, PageQuery.of(page, pageSize));
     }
 
     @GetMapping("/handovers/{id}")

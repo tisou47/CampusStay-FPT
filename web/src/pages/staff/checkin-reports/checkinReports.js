@@ -180,11 +180,12 @@ export function useReportsBase() {
 }
 
 /** One page of a queue tab. Large pages: the queue is short (one Term, the user's Blocks). */
-export function useQueue(tabKey, { comparison, pageSize = 100, page = 1 } = {}) {
+export function useQueue(tabKey, { comparison, q, pageSize = 100, page = 1 } = {}) {
   const scope = useScopeQuery()
   const tab = tabOf(tabKey)
-  const query = useQuery(['handovers', 'list', scope, tab.status, comparison ?? null, page, pageSize], ({ signal }) =>
-    api.handover.list({ ...scope, status: tab.status, comparison: comparison || undefined, page, pageSize }, { signal }),
+  // q: a student code or name, a Room or a report code (searched by the API).
+  const query = useQuery(['handovers', 'list', scope, tab.status, comparison ?? null, q || null, page, pageSize], ({ signal }) =>
+    api.handover.list({ ...scope, status: tab.status, comparison: comparison || undefined, q: q || undefined, page, pageSize }, { signal }),
   )
   const rows = useMemo(() => queueOrder(query.data?.items ?? []), [query.data])
   return { query, rows, total: query.data?.total ?? 0, counts: query.data?.counts ?? {} }

@@ -6,7 +6,7 @@ import { invalidate } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { FilterSelect } from '@/components/ui/Field'
+import { FilterSelect, SearchInput } from '@/components/ui/Field'
 import { Segmented, Tabs } from '@/components/ui/Tabs'
 import { EmptyBlock } from '@/components/ui/States'
 import { t } from '@/i18n'
@@ -45,7 +45,13 @@ function QueueView({ base }) {
       return next
     })
 
-  const { query, rows } = useQueue(tab, { comparison: severity === 'minor' ? 'Minor' : severity === 'major' ? 'Major' : undefined })
+  const [text, setText] = useState(params.get('q') ?? '')
+  const [q, setQ] = useState(text.trim())
+  useEffect(() => {
+    const timer = setTimeout(() => setQ(text.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [text])
+  const { query, rows } = useQueue(tab, { q, comparison: severity === 'minor' ? 'Minor' : severity === 'major' ? 'Major' : undefined })
   const { counts } = useCounts()
   const review = useQueue('review')
   const sorted = useMemo(() => {
@@ -89,6 +95,7 @@ function QueueView({ base }) {
       <Tabs label={t('Inventory queues')} value={tab} onChange={(key) => set({ tab: key === 'review' ? null : key, severity: null })} items={TABS.map((x) => ({ ...x, count: counts[x.key] }))} />
 
       <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <SearchInput wrapperClassName="w-72" aria-label={t('Search')} placeholder="Student code, name or room" value={text} onChange={(e) => setText(e.target.value)} />
         <Segmented
           value={severity}
           onChange={(v) => set({ severity: v })}

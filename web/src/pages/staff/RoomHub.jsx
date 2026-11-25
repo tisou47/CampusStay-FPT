@@ -15,6 +15,7 @@ import { formatDate, formatNumber } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 import { SetCodeModal } from './DoorCodes'
+import { RoomReportList, useRoomReports } from './inventory/RoomReports'
 
 // SCR-INV-14 Room hub (spec §11.3): residents of the current and the next Term, Room Class per Term and furniture
 // conformance, door code, meter readings, Maintenance Requests and inspections. Shared by Staff and Managers.
@@ -325,10 +326,21 @@ export default function RoomHub() {
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-stretch">
           <Section id="maintenance" icon={Wrench} title="Maintenance requests" items={s.maintenance} empty="No maintenance request for this room." link={(i) => `${base}/maintenance/${i.id}`} />
-          <Section id="inspections" icon={ClipboardCheck} title="Inspections" items={s.inspections} empty="No inspection of this room yet." />
+          <RoomReportsCard room={d.room} />
         </div>
       </div>
       {changingCode && <SetCodeModal room={{ room: d.room }} onClose={() => setChangingCode(false)} />}
     </>
+  )
+}
+
+/** The room's reports: report 1, every inspection saved for it and the students' check-in inventories (Rooms and beds shows the same). */
+function RoomReportsCard({ room }) {
+  const { rows, loading } = useRoomReports(room)
+  return (
+    <Card id="inspections" className="flex h-full min-h-0 scroll-mt-4 flex-col gap-3">
+      <SectionTitle icon={ClipboardCheck} title="Reports" aside={rows.length ? formatNumber(rows.length) : null} />
+      <RoomReportList rows={rows} loading={loading} className="max-h-96" />
+    </Card>
   )
 }

@@ -452,6 +452,11 @@ class InspectionIT {
         getAs("/inspection-reports?room=A-510", staff).andExpect(jsonPath("$.items[*].runId").value(not(hasItem(code))));
         getAs("/inspection-reports?q=" + code, bearer(mvc, MANAGER_A)).andExpect(jsonPath("$.total").value(1));
         getAs("/inspection-reports?kind=Periodic&q=" + code, staff).andExpect(jsonPath("$.total").value(1));
+        String family = jdbc.sql("SELECT c.family_key FROM mnt_checklist c JOIN mnt_inspection_run r ON r.checklist_id = c.id WHERE r.id = :id")
+                .param("id", run).query(String.class).single();
+        getAs("/inspection-reports?checklist=" + family + "&q=" + code, staff).andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.checklists[?(@.key == '" + family + "')].reports").value(hasItem(1)));
+        getAs("/inspection-reports?checklist=NO_SUCH&q=" + code, staff).andExpect(jsonPath("$.total").value(0));
         getAs("/inspection-reports?kind=Pre-arrival&q=" + code, staff).andExpect(jsonPath("$.total").value(0));
         // A Room is a report as soon as Staff save it, before the run is sent to the Managers.
         jdbc.sql("UPDATE mnt_inspection_run SET status = 'IN_PROGRESS', submitted_at = NULL WHERE id = :id").param("id", run)

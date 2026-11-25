@@ -40,14 +40,20 @@ public class InspectionReportService {
      * @param submitted the inspector sent the whole run to the Managers
      */
     public record Report(String runId, String room, String block, int floor, String name, String kind, String status,
-            Instant inspectedAt, String inspector, long failed, boolean submitted, Instant submittedAt) {
+            Instant inspectedAt, String inspector, long failed, boolean submitted, Instant submittedAt, String checklist,
+            String checklistName) {
     }
 
-    public record ReportPage(List<Report> items, long total) {
+    /** A checklist the Admin published (its family key and current name) and how many reports used it. */
+    public record ChecklistOption(String key, String name, long reports) {
+    }
+
+    /** {@code checklists}: every published checklist, to filter the reports by what the Admin configured. */
+    public record ReportPage(List<Report> items, long total, List<ChecklistOption> checklists) {
     }
 
     private record Row(long runId, long roomId, long buildingId, String name, String kind, String status,
-            Instant inspectedAt, Long inspectorId, long failed, boolean submitted, Instant submittedAt) {
+            Instant inspectedAt, Long inspectorId, long failed, boolean submitted, Instant submittedAt, String family) {
     }
 
     private final JdbcClient jdbc;
@@ -74,10 +80,15 @@ public class InspectionReportService {
      *             fire safety …); none = both
      */
     public ReportPage list(String block, String room, String q, String kind, PageQuery page) {
+        return list(block, room, q, kind, null, page);
+    }
+
+    /** {@code checklist}: a checklist family key ({@code CL_NETWORK}): only the reports made with it. */
+    public ReportPage list(String block, String room, String q, String kind, String checklist, PageQuery page) {
         currentUser.require(Permission.PROCESS_MAINTENANCE);
         Set<Long> scope = blockScope.resolve(block).ids();
         if (scope.isEmpty()) {
-            return new ReportPage(List.of(), 0);
+            return new ReportPage(List.of(), 0, List.of());
         }
         Map<Long, Inventory.BedSlot> rooms = new HashMap<>();
         scope.forEach(b -> inventory.bedsOfBuilding(b).forEach(s -> rooms.putIfAbsent(s.roomId(), s)));
@@ -93,7 +104,7 @@ public class InspectionReportService {
         List<Row> rows = jdbc.sql("""
                 SELECT r.id AS run_id, ir.room_id, r.building_id, coalesce(s.name, c.name) AS name,
                        coalesce(s.kind, 'PERIODIC') AS kind, ir.status, ir.inspected_at, r.inspector_id,
-                       r.status = 'SUBMITTED' AS submitted, r.submitted_at,
+                       r.status = 'SUBMITTED' AS submitted, r.submitted_at, c.family_key,
                        (SELECT count(*) FROM mnt_inspection_result x
                         WHERE x.inspection_room_id = ir.id AND x.result = 'FAIL')
                      + (SELECT count(*) FROM mnt_inspection_room_check k
@@ -111,7 +122,8 @@ public class InspectionReportService {
                         rs.getString("name"), rs.getString("kind"), rs.getString("status"),
                         rs.getTimestamp("inspected_at") == null ? null : rs.getTimestamp("inspected_at").toInstant(),
                         rs.getObject("inspector_id", Long.class), rs.getLong("failed"), rs.getBoolean("submitted"),
-                        rs.getTimestamp("submitted_at") == null ? null : rs.getTimestamp("submitted_at").toInstant()))
+                        rs.getTimestamp("submitted_at") == null ? null : rs.getTimestamp("submitted_at").toInstant(),
+                        rs.getString("family_key")))
                 .list();
         List<Long> only = roomFilter;
         String needle = q == null ? "" : q.trim().toLowerCase(java.util.Locale.ROOT);
@@ -128,6 +140,16 @@ public class InspectionReportService {
             }
             kept.add(r);
         }
+        // Report 1 (pre-arrival) is a type of its own: a checklist counts and filters the other inspections.
+        Map<String, Long> perFamily = kept.stream().filter(r -> !"PRE_ARRIVAL".equals(r.kind()))
+                .collect(Collectors.groupingBy(Row::family, Collectors.counting()));
+        Map<String, String> familyNames = publishedChecklists();
+        List<ChecklistOption> options = familyNames.entrySet().stream()
+                .map(e -> new ChecklistOption(e.getKey(), e.getValue(), perFamily.getOrDefault(e.getKey(), 0L))).toList();
+        if (checklist != null && !checklist.isBlank()) {
+            String key = checklist.trim();
+            kept.removeIf(r -> !key.equals(r.family()) || "PRE_ARRIVAL".equals(r.kind()));
+        }
         List<Row> shown = kept.stream().skip(page.offset()).limit(page.limit()).toList();
         Map<Long, String> names = users.displayNames(shown.stream().map(Row::inspectorId).filter(Objects::nonNull)
                 .collect(Collectors.toSet()));
@@ -137,8 +159,19 @@ public class InspectionReportService {
                     "PRE_ARRIVAL".equals(r.kind()) ? "Pre-arrival" : "Periodic",
                     "INSPECTED".equals(r.status()) ? "Inspected" : "Unreachable", r.inspectedAt(),
                     r.inspectorId() == null ? null : names.get(r.inspectorId()), r.failed(), r.submitted(),
-                    r.submittedAt());
-        }).toList(), kept.size());
+                    r.submittedAt(), r.family(), familyNames.getOrDefault(r.family(), r.name()));
+        }).toList(), kept.size(), options);
+    }
+
+    /** Every published checklist (the latest version of each family), by name. */
+    private Map<String, String> publishedChecklists() {
+        Map<String, String> out = new java.util.LinkedHashMap<>();
+        jdbc.sql("""
+                SELECT DISTINCT ON (family_key) family_key, name FROM mnt_checklist WHERE status = 'PUBLISHED'
+                ORDER BY family_key, version DESC
+                """).query((rs, i) -> Map.entry(rs.getString(1), rs.getString(2))).list().stream()
+                .sorted(Map.Entry.comparingByValue()).forEach(e -> out.put(e.getKey(), e.getValue()));
+        return out;
     }
 
     private static String kindCode(String kind) {

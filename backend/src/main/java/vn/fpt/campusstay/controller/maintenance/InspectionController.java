@@ -133,9 +133,9 @@ class InspectionController {
     @GetMapping("/inspection-reports")
     InspectionReportService.ReportPage reports(@RequestParam(required = false) String block,
             @RequestParam(required = false) String room, @RequestParam(required = false) String q,
-            @RequestParam(required = false) String kind,
+            @RequestParam(required = false) String kind, @RequestParam(required = false) String checklist,
             @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
-        return reports.list(block, room, q, kind, PageQuery.of(page, pageSize));
+        return reports.list(block, room, q, kind, checklist, PageQuery.of(page, pageSize));
     }
 
     /** Every run of the user's Blocks they can open: open ones (their own first) and the ones sent lately. */
