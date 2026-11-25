@@ -1,8 +1,9 @@
 package vn.fpt.campusstay.service.billing;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.NumberFormat;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
@@ -17,14 +18,16 @@ import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.setting.UtilityPolicy;
+import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.exception.FieldErrors;
 
 /**
  * The Utility Deposit settlement at check-out. A Utility Invoice whose claim waits for a Manager is not taken from
  * the deposit: the Manager's decision settles it (spec §6.7). The final share covers the
  * Room's consumption since its last reading (a monthly reading or a reading
- * taken when residents changed), split evenly between the current residents
- * and rounded by the Admin rule.
+ * taken when residents changed), split between the residents by the time each
+ * lived in the Room since then, with the formula of the monthly close
+ * ({@link UtilitySplit}, BE-APP-BIL-11), and rounded by the Admin rule.
  */
 @Component
 class CheckOutSettlements {
@@ -32,7 +35,7 @@ class CheckOutSettlements {
     record Computed(Billing.Settlement settlement, List<Long> unpaidUtilityIds) {
     }
 
-    private record Reading(LocalDate date, BigDecimal electricity, BigDecimal water) {
+    private record Reading(LocalDate date, Instant at, BigDecimal electricity, BigDecimal water) {
     }
 
     private record Unpaid(long id, long amount) {
@@ -44,10 +47,14 @@ class CheckOutSettlements {
 
     private final JdbcClient jdbc;
     private final UtilityPolicy utility;
+    private final RoomStays stays;
+    private final Clock clock;
 
-    CheckOutSettlements(JdbcClient jdbc, UtilityPolicy utility) {
+    CheckOutSettlements(JdbcClient jdbc, UtilityPolicy utility, RoomStays stays, Clock clock) {
         this.jdbc = jdbc;
         this.utility = utility;
+        this.stays = stays;
+        this.clock = clock;
     }
 
     Map<Long, Billing.CheckInDue> dues(Collection<Long> allocationIds) {
@@ -99,10 +106,19 @@ class CheckOutSettlements {
                             + DAY.format(from.date()) + ").");
             errors.throwIfAny();
             UtilityPolicy.Prices prices = utility.prices();
-            BigDecimal cost = r.electricity().subtract(from.electricity()).multiply(BigDecimal.valueOf(prices.priceKwh()))
-                    .add(r.water().subtract(from.water()).multiply(BigDecimal.valueOf(prices.priceM3())));
-            long total = cost.setScale(0, RoundingMode.CEILING).longValueExact();
-            share = prices.round(Math.ceilDiv(total, Math.max(1, r.residents())));
+            Instant now = Instant.now(clock);
+            Instant since = from.at().isBefore(now) ? from.at() : now.minusSeconds(1);
+            List<UtilitySplit.Resident> residents = stays.stays(List.of(r.roomId()), since, now).stream()
+                    .map(s -> new UtilitySplit.Resident(s.studentId(), s.allocationId(), s.termId(), s.from(), s.to(),
+                            s.checkedOut()))
+                    .toList();
+            UtilitySplit.Result split = UtilitySplit.split(List.of(
+                    new UtilitySplit.Point(from.date(), since, from.electricity(), from.water()),
+                    new UtilitySplit.Point(LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE), now, r.electricity(),
+                            r.water())),
+                    residents, prices);
+            share = split.shares().stream().filter(s -> s.studentId() == r.studentId())
+                    .mapToLong(UtilitySplit.Share::amount).sum();
             periodLabel = "since " + DAY.format(from.date());
         }
         long refund = held - share - unpaidTotal - r.damageCharge();
@@ -165,18 +181,20 @@ class CheckOutSettlements {
 
     private Optional<Reading> lastReading(long roomId) {
         return jdbc.sql("""
-                SELECT day, electricity, water FROM (
-                    SELECT cut_date AS day, electricity, water, 1 AS rank, created_at AS at
+                SELECT day, moment, electricity, water FROM (
+                    SELECT cut_date AS day, electricity, water, 1 AS rank, created_at AS at, created_at AS moment
                     FROM bil_meter_cut WHERE room_id = :room
                     UNION ALL
-                    SELECT p.period_end, r.electricity_curr, r.water_curr, 0, coalesce(r.confirmed_at, r.entered_at)
+                    SELECT p.period_end, r.electricity_curr, r.water_curr, 0, coalesce(r.confirmed_at, r.entered_at),
+                           (p.period_end + 1)::timestamp AT TIME ZONE 'Asia/Ho_Chi_Minh'
                     FROM bil_meter_reading r JOIN bil_meter_period p ON p.id = r.period_id
                     WHERE r.room_id = :room AND r.electricity_curr IS NOT NULL AND r.water_curr IS NOT NULL
                 ) readings
                 ORDER BY day DESC, rank DESC, at DESC NULLS LAST
                 LIMIT 1
                 """).param("room", roomId)
-                .query((rs, i) -> new Reading(rs.getObject("day", LocalDate.class), rs.getBigDecimal("electricity"),
+                .query((rs, i) -> new Reading(rs.getObject("day", LocalDate.class),
+                        rs.getTimestamp("moment").toInstant(), rs.getBigDecimal("electricity"),
                         rs.getBigDecimal("water")))
                 .optional();
     }

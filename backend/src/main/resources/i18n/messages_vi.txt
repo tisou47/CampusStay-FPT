@@ -1143,3 +1143,4 @@ A Utility Deposit settlement keeps its own amount: no rule applies. ⟶ Khoản 
 Choose one of the active refund rules. ⟶ Hãy chọn một trong các quy tắc hoàn tiền đang áp dụng.
 This rule refunds nothing. Reject the refund instead. ⟶ Quy tắc này không hoàn tiền. Hãy từ chối khoản hoàn tiền.
 The student has not entered a bank account from the list yet. Remind them to enter it. ⟶ Sinh viên chưa nhập tài khoản ngân hàng từ danh sách. Hãy nhắc sinh viên nhập.
+You already asked for a late check-in this Term. ⟶ Bạn đã gửi yêu cầu nhận phòng muộn trong học kỳ này.

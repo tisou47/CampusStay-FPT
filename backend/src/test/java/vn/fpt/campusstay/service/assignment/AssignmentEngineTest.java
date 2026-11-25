@@ -120,6 +120,28 @@ class AssignmentEngineTest {
         assertThat(second).isEqualTo(first);
     }
 
+    /**
+     * TC-ASG-400 (BE-ASG-25): a student who fits the occupant of a started Room fairly (0.3, not low) joins it rather
+     * than opening an empty Room; one who fits below LOW_FIT still gets the empty Room.
+     */
+    @Test
+    void startedRoomsFillBeforeEmptyOnes() {
+        List<AssignmentEngine.Bed> beds = new ArrayList<>(room(1, "A-105", "M", FOUR_BED, 4, 1).subList(1, 4));
+        beds.addAll(room(2, "A-106", "M", FOUR_BED, 4, 11));
+        // Same cohort only: 0.3, the LOW_FIT boundary (not low).
+        Map<Long, List<AssignmentEngine.Profile>> occupied = Map.of(
+                1L, List.of(new AssignmentEngine.Profile("BA", "K19", "MEKONG", "S5")));
+        AssignmentEngine.Placement fair = new AssignmentEngine(settings(), beds, occupied)
+                .run(List.of(applicant(1, FOUR_BED, null, 0, 0, "SE", null))).getFirst();
+        assertThat(fair.bedId()).isEqualTo(2L);
+
+        Map<Long, List<AssignmentEngine.Profile>> stranger = Map.of(
+                1L, List.of(new AssignmentEngine.Profile("BA", "K21", "MEKONG", "S5")));
+        AssignmentEngine.Placement low = new AssignmentEngine(settings(), beds, stranger)
+                .run(List.of(applicant(1, FOUR_BED, null, 0, 0, "SE", null))).getFirst();
+        assertThat(low.bedId()).isEqualTo(11L);
+    }
+
     /** TC-ASG-006: a placement with few shared attributes is kept and marked LOW_FIT (information only). */
     @Test
     void lowFitIsInformation() {
