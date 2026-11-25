@@ -12,6 +12,7 @@ import 'package:campusstay_student/screens/family_day.dart';
 import 'package:campusstay_student/screens/apply.dart';
 import 'package:campusstay_student/screens/home.dart';
 import 'package:campusstay_student/screens/payments.dart';
+import 'package:campusstay_student/screens/privacy.dart';
 import 'package:campusstay_student/screens/registration.dart';
 import 'package:campusstay_student/screens/requests.dart';
 import 'package:campusstay_student/screens/room.dart';
@@ -147,6 +148,23 @@ void main() {
     await tester.tap(find.text('Deposit'));
     await tester.pumpAndSettle();
     expect(find.text('Pay with VietQR'), findsOneWidget);
+  });
+
+  testWidgets('My data: accept the notice and ask to erase (D3)', (tester) async {
+    useApi({
+      '/students/me/privacy': {'noticeVersion': '2026-11', 'consent': null, 'consentCurrent': false, 'erasure': null},
+      'POST /students/me/privacy/consent': <String, Object>{},
+      'POST /students/me/privacy/erasure': {'id': 1, 'status': 'Pending'},
+    });
+    await show(tester, const MyDataScreen());
+    await tester.tap(find.text('I accept the privacy notice'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('POST /students/me/privacy/consent'));
+    await tester.tap(find.text('Ask to erase my data'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send request'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('POST /students/me/privacy/erasure'));
   });
 
   testWidgets('Invoice payment: a rejected transfer shows the reason, the new deadline and what is left (D4)', (tester) async {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../common.dart';
+import 'privacy.dart';
 import '../session.dart';
 
 /// Account verification (web SCR-AUTH-06, ADR-26, spec §6.1): a student whose Google account is not in the imported
@@ -138,6 +139,10 @@ class _DetailsFormState extends State<_DetailsForm> {
   String? _error;
   bool _busy = false;
 
+  /// The privacy notice the server asks the student to accept (Decree 13/2023, D3); null from an older server.
+  late final String? _notice = widget.data.str('privacyNoticeVersion');
+  bool _accepted = false;
+
   @override
   void dispose() {
     for (final c in [_code, _name, _cohort, _phone]) {
@@ -150,7 +155,8 @@ class _DetailsFormState extends State<_DetailsForm> {
       [_code.text, _name.text, _cohort.text, _phone.text].every((v) => v.trim().isNotEmpty) &&
       _gender != null &&
       _major != null &&
-      _birth != null;
+      _birth != null &&
+      (_notice == null || _accepted);
 
   Future<void> _send() async {
     setState(() {
@@ -168,6 +174,7 @@ class _DetailsFormState extends State<_DetailsForm> {
         'major': _major,
         'cohort': _cohort.text.trim().toUpperCase(),
         'phone': _phone.text.trim(),
+        'privacyNoticeVersion': ?_notice,
       });
       toast(
         first
@@ -277,6 +284,19 @@ class _DetailsFormState extends State<_DetailsForm> {
           error: _errors['phone'],
           onChanged: changed,
         ),
+        if (_notice != null) ...[
+          const PrivacyNotice(),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _accepted,
+            onChanged: (v) => setState(() => _accepted = v == true),
+            title: Text(t('I have read and accept the privacy notice', 'Tôi đã đọc và đồng ý với thông báo bảo mật')),
+            subtitle: _errors['privacyNoticeVersion'] == null
+                ? null
+                : Text(_errors['privacyNoticeVersion']!, style: TextStyle(color: Tone.error.mark)),
+          ),
+        ],
         BusyButton(
           label: first ? t('Send for verification', 'Gửi để xác minh') : t('Save changes', 'Lưu thay đổi'),
           icon: Icons.send,
@@ -503,6 +523,11 @@ class AccountScreen extends StatelessWidget {
               icon: Icons.lock_outline,
               title: t('Change password', 'Đổi mật khẩu'),
               onTap: () => push(context, const ChangePasswordScreen()),
+            ),
+            StatusRow(
+              icon: Icons.privacy_tip_outlined,
+              title: t('My data', 'Dữ liệu của tôi'),
+              onTap: () => push(context, const MyDataScreen()),
             ),
             StatusRow(
               icon: Icons.language,

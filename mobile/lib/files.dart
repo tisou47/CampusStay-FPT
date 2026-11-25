@@ -33,6 +33,22 @@ Future<void> openReceipt(String invoiceId) async {
   }
 }
 
+/// Downloads "My data" (`GET /students/me/privacy/export`, D3) as `my-data.json` and opens it in a viewer on the phone.
+Future<void> openMyData() async {
+  try {
+    final bytes = await Api.download('/students/me/privacy/export');
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/my-data.json');
+    await file.writeAsBytes(bytes, flush: true);
+    final result = await OpenFilex.open(file.path, type: 'application/json');
+    if (result.type != ResultType.done) {
+      toast(t('No app on this phone opens JSON files.', 'Máy chưa có ứng dụng mở tệp JSON.'), error: true);
+    }
+  } catch (e) {
+    toast('$e', error: true);
+  }
+}
+
 /// A file the student picked: its name and its path on the phone.
 typedef Picked = ({String name, String path});
 
