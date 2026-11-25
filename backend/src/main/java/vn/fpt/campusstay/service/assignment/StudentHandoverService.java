@@ -65,13 +65,14 @@ public class StudentHandoverService {
     /**
      * @param status Not needed, Waiting, Ready, Draft, Submitted, Verifying, Final
      * @param toAgree Staff recorded the Room in a visit: the student reads and agrees
+     * @param submitHours hours to file the inventory once started ({@code handover.submit_hours}, WEB-STU-27)
      */
     public record View(String id, String status, String room, String bed, List<Check> checks, Instant openedAt,
             Instant dueAt, Instant submittedAt, Instant visitAt, boolean toAgree, Instant finalizedAt,
             Instant utilityFrom, String source, BigDecimal electricity, BigDecimal water, BigDecimal staffElectricity,
             BigDecimal staffWater, List<Photo> meterPhotos, List<Item> items, boolean photosRequired, int maxPhotos,
             String studentComment, boolean lateAllowed, String lateNote,
-            List<Inventory.ConditionLevel> conditionLevels) {
+            List<Inventory.ConditionLevel> conditionLevels, int submitHours) {
     }
 
     public record ItemAnswer(String itemId, String condition, String note) {
@@ -474,7 +475,7 @@ public class StudentHandoverService {
         return new View(null, status, bed == null ? null : bed.roomCode(), bed == null ? null : bed.bedLabel(), checks,
                 null, null, null, null, false, null, null, null, null, null, null, null, List.of(), List.of(),
                 parameters.boolValue("handover.photos_required"), parameters.intValue("handover.max_photos"), null, false,
-                null, inventory.conditionLevels());
+                null, inventory.conditionLevels(), parameters.intValue("handover.submit_hours"));
     }
 
     /** The student's view: never the Room's record nor the comparison (Staff only). */
@@ -509,7 +510,7 @@ public class StudentHandoverService {
                 visited ? h.verifiedWater() : null, meterPhotos, items,
                 parameters.boolValue("handover.photos_required"), parameters.intValue("handover.max_photos"),
                 h.studentComment(), h.status().equals("FINAL") && "AUTO".equals(h.source()) && h.lateSubmittedAt() == null,
-                h.lateNote(), inventory.conditionLevels());
+                h.lateNote(), inventory.conditionLevels(), parameters.intValue("handover.submit_hours"));
     }
 
     static String label(String condition) {

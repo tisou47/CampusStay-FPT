@@ -98,13 +98,18 @@ public class ReportService {
         }
         // A Bed of a past Term may have been held twice (a student left early, another one moved in): count Beds once.
         List<Slot> slots = jdbc.sql("""
-                SELECT b.building_id, b.room_type_id, rc.room_class_id, count(DISTINCT b.bed_id) AS capacity,
+                SELECT b.building_id, b.room_type_id, rc.room_class_id,
+                       count(DISTINCT b.bed_id) FILTER (WHERE""" + ReportScope.inService("b") + """
+                       ) AS capacity,
                        count(DISTINCT a.bed_id) AS allocated,
                        count(DISTINCT a.bed_id) FILTER (WHERE a.checked_in_at IS NOT NULL) AS checked_in
                 FROM rpt_v_bed b JOIN rpt_v_room_class rc ON rc.room_id = b.room_id AND rc.term_id = :term
                 LEFT JOIN rpt_v_allocation a ON a.bed_id = b.bed_id AND a.term_id = :term AND""" + scope.held(term, "a") + """
-                WHERE b.building_id IN (:b) AND """ + ReportScope.inService("b")
-                + " GROUP BY b.building_id, b.room_type_id, rc.room_class_id").params(p).query((rs, i) -> new Slot(rs.getLong("building_id"), rs.getLong("room_type_id"),
+                WHERE b.building_id IN (:b)
+                GROUP BY b.building_id, b.room_type_id, rc.room_class_id
+                HAVING count(DISTINCT a.bed_id) > 0 OR bool_or(""" + ReportScope.inService("b") + """
+                )
+                """ /* students on out-of-service Beds still count; capacity counts in-service Beds only (BE-PLT-14) */).params(p).query((rs, i) -> new Slot(rs.getLong("building_id"), rs.getLong("room_type_id"),
                         rs.getLong("room_class_id"), rs.getLong("capacity"), rs.getLong("allocated"),
                         rs.getLong("checked_in"))).list();
         List<Catalog.RoomClassInfo> classes = catalog.roomClasses().stream()
@@ -229,8 +234,10 @@ public class ReportService {
                 AND b.building_id IN (:b) AND a.checked_in_at IS NULL
                 """, p);
         List<Week> weekly = new ArrayList<>();
-        LocalDate start = term.checkInStart() != null ? term.checkInStart()
-                : checkIns.stream().min(LocalDate::compareTo).orElse(null);
+        // early or late-approved check-ins before the configured start get their own week (BE-PLT-15)
+        LocalDate earliest = checkIns.stream().min(LocalDate::compareTo).orElse(null);
+        LocalDate start = term.checkInStart() == null ? earliest
+                : earliest != null && earliest.isBefore(term.checkInStart()) ? earliest : term.checkInStart();
         if (start != null && !checkIns.isEmpty()) {
             LocalDate last = checkIns.stream().max(LocalDate::compareTo).orElse(start);
             LocalDate end = term.checkInEnd() != null && term.checkInEnd().isAfter(last) ? term.checkInEnd() : last;

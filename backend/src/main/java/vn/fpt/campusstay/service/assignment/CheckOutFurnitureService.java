@@ -279,7 +279,7 @@ public class CheckOutFurnitureService {
 
     /**
      * Invoices each roommate their share of the shared items' damage split at this check-out: one DAMAGE Invoice per
-     * roommate and item, due in 7 days like a charge a Manager keeps after the check-out, which tells them on the
+     * roommate and item, due in {@code checkout.damage_due_days} like a charge a Manager keeps after the check-out, which tells them on the
      * app; unpaid, it becomes Overdue like every other charge. Called when the check-out is completed (lines a Manager
      * has not kept are left out) and when a Manager keeps a line afterwards ({@code onlyItem}).
      *
@@ -321,7 +321,7 @@ public class CheckOutFurnitureService {
         Map<Long, Inventory.FurnitureLine> furniture = new HashMap<>();
         inventory.furnitureLines(t.roomId()).forEach(l -> furniture.put(l.id(), l));
         Instant now = Instant.now(clock);
-        int days = 7; // as a charge a Manager keeps after the check-out (decide)
+        int days = parameters.intValue("checkout.damage_due_days"); // as a charge a Manager keeps (decide)
         int issued = 0;
         for (Split split : splits) {
             long share = CheckOutCharges.roommateShare(split.full(), split.sharedWith());
@@ -373,12 +373,18 @@ public class CheckOutFurnitureService {
                 .list();
         List<ReviewRow> rows = new ArrayList<>();
         Map<Long, String> names = users.displayNames(raws.stream().map(Raw::studentId).toList());
+        // One Bed lookup per Term and one furniture list per Room (BE-ASG-18), not one of each per line.
+        Map<Long, Map<Long, Inventory.BedSlot>> bedsByTerm = new HashMap<>();
+        raws.stream().collect(java.util.stream.Collectors.groupingBy(Raw::termId,
+                java.util.stream.Collectors.mapping(Raw::bedId, java.util.stream.Collectors.toSet())))
+                .forEach((term, ids) -> bedsByTerm.put(term, inventory.beds(term, ids)));
+        Map<Long, List<Inventory.FurnitureLine>> linesByRoom = new HashMap<>();
         for (Raw r : raws) {
-            Inventory.BedSlot bed = inventory.beds(r.termId(), List.of(r.bedId())).get(r.bedId());
+            Inventory.BedSlot bed = bedsByTerm.get(r.termId()).get(r.bedId());
             if (bed == null || !buildings.contains(bed.buildingId())) {
                 continue;
             }
-            Inventory.FurnitureLine line = inventory.furnitureLines(bed.roomId()).stream()
+            Inventory.FurnitureLine line = linesByRoom.computeIfAbsent(bed.roomId(), inventory::furnitureLines).stream()
                     .filter(l -> l.id() == r.itemId()).findFirst().orElse(null);
             rows.add(new ReviewRow(String.valueOf(r.allocationId()), "furniture-" + r.itemId(),
                     line == null ? null : line.assetCode(), line == null ? null : line.type(), bed.roomCode(),
@@ -418,7 +424,8 @@ public class CheckOutFurnitureService {
                 billing.issueCharge(new Billing.ChargeRequest(t.termId(), t.studentId(), t.allocationId(),
                         t.buildingId(), "DAMAGE", "Furniture charge · Room " + t.roomCode(), line.amount(),
                         List.of(new Billing.ChargeLine("Furniture item " + item, line.amount())),
-                        now.plus(Duration.ofDays(7)), "CHECK_OUT-" + t.allocationId() + "-" + item));
+                        now.plus(Duration.ofDays(parameters.intValue("checkout.damage_due_days"))),
+                        "CHECK_OUT-" + t.allocationId() + "-" + item));
                 chargeRoommates(t.allocationId(), item);
             } else {
                 jdbc.sql("UPDATE asg_check_out SET damage_charge = damage_charge + :a WHERE id = :id")
@@ -439,8 +446,9 @@ public class CheckOutFurnitureService {
         Optional<Long> allocation = jdbc.sql("""
                 SELECT a.id FROM asg_allocation a LEFT JOIN asg_check_out c ON c.allocation_id = a.id
                 WHERE a.student_id = :s AND (a.status = 'ACTIVE' OR c.status = 'COMPLETED')
-                ORDER BY (c.id IS NOT NULL) DESC, a.id DESC LIMIT 1
+                ORDER BY (a.status = 'ACTIVE' AND c.id IS NOT NULL) DESC, (a.status = 'ACTIVE') DESC, a.id DESC LIMIT 1
                 """).param("s", me).query(Long.class).optional();
+        // the current stay before an older completed check-out (BE-ASG-19)
         return allocation.map(id -> view(targetOf(id))).orElse(null);
     }
 

@@ -32,4 +32,27 @@ class MessagesTest {
         assertThat(Locales.parse("en-US,en;q=0.9")).isEqualTo(Locales.EN);
         assertThat(Locales.parse("fr")).isNull();
     }
+
+    /**
+     * TC-NTF-500: every error message written as one literal in the code (ApiException, FieldErrors) has its Vietnamese
+     * text (BE-PLT-24). Messages built from parts are checked by their own tests.
+     */
+    @Test
+    void everyLiteralErrorMessageIsTranslated() throws java.io.IOException {
+        java.util.regex.Pattern call = java.util.regex.Pattern.compile(
+                "(?:ApiException\\.\\w+\\(|new ApiException\\(|FieldErrors\\.single\\(|errors\\.(?:add|check)\\()[^;]*?[(,]\\s*\"([A-Z][^\"]{8,}[.?!])\"\\s*\\)",
+                java.util.regex.Pattern.DOTALL);
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        try (var files = java.nio.file.Files.walk(java.nio.file.Path.of("src/main/java"))) {
+            for (java.nio.file.Path f : files.filter(x -> x.toString().endsWith(".java")).toList()) {
+                var m = call.matcher(java.nio.file.Files.readString(f));
+                while (m.find()) {
+                    if (messages.translate(m.group(1), Locales.VI).equals(m.group(1))) {
+                        missing.add(f.getFileName() + ": " + m.group(1));
+                    }
+                }
+            }
+        }
+        assertThat(missing).isEmpty();
+    }
 }

@@ -403,6 +403,9 @@ public class MaintenanceDeskService {
                 window = RequestStore.parseVisitWindow(String.valueOf(value))
                         .orElseThrow(() -> FieldErrors.single("visitWindow",
                                 "Use dd/mm/yyyy hh:mm – hh:mm, with the end after the start."));
+                if (window[1].isBefore(now)) {
+                    throw FieldErrors.single("visitWindow", "Choose a visit window that has not ended yet.");
+                }
             }
             jdbc.sql("UPDATE mnt_request SET visit_window_start = :s, visit_window_end = :e WHERE id = :id")
                     .param("s", window == null ? null : Timestamp.from(window[0]))

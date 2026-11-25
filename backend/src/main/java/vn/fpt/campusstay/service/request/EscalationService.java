@@ -138,8 +138,23 @@ public class EscalationService {
         int unassignedHours = parameters.intValue("sla.unassigned_max_hours");
         Set<String> open = new HashSet<>();
         int opened = 0;
+        List<MaintenanceRequests.OpenRequest> requests = maintenance.open(buildings);
+        List<RoomChange> changes = buildings.isEmpty() ? List.of() : jdbc.sql("""
+                SELECT * FROM req_room_change WHERE building_id IN (:b) AND status IN ('SUBMITTED', 'PENDING')
+                ORDER BY submitted_at, id
+                """).param("b", List.copyOf(buildings)).query(EscalationService::roomChange).list();
+        // Every escalation the scan may touch, read once (BE-OPS-19): the open ones, locked, and the kinds raised before.
+        Map<String, Row> openRows = new HashMap<>();
+        jdbc.sql("SELECT * FROM req_escalation WHERE status = 'OPEN' ORDER BY id FOR UPDATE").query(EscalationService::row)
+                .list().forEach(e -> openRows.put(e.sourceType() + e.sourceId(), e));
+        List<Long> sourceIds = java.util.stream.Stream.concat(requests.stream().map(MaintenanceRequests.OpenRequest::id),
+                changes.stream().map(RoomChange::id)).distinct().toList();
+        Set<String> raised = new HashSet<>(sourceIds.isEmpty() ? List.of() : jdbc.sql("""
+                SELECT DISTINCT source_type || source_id || ':' || kind FROM req_escalation WHERE source_id IN (:ids)
+                """).param("ids", sourceIds).query(String.class).list());
+        Known known = new Known(openRows, raised);
 
-        for (MaintenanceRequests.OpenRequest r : maintenance.open(buildings)) {
+        for (MaintenanceRequests.OpenRequest r : requests) {
             open.add(MAINTENANCE + r.id());
             RoutingService.Sla sla = slas.computeIfAbsent(r.buildingId(), routing::sla);
             int limit = "URGENT".equals(r.urgency()) ? sla.urgent() : sla.normal();
@@ -158,13 +173,9 @@ public class EscalationService {
                     + ("URGENT".equals(r.urgency()) ? "Urgent" : "Normal");
             Source source = new Source(MAINTENANCE, r.id(), r.code(), r.buildingId(), r.termId(), r.reportedAt(),
                     r.title(), subtitle, r.room(), r.assigneeId(), "/manager/maintenance/" + r.code());
-            opened += sync(source, reason, now);
+            opened += sync(source, reason, now, known);
         }
 
-        List<RoomChange> changes = buildings.isEmpty() ? List.of() : jdbc.sql("""
-                SELECT * FROM req_room_change WHERE building_id IN (:b) AND status IN ('SUBMITTED', 'PENDING')
-                ORDER BY submitted_at, id
-                """).param("b", List.copyOf(buildings)).query(EscalationService::roomChange).list();
         Map<Long, String> names = users.displayNames(changes.stream().map(RoomChange::studentId).toList());
         Map<Long, Moves.Placement> from = moves.placements(changes.stream().map(RoomChange::allocationId).toList());
         for (RoomChange c : changes) {
@@ -177,19 +188,21 @@ public class EscalationService {
             Source source = new Source(ROOM_CHANGE, c.id(), c.code(), c.buildingId(), c.termId(), c.submittedAt(),
                     RoomChangeAssignments.title(names.get(c.studentId()), c.kind()),
                     label("ROOM_CHANGE_REASON", c.reason()), p == null ? null : p.room(), c.assigneeId(), null);
-            opened += sync(source, reason, now);
+            opened += sync(source, reason, now, known);
         }
 
-        jdbc.sql("SELECT * FROM req_escalation WHERE status = 'OPEN'").query(EscalationService::row).list().stream()
+        openRows.values().stream().sorted(Comparator.comparing(Row::id))
                 .filter(e -> !open.contains(e.sourceType() + e.sourceId()))
                 .forEach(e -> close(e, "The request was closed.", now));
         return opened;
     }
 
-    private int sync(Source s, Reason reason, Instant now) {
-        Optional<Row> current = jdbc.sql("""
-                SELECT * FROM req_escalation WHERE source_type = :type AND source_id = :id AND status = 'OPEN' FOR UPDATE
-                """).param("type", s.type()).param("id", s.id()).query(EscalationService::row).optional();
+    /** What the scan read before its loops: open escalations by source, and "type+id:kind" of every one raised. */
+    private record Known(Map<String, Row> open, Set<String> raised) {
+    }
+
+    private int sync(Source s, Reason reason, Instant now, Known known) {
+        Optional<Row> current = Optional.ofNullable(known.open().get(s.type() + s.id()));
         if (current.isPresent()) {
             Row e = current.get();
             if (reason == null) {
@@ -212,9 +225,7 @@ public class EscalationService {
         if (reason == null) {
             return 0;
         }
-        boolean before = jdbc.sql("SELECT count(*) FROM req_escalation WHERE source_type = :type AND source_id = :id AND kind = :kind")
-                .param("type", s.type()).param("id", s.id()).param("kind", reason.kind()).query(Long.class).single() > 0;
-        if (before) {
+        if (known.raised().contains(s.type() + s.id() + ":" + reason.kind())) {
             return 0;
         }
         Optional<Long> id = jdbc.sql("""

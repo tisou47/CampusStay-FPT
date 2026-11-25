@@ -141,6 +141,8 @@ public class BlockSettingsService {
         if (quiet != null) {
             errors.check(!quiet.isAfter(quietLatest), "quiet", "Quiet hours must start by " + HH_MM.format(quietLatest)
                     + " (Admin limit).");
+            errors.check(!quiet.isBefore(QUIET_FIRST), "quiet", "Quiet hours start at " + HH_MM.format(QUIET_FIRST)
+                    + " at the earliest.");
         }
         errors.throwIfAny();
 

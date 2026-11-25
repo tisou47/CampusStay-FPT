@@ -260,6 +260,15 @@ public class StaffShifts {
             }
         }
         clean.sort(ORDER);
+        for (int i = 1; i < clean.size(); i++) {
+            Shift before = clean.get(i - 1);
+            Shift next = clean.get(i);
+            // HH:mm strings compare as times; a shift ending before it starts runs past midnight.
+            boolean overnight = before.end().compareTo(before.start()) < 0;
+            if (before.weekday() == next.weekday() && (overnight || next.start().compareTo(before.end()) < 0)) {
+                throw FieldErrors.single("shifts", "Shifts of the same day must not overlap.");
+            }
+        }
         return clean;
     }
 

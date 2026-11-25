@@ -180,8 +180,9 @@ public class ApplicationReviewService {
         List<Long> ids = jdbc.sql("SELECT id FROM app_application" + where
                 + " ORDER BY submitted_at NULLS LAST, id LIMIT :limit OFFSET :offset")
                 .params(params).param("limit", page.limit()).param("offset", page.offset()).query(Long.class).list();
-        List<ApplicationStore.Application> rows = ids.stream().map(id -> applications.find(id, false).orElseThrow())
-                .toList();
+        Map<Long, ApplicationStore.Application> byId = applications.findAll(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(ApplicationStore.Application::id, x -> x));
+        List<ApplicationStore.Application> rows = ids.stream().map(byId::get).toList();
         Map<Long, Billing.InvoiceLine> deposits = billing.depositsOf(ids);
         Names names = names();
         List<QueueItem> items = rows.stream().map(a -> {

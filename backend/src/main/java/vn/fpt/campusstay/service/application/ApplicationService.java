@@ -133,6 +133,9 @@ public class ApplicationService {
         AuthenticatedUser me = currentUser.require(Role.STUDENT);
         TermSummary term = openTerm(termId);
         int limit = parameters.intValue("application.roommate_check_attempts");
+        // one check at a time per student, so parallel requests cannot pass the limit (BE-APP-BIL-16)
+        jdbc.sql("SELECT pg_advisory_xact_lock(hashtext('app_roommate_check'), :student::int)")
+                .param("student", (int) me.userId()).query((rs, i) -> 1).list();
         int used = jdbc.sql("SELECT count(*) FROM app_roommate_check WHERE term_id = :term AND student_id = :student")
                 .param("term", term.id()).param("student", me.userId()).query(Integer.class).single();
         if (used >= limit) {
