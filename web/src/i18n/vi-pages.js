@@ -4748,6 +4748,7 @@ const familyDay = {
   "Created by {name} · {time}": "Tạo bởi {name} · {time}",
   "Published {time}": "Công bố {time}",
   "Closed {time}": "Kết thúc {time}",
+  "Starts before registration closes: choose {time} or later.": "Bắt đầu trước giờ đóng đăng ký: hãy chọn từ {time} trở đi.",
   // Visitor desk
   "Pass code": "Mã vào",
   "Scan or type the pass code": "Quét hoặc nhập mã vào",
