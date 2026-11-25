@@ -7,7 +7,7 @@ import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { KpiTile, Meter } from '@/components/ui/Charts'
-import { Card } from '@/components/ui/Display'
+import { Alert, Card } from '@/components/ui/Display'
 import { QueryState, StaleNotice } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
@@ -40,6 +40,12 @@ function TermSetupFlow({ checks }) {
         <h2 id="term-setup" className="text-h3 font-semibold text-fg">{t('Set up a term')}</h2>
         <span className="text-sm text-fg-tertiary">{t('In the order it happens. Each stage opens its screen.')}</span>
       </div>
+      {requests.error && (
+        // Without the requests the "Take a manager's request" stage cannot be told (WEB-ADM-12).
+        <Alert type="error" title="Could not load the term requests" action={<Button size="sm" onClick={requests.reload}>Retry</Button>}>
+          {requests.error.message}
+        </Alert>
+      )}
       <ol className="grid grid-cols-5 gap-3">
         {stages.map((s, i) => {
           // One focus: the first stage to do is "now"; another that is also open reads "Next" and stays quiet.

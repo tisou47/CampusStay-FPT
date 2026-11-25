@@ -2088,6 +2088,8 @@ const admin = {
   "Everything is ready. All configuration requirements have been met.": "Tất cả đã sẵn sàng. Toàn bộ yêu cầu cấu hình đã hoàn tất.",
   "House rules content": "Nội dung nội quy ký túc xá",
   "Sent at {time} to {n} students. Change the form to send another.": "Đã gửi lúc {time} tới {n} sinh viên. Thay đổi biểu mẫu để gửi thư khác.",
+  "Could not load the term requests": "Không tải được các yêu cầu học kỳ",
+  "Students are not sent an announcement for FAQ or document changes.": "Sinh viên không nhận thông báo khi thay đổi Hỏi đáp hoặc tài liệu.",
 }
 
 // Accounts (Change Spec v2 phase 2): Google sign-up, the first password, verification, the student list and hub,
