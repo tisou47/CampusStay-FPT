@@ -535,6 +535,7 @@ const vi = {
   "{name} is larger than {n} MB. Take a smaller photo.": "{name} lớn hơn {n} MB. Hãy chụp ảnh nhỏ hơn.",
   "{name} is not a JPEG or PNG photo.": "{name} không phải ảnh JPEG hoặc PNG.",
   "Some photos were not added": "Một số ảnh không được thêm",
+  "System health": "Sức khỏe hệ thống",
 }
 
 export default vi

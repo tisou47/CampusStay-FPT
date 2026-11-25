@@ -736,6 +736,8 @@ export default {
   "Check students in and out": "Làm thủ tục nhận và trả phòng",
   "Process Maintenance Requests": "Xử lý yêu cầu bảo trì",
   "Decide refunds and late check-ins": "Quyết định hoàn tiền và nhận phòng muộn",
+  "Decide refunds": "Quyết định hoàn tiền",
+  "Decide late check-ins": "Quyết định nhận phòng muộn",
   "Manage staff, routing and Block settings": "Quản lý nhân viên, điều phối và cài đặt tòa",
   "View reports and exports": "Xem báo cáo và xuất file",
   "Configure Terms, prices and rules": "Cấu hình học kỳ, giá và quy định",

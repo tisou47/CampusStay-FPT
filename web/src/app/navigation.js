@@ -1,4 +1,5 @@
 import {
+  Activity,
   ArrowRightLeft,
   Banknote,
   Bed,
@@ -314,6 +315,7 @@ export const backOffice = {
           { label: 'System parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
           { label: 'Demo data', icon: RotateCcw, to: '/admin/demo' },
           { label: 'Audit log', icon: ScrollText, to: '/admin/audit-log' },
+          { label: 'System health', icon: Activity, to: '/admin/system-health' },
         ],
       },
     ],

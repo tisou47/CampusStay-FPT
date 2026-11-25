@@ -123,6 +123,7 @@ const UsersRoles = () => import('@/pages/admin/UsersRoles')
 const OccupancyReport = () => import('@/pages/manager/OccupancyReport')
 const FinancialReport = () => import('@/pages/manager/FinancialReport')
 const AuditLog = () => import('@/pages/admin/AuditLog')
+const SystemHealth = () => import('@/pages/admin/SystemHealth')
 
 // Development only: every state of the date and time pickers.
 const DevPickers = () => import('@/dev/Pickers')
@@ -332,6 +333,7 @@ export const router = createBrowserRouter([
         { path: 'furniture-types', ...page(FurnitureTypes) },
         { path: 'users', ...page(UsersRoles) },
         { path: 'audit-log', ...page(AuditLog) },
+        { path: 'system-health', ...page(SystemHealth) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
         { path: 'student-import', ...page(StudentImport) },

@@ -28,3 +28,15 @@ export function parseReading(text) {
   const n = parseDecimal(text)
   return n != null && n < 0 ? NaN : n
 }
+
+/** A size in bytes as { value, unit } in B, KB, MB or GB (1024 steps), for "12,3 MB" (Admin › System health). */
+export function byteSize(bytes) {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let value = Math.max(0, Number(bytes) || 0)
+  let i = 0
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024
+    i++
+  }
+  return { value, unit: units[i] }
+}

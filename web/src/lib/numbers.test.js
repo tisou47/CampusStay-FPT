@@ -46,3 +46,12 @@ test('parseReading: one reader for every meter input (WEB-OPS-17)', async () => 
   assert.ok(Number.isNaN(parseReading('-3')))
   assert.equal(parseReading('0'), 0)
 })
+
+test('byteSize picks the unit', async () => {
+  const { byteSize } = await import('./numbers.js')
+  assert.deepEqual(byteSize(0), { value: 0, unit: 'B' })
+  assert.deepEqual(byteSize(1023), { value: 1023, unit: 'B' })
+  assert.deepEqual(byteSize(1536), { value: 1.5, unit: 'KB' })
+  assert.deepEqual(byteSize(5 * 1024 * 1024), { value: 5, unit: 'MB' })
+  assert.deepEqual(byteSize(null), { value: 0, unit: 'B' })
+})

@@ -549,6 +549,8 @@ export const api = {
       preview: (body) => http.post('/admin/matching/preview', body),
     },
     system: { get: g('/admin/system-parameters'), save: (body) => http.put('/admin/system-parameters', body) },
+    /** D2: { checkedAt, jobs: [{ job, lastStartedAt, lastFinishedAt, ok, running, errorClass, errorCode, failedLast24h }], serverErrorsLastHour, uploads: { files, bytes }, emailOutbox: { pending, failed, oldestPendingAt } }. */
+    health: g('/admin/system/health'),
     /** Demo servers only (DEMO_TOOLS=true): reset to a stage, sample files made from the stage loaded now. */
     demo: {
       status: g('/admin/demo'),

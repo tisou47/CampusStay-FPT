@@ -112,6 +112,7 @@ export const screens = [
   { code: 'SCR-INV-14', title: 'Furniture types', role: 'admin', path: '/admin/furniture-types' },
   { code: 'SCR-AUTH-11', title: 'Users and Roles', role: 'admin', path: '/admin/users' },
   { code: 'SCR-AUTH-12', title: 'Audit log', role: 'admin', path: '/admin/audit-log' },
+  { code: 'SCR-SYS-01', title: 'System health', role: 'admin', path: '/admin/system-health' },
   { code: 'SCR-AUTH-13', title: 'Students', role: 'admin', path: '/admin/students' },
   { code: 'SCR-AUTH-15', title: 'Import student list', role: 'admin', path: '/admin/student-import' },
 ]
