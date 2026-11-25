@@ -1155,7 +1155,6 @@ Your erasure request is already waiting for a Manager. ⟶ Yêu cầu xóa dữ 
 Choose Pending, Rejected or Completed. ⟶ Hãy chọn Đang chờ, Bị từ chối hoặc Đã hoàn tất.
 This erasure request does not exist. ⟶ Yêu cầu xóa dữ liệu này không tồn tại.
 This erasure request has already been decided. ⟶ Yêu cầu xóa dữ liệu này đã được xử lý.
-Choose Approved or Rejected. ⟶ Hãy chọn Duyệt hoặc Từ chối.
 Write why the request is rejected. ⟶ Hãy ghi lý do từ chối yêu cầu.
 The student still holds a Bed. Erase the data after the stay ends. ⟶ Sinh viên vẫn đang giữ giường. Hãy xóa dữ liệu sau khi kết thúc thời gian ở.
 The student has an Invoice still open. Erase the data once it is paid or void. ⟶ Sinh viên còn hóa đơn chưa xong. Hãy xóa dữ liệu khi hóa đơn đã thanh toán hoặc hủy.
