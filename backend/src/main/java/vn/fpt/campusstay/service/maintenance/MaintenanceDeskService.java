@@ -86,13 +86,18 @@ public class MaintenanceDeskService {
     public record RoomSummary(int residents, int capacity, long otherOpen, long pastThisTerm) {
     }
 
-    /** {@code staff}: who may be assigned the request, the staff of its own Block (the PATCH refuses anyone else). */
+    /**
+     * {@code staff}: who may be assigned the request, the staff of its own Block (the PATCH refuses anyone else; Staff
+     * may only take an unassigned request for themselves). {@code furnitureItemFixed}: the item came with the request
+     * (an inspection finding) and cannot change.
+     */
     public record Detail(String id, String title, String status, String room, String bed, String category,
             String location, Instant reportedAt, Reporter reporter, String urgency, String priority,
             boolean staffMayEnter, String description, List<PhotoLink> photos, Assignee assignee,
             String suggestedAssigneeId, String visitWindow, List<DeskEvent> events, RoomSummary roomSummary,
             Instant slaDueAt, FurnitureRef furnitureItem, List<MaintenanceService.FurnitureOption> furnitureOptions,
-            InspectionFinding inspectionFinding, List<MaintenanceService.StaffOption> staff) {
+            InspectionFinding inspectionFinding, List<MaintenanceService.StaffOption> staff,
+            boolean furnitureItemFixed) {
     }
 
     /**
@@ -301,7 +306,12 @@ public class MaintenanceDeskService {
                         e.actorRole() == null ? "System" : ROLES.getOrDefault(e.actorRole(), e.actorRole()), e.at(),
                         e.text(), e.message(), e.internal())).toList(),
                 room, r.slaDueAt(), item, furniture, "INSPECTION".equals(r.source()) ? finding(r.id()) : null,
-                labels.staffOptions(List.of(r.buildingId())));
+                labels.staffOptions(List.of(r.buildingId())), furnitureItemFixed(r));
+    }
+
+    /** A request an inspection created for a furniture item keeps that item: the finding is about it. */
+    private static boolean furnitureItemFixed(RequestStore.Request r) {
+        return r.furnitureItemId() != null && "INSPECTION".equals(r.source());
     }
 
     /** The Block's maintenance staff member with the fewest open requests (ties: by name). */
@@ -359,6 +369,10 @@ public class MaintenanceDeskService {
             FieldErrors errors = new FieldErrors();
             Long wanted = labels.furnitureItem(body.get("furnitureItemId"), r.roomId(), errors);
             errors.throwIfAny();
+            if (!Objects.equals(wanted, furnitureItem) && furnitureItemFixed(r)) {
+                throw ApiException.conflict("FURNITURE_ITEM_FIXED",
+                        "This request was created for this furniture item, which cannot change.");
+            }
             if (!Objects.equals(wanted, furnitureItem)) {
                 jdbc.sql("UPDATE mnt_request SET furniture_item_id = :f WHERE id = :id").param("f", wanted)
                         .param("id", r.id()).update();
@@ -373,6 +387,19 @@ public class MaintenanceDeskService {
         }
         if (body.containsKey("assigneeId")) {
             Long wanted = id(body.get("assigneeId"));
+            if (!Objects.equals(wanted, assignee) && user.role() == Role.STAFF) {
+                // Staff take an unassigned request for themselves (or give back their own); only Managers assign
+                // a request to someone else or move it from one person to another.
+                if (wanted != null && wanted != user.userId()) {
+                    throw ApiException.forbidden("STAFF_ASSIGN_SELF_ONLY",
+                            "Staff take a request for themselves only. A Manager assigns it to someone else.");
+                }
+                if (assignee != null && assignee != user.userId()) {
+                    throw ApiException.conflict("ASSIGNED_TO_SOMEONE_ELSE", "This request is assigned to "
+                            + users.displayNames(List.of(assignee)).get(assignee)
+                            + ". Only a Manager can move it to someone else.");
+                }
+            }
             if (!Objects.equals(wanted, assignee)) {
                 if (wanted == null) {
                     if (!status.equals("ASSIGNED") && !status.equals("SUBMITTED")) {
@@ -423,7 +450,7 @@ public class MaintenanceDeskService {
                 if (user.role() == Role.STAFF && assignee != null && assignee != user.userId()) {
                     throw ApiException.conflict("ASSIGNED_TO_SOMEONE_ELSE", "This request is assigned to "
                             + users.displayNames(List.of(assignee)).get(assignee)
-                            + ". Take it over before you change its status.");
+                            + ". Only the person in charge changes its status.");
                 }
                 status = transition(r, status, wanted, assignee, now);
                 requests.event(r.id(), user.userId(), role, "Status: " + RequestStore.statusLabel(status), null, false,

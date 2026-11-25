@@ -135,7 +135,7 @@ class OperationsIT {
                 .andExpect(jsonPath("$.items[0].slaDueAt").isString());
 
         long a2 = stay.userId(STAFF_A2);
-        patchAs("/maintenance-requests/" + urgent, staff, "{\"assigneeId\":\"%d\"}".formatted(a2))
+        patchAs("/maintenance-requests/" + urgent, bearer(mvc, MANAGER_A), "{\"assigneeId\":\"%d\"}".formatted(a2))
                 .andExpect(status().isNoContent());
         // The person in charge does the work (TC-MNT-009).
         String assignee = bearer(mvc, STAFF_A2);
@@ -207,7 +207,7 @@ class OperationsIT {
         }
         String code = report(bearer(mvc, StayFlow.student(34)), "Normal", null);
         long a2 = stay.userId(STAFF_A2);
-        patchAs("/maintenance-requests/" + code, bearer(mvc, STAFF_A), "{\"assigneeId\":\"%d\"}".formatted(a2))
+        patchAs("/maintenance-requests/" + code, bearer(mvc, MANAGER_A), "{\"assigneeId\":\"%d\"}".formatted(a2))
                 .andExpect(status().isNoContent());
         String page = getAs("/routing-rules?block=A", bearer(mvc, MANAGER_A)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.staff[*].name", hasItem("Vo Thanh Tung")))

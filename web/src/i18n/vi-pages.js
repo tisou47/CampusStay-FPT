@@ -4426,6 +4426,11 @@ const workspace = {
   "Only the person in charge changes its status. If they are away or off duty, take it over: the request history shows who took it from whom.": "Chỉ người phụ trách mới đổi được trạng thái. Nếu họ vắng hoặc ngoài ca, hãy nhận phụ trách: lịch sử yêu cầu ghi lại ai nhận từ ai.",
   "You are in charge of this request": "Bạn đang phụ trách yêu cầu này",
   "Start the work, keep the student updated and mark it resolved when it is fixed.": "Bắt đầu xử lý, cập nhật cho sinh viên và đánh dấu đã xử lý khi sửa xong.",
+  "Only the person in charge changes its status. If they are away or off duty, ask a Manager to move it to someone else.": "Chỉ người phụ trách mới đổi được trạng thái. Nếu họ vắng hoặc ngoài ca, hãy nhờ Quản lý chuyển cho người khác.",
+  "Take this request": "Nhận xử lý",
+  "{name} (you)": "{name} (bạn)",
+  "This request was created for this item, so it cannot change. The item's history lists the repair.": "Yêu cầu này được tạo cho món này nên không thể đổi. Lịch sử của món ghi lại lần sửa chữa.",
+  "inspector": "người kiểm tra",
   // Staff and workload
   "Staff of the blocks in your scope, the request types they handle and who is on duty. Staff start and end their own shift from the top bar; you can change it here.": "Nhân viên của các tòa trong phạm vi, loại yêu cầu họ phụ trách và ai đang trực. Nhân viên tự vào ca và kết thúc ca ở thanh trên cùng; bạn có thể đổi tại đây.",
   "Who gets new requests": "Ai nhận yêu cầu mới",

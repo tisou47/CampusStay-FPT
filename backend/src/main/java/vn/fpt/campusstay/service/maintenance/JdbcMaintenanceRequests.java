@@ -63,6 +63,11 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
     }
 
     @Override
+    public boolean isAssigned(long requestId) {
+        return requests.find(String.valueOf(requestId), false).map(r -> r.assigneeId() != null).orElse(false);
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void setSlaDue(long requestId, Instant dueAt) {
         jdbc.sql("UPDATE mnt_request SET sla_due_at = :due WHERE id = :id")

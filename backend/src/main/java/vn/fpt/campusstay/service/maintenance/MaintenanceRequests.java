@@ -35,6 +35,9 @@ public interface MaintenanceRequests {
     /** Whether the request is still open (not Resolved or Closed); false for an unknown id. */
     boolean isOpen(long requestId);
 
+    /** Whether someone is already in charge of the request (an inspection's request goes to its inspector). */
+    boolean isAssigned(long requestId);
+
     /** Assigns an open request (a routing rule, or the Block Manager after an escalation); {@code why} goes in its log. */
     void assign(long requestId, long assigneeId, String why);
 

@@ -27,7 +27,9 @@ import { t, tr } from '@/i18n'
 //   events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm },
 //   slaDueAt, furnitureItem: { id, assetCode, type, typeVi } | null, furnitureOptions: [{ id, assetCode, type, typeVi }],
 //   inspectionFinding: { condition: Good | Worn | Damaged | Missing | null, result: Pass | Fail, note, runId, inspectedAt } | null,
-//   staff: [{ id, name, skills }] (who may be assigned: the staff of the request's own Block) }
+//   staff: [{ id, name, skills }] (who may be assigned: the staff of the request's own Block),
+//   furnitureItemFixed (the item came with the request, from an inspection: shown as text) }
+// Staff only take an unassigned request for themselves (assigneeId = their own id); Managers assign anyone.
 // PATCH /maintenance-requests/:id { priority, furnitureItemId, assigneeId, visitWindow, status }
 // POST /maintenance-requests/:id/updates { message, internal }
 
@@ -78,6 +80,14 @@ function FurnitureItem({ r }) {
     { value: '', label: t('Not about a furniture item') },
     ...(r.furnitureOptions ?? []).map((f) => ({ value: f.id, label: `${typeName(f)} · ${f.assetCode}` })),
   ]
+  // A request made for an item (an inspection finding) keeps it: shown as text, the server refuses a change.
+  if (r.furnitureItemFixed && r.furnitureItem) {
+    return (
+      <Fact label="Furniture item" tip="This request was created for this item, so it cannot change. The item's history lists the repair.">
+        {r.furnitureItem.assetCode ? `${typeName(r.furnitureItem)} · ${r.furnitureItem.assetCode}` : '—'}
+      </Fact>
+    )
+  }
   return (
     <Fact label="Furniture item" tip="The item's history lists this request when it is reported and resolved.">
       <Select
@@ -136,16 +146,20 @@ function RequestDetail({ r, staff, priorities }) {
   const open = OPEN.includes(r.status)
   const options = { invalidates: ['maintenance', 'dashboard'] }
 
-  const save = useMutation(() => api.maintenance.update(r.id, { priority, assigneeId: assigneeId || null, visitWindow: visit.trim() || null }), {
-    ...options,
-    onSuccess: () => notify({ title: studentRequest ? 'Saved and student notified' : 'Saved', message: studentRequest ? t('{name} gets an in-app notification and an email.', { name: r.reporter.name }) : t('{id} was updated.', { id: r.id }) }),
-    onError: (e) => notifyError(e, 'Could not save'),
-  })
-  // The person in charge does the work: other Staff take the request over first (Managers may act on any request).
+  // The person in charge does the work. Staff only take an unassigned request for themselves; assigning it to someone
+  // else or moving it from one person to another is a Manager's (the server refuses it to Staff).
   const { user } = useSession()
   const isStaff = user?.role === 'staff'
   const mine = r.assignee && String(r.assignee.id) === String(user?.id)
   const someoneElse = isStaff && r.assignee && !mine
+  const save = useMutation(
+    () => api.maintenance.update(r.id, { priority, ...(isStaff ? {} : { assigneeId: assigneeId || null }), visitWindow: visit.trim() || null }),
+    {
+      ...options,
+      onSuccess: () => notify({ title: studentRequest ? 'Saved and student notified' : 'Saved', message: studentRequest ? t('{name} gets an in-app notification and an email.', { name: r.reporter.name }) : t('{id} was updated.', { id: r.id }) }),
+      onError: (e) => notifyError(e, 'Could not save'),
+    },
+  )
   const setStatus = useMutation(
     (status) =>
       api.maintenance.update(r.id, {
@@ -159,10 +173,11 @@ function RequestDetail({ r, staff, priorities }) {
       onError: (e) => notifyError(e, 'Could not change the status'),
     },
   )
+  // Staff take an unassigned request for themselves.
   const takeOver = useMutation(() => api.maintenance.update(r.id, { assigneeId: user.id }), {
     ...options,
-    onSuccess: () => notify({ title: t('You are now in charge of {id}', { id: r.id }), message: t('{name} sees the change in the request history.', { name: r.assignee?.name ?? t('Your colleague') }) }),
-    onError: (e) => notifyError(e, 'Could not take the request over'),
+    onSuccess: () => notify({ title: t('You are now in charge of {id}', { id: r.id }), message: 'Start the work, keep the student updated and mark it resolved when it is fixed.' }),
+    onError: (e) => notifyError(e, 'Could not take the request'),
   })
   const post = useMutation(() => api.maintenance.addUpdate(r.id, { message: message.trim(), internal }), {
     ...options,
@@ -199,11 +214,7 @@ function RequestDetail({ r, staff, priorities }) {
         }
         actions={
           <>
-            {someoneElse && r.status !== 'Closed' ? (
-              <Button variant="primary" icon={UserCheck} onClick={() => takeOver.run()} disabled={busy}>
-                Take over
-              </Button>
-            ) : open ? (
+            {someoneElse && r.status !== 'Closed' ? null : open ? (
               <>
                 <Button variant={r.status === 'In progress' ? 'primary' : 'default'} icon={Check} onClick={() => setStatus.run('Resolved')} disabled={busy}>
                   Mark resolved
@@ -226,7 +237,7 @@ function RequestDetail({ r, staff, priorities }) {
 
       {someoneElse && r.status !== 'Closed' && (
         <Alert type="warning" title={t('{name} is in charge of this request', { name: r.assignee.name })} className="shrink-0">
-          {t('Only the person in charge changes its status. If they are away or off duty, take it over: the request history shows who took it from whom.')}
+          {t('Only the person in charge changes its status. If they are away or off duty, ask a Manager to move it to someone else.')}
         </Alert>
       )}
       {isStaff && mine && open && (
@@ -319,16 +330,33 @@ function RequestDetail({ r, staff, priorities }) {
           <Field label="Priority" helper={studentRequest && r.urgency ? t('The student marked it {urgency}.', { urgency: tr(r.urgency) }) : undefined}>
             {(id) => <Select id={id} value={priority ?? ''} onChange={(e) => setPriority(e.target.value)} options={priorities} />}
           </Field>
-          <Field label="Assignee">
-            {(id) => (
-              <Select
-                id={id}
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                options={[{ value: '', label: 'Unassigned' }, ...staff.map((m) => ({ value: m.id, label: m.skills?.length ? `${m.name} · ${tr(m.skills[0])}` : m.name }))]}
-              />
-            )}
-          </Field>
+          {isStaff ? (
+            // Staff see who is in charge; they can only take an unassigned request for themselves.
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-fg">{t('Assignee')}</span>
+              <div className="flex min-h-10 items-center justify-between gap-3 rounded-md border border-line bg-subtle px-3 py-2">
+                <span className={cx('min-w-0 truncate text-base', r.assignee ? 'font-medium text-fg' : 'text-fg-tertiary')}>
+                  {r.assignee ? (mine ? t('{name} (you)', { name: r.assignee.name }) : r.assignee.name) : t('Unassigned')}
+                </span>
+                {!r.assignee && open && (
+                  <Button size="sm" icon={UserCheck} onClick={() => takeOver.run()} disabled={busy}>
+                    Take this request
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Field label="Assignee">
+              {(id) => (
+                <Select
+                  id={id}
+                  value={assigneeId}
+                  onChange={(e) => setAssigneeId(e.target.value)}
+                  options={[{ value: '', label: 'Unassigned' }, ...staff.map((m) => ({ value: m.id, label: m.skills?.length ? `${m.name} · ${tr(m.skills[0])}` : m.name }))]}
+                />
+              )}
+            </Field>
+          )}
           <VisitWindowField value={visit} onChange={setVisit} />
           <Button variant="primary" icon={Check} block onClick={() => save.run()} disabled={busy}>
             {studentRequest ? 'Save and notify student' : 'Save'}

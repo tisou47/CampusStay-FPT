@@ -208,14 +208,15 @@ class MaintenanceIT {
                 .andExpect(jsonPath("$.code").value("BLOCK_OUT_OF_SCOPE"));
 
         String path = "/maintenance-requests/" + id;
-        patchAs(path, staff, "{\"assigneeId\":\"%d\"}".formatted(userId(MANAGER_B)))
+        String manager = bearer(mvc, MANAGER_B);
+        patchAs(path, manager, "{\"assigneeId\":\"%d\"}".formatted(userId(MANAGER_B)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.assigneeId").isString());
         patchAs(path, staff, "{\"visitWindow\":\"tomorrow afternoon\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.visitWindow").isString());
         String day = LocalDate.now(TimeConfig.CAMPUS_ZONE).plusDays(1).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        patchAs(path, staff, "{\"priority\":\"Medium\",\"assigneeId\":\"%d\",\"visitWindow\":\"%s 14:00 - 16:00\"}"
+        patchAs(path, manager, "{\"priority\":\"Medium\",\"assigneeId\":\"%d\",\"visitWindow\":\"%s 14:00 - 16:00\"}"
                 .formatted(a2, day)).andExpect(status().isNoContent());
         getAs(path, staff)
                 .andExpect(jsonPath("$.status").value("Assigned"))
@@ -260,8 +261,8 @@ class MaintenanceIT {
     }
 
     /**
-     * TC-MNT-009: only the person in charge changes the status; another Staff member of the Block takes the request
-     * over first (recorded in its history), and a Manager may act on any request.
+     * TC-MNT-009: Staff only take an unassigned request for themselves: they cannot assign it to someone else nor
+     * take it from the person in charge, who alone changes its status; a Manager assigns, moves and acts on any request.
      */
     @Test
     void personInChargeChangesTheStatus() throws Exception {
@@ -269,21 +270,35 @@ class MaintenanceIT {
         String id = reported(bearer(mvc, student(24)), "Normal");
         String path = "/maintenance-requests/" + id;
         String staff = bearer(mvc, STAFF_A);
+        String manager = bearer(mvc, MANAGER_B);
         long a1 = userId(STAFF_A);
         long a2 = userId(STAFF_A2);
-        patchAs(path, staff, "{\"assigneeId\":\"%d\"}".formatted(a2)).andExpect(status().isNoContent());
+        patchAs(path, staff, "{\"assigneeId\":\"%d\"}".formatted(a2))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("STAFF_ASSIGN_SELF_ONLY"));
+        patchAs(path, manager, "{\"assigneeId\":\"%d\"}".formatted(a2)).andExpect(status().isNoContent());
 
         patchAs(path, staff, "{\"status\":\"In progress\"}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ASSIGNED_TO_SOMEONE_ELSE"))
                 .andExpect(jsonPath("$.message").value(startsWith("This request is assigned to Vo Thanh Tung.")));
         patchAs(path, staff, "{\"assigneeId\":\"%d\",\"status\":\"In progress\"}".formatted(a1))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ASSIGNED_TO_SOMEONE_ELSE"));
+        patchAs(path, staff, "{\"assigneeId\":null}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ASSIGNED_TO_SOMEONE_ELSE"));
+        getAs(path, staff).andExpect(jsonPath("$.assignee.id").value(String.valueOf(a2)));
+
+        // The person in charge gives it back; another Staff member takes it and starts the work.
+        patchAs(path, bearer(mvc, STAFF_A2), "{\"assigneeId\":null}").andExpect(status().isNoContent());
+        patchAs(path, staff, "{\"assigneeId\":\"%d\",\"status\":\"In progress\"}".formatted(a1))
                 .andExpect(status().isNoContent());
         getAs(path, staff)
                 .andExpect(jsonPath("$.status").value("In progress"))
                 .andExpect(jsonPath("$.assignee.id").value(String.valueOf(a1)));
 
-        patchAs(path, bearer(mvc, MANAGER_B), "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
+        patchAs(path, manager, "{\"status\":\"Resolved\"}").andExpect(status().isNoContent());
         getAs(path, staff).andExpect(jsonPath("$.status").value("Resolved"));
     }
 
