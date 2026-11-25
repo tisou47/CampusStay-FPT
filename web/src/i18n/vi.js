@@ -209,6 +209,8 @@ const vi = {
   'items': 'mục',
   'entry': 'mục',
   'entries': 'mục',
+  'announcement': 'thông báo',
+  'announcements': 'thông báo',
   '{n} / page': '{n} / trang',
   'Something went wrong': 'Đã xảy ra lỗi',
   'Just now': 'Vừa xong',
