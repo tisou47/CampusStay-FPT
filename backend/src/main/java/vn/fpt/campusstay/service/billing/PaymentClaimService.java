@@ -536,7 +536,8 @@ public class PaymentClaimService {
         if (invoiceCodes.size() > MAX_BULK) {
             throw FieldErrors.single("invoiceIds", "Select at most " + MAX_BULK + " Invoices at a time.");
         }
-        Set<String> codes = new LinkedHashSet<>();
+        // Sorted, so overlapping bulks lock their Invoices in the same order and cannot deadlock (TC-BIL-606).
+        Set<String> codes = new java.util.TreeSet<>();
         invoiceCodes.stream().filter(c -> c != null && !c.isBlank()).map(c -> c.trim().toUpperCase(Locale.ROOT))
                 .forEach(codes::add);
         if (codes.isEmpty()) {
