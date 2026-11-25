@@ -11,10 +11,12 @@ public interface MaintenanceRequests {
      * A request as the student's list shows it; {@code id} is the code ({@code MR-000321}).
      *
      * @param assignee    the assignee's name, or null
-     * @param visitWindow {@code dd/mm/yyyy hh:mm – hh:mm}, or null
+     * @param visitWindow   {@code dd/mm/yyyy hh:mm – hh:mm}, or null
+     * @param reportedByYou false for a request the back office opened in the student's Room (an inspection finding):
+     *                      the student follows it but does not confirm the fix
      */
     record StudentItem(String id, String title, String location, String category, Instant reportedAt, String status,
-            String assignee, String visitWindow) {
+            String assignee, String visitWindow, boolean reportedByYou) {
     }
 
     /** Newest first; {@code termId} null = every Term. */

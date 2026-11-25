@@ -67,7 +67,8 @@ public class MaintenanceService {
     }
 
     public record StudentView(String id, String title, String status, String room, String category, String location,
-            Instant reportedAt, String assignee, String visitWindow, String description, List<StudentEvent> events) {
+            Instant reportedAt, String assignee, String visitWindow, String description, List<StudentEvent> events,
+            boolean reportedByYou) {
     }
 
     static final String MAINTENANCE = "MAINTENANCE";
@@ -84,10 +85,12 @@ public class MaintenanceService {
     private final Inventory inventory;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final RequestAudience audience;
 
     public MaintenanceService(JdbcClient jdbc, RequestStore requests, CurrentUser currentUser, BlockScope blockScope,
             Residences residences, UserDirectory users, Lookups lookups, Parameters parameters, FileStore files,
-            Inventory inventory, ApplicationEventPublisher events, Clock clock) {
+            Inventory inventory, ApplicationEventPublisher events, Clock clock, RequestAudience audience) {
+        this.audience = audience;
         this.jdbc = jdbc;
         this.requests = requests;
         this.currentUser = currentUser;
@@ -221,7 +224,8 @@ public class MaintenanceService {
 
     @Transactional(readOnly = true)
     public StudentView studentView(String idOrCode) {
-        RequestStore.Request r = own(idOrCode, false);
+        long me = currentUser.require(Role.STUDENT).userId();
+        RequestStore.Request r = visible(idOrCode, false);
         List<RequestStore.Event> history = requests.events(r.id()).stream().filter(e -> !e.internal()).toList();
         List<Long> people = new ArrayList<>(history.stream().map(RequestStore.Event::actorId)
                 .filter(Objects::nonNull).toList());
@@ -234,7 +238,8 @@ public class MaintenanceService {
                 r.assigneeId() == null ? null : names.get(r.assigneeId()),
                 RequestStore.visitWindow(r.visitStart(), r.visitEnd()), r.description(),
                 history.stream().map(e -> new StudentEvent(e.actorId() == null ? "CampusStay" : names.get(e.actorId()),
-                        e.at(), e.message() != null ? e.message() : e.text())).toList());
+                        e.at(), e.message() != null ? e.message() : e.text())).toList(),
+                r.reporterId() == me);
     }
 
     /** The student confirms the fix (closed) or says it is not fixed (back to the assignee). */
@@ -243,7 +248,8 @@ public class MaintenanceService {
         if (fixed == null) {
             throw FieldErrors.single("fixed", "Say whether the problem is fixed.");
         }
-        RequestStore.Request r = own(idOrCode, true);
+        long me = currentUser.require(Role.STUDENT).userId();
+        RequestStore.Request r = visible(idOrCode, true);
         if (!r.status().equals("RESOLVED")) {
             throw ApiException.conflict("NOT_RESOLVED", "You can confirm the fix once the request is resolved.");
         }
@@ -254,21 +260,25 @@ public class MaintenanceService {
                     UPDATE mnt_request SET status = 'CLOSED', closed_at = :now, confirmed_fixed = TRUE, version = version + 1
                     WHERE id = :id
                     """).param("now", Timestamp.from(now)).param("id", r.id()).update();
-            requests.event(r.id(), r.reporterId(), "STUDENT", "Fix confirmed by the student", note, false, now);
+            requests.event(r.id(), me, "STUDENT", "Fix confirmed by the student", note, false, now);
         } else {
             jdbc.sql("""
                     UPDATE mnt_request SET status = :status, resolved_at = NULL, confirmed_fixed = FALSE,
                            reopen_count = reopen_count + 1, version = version + 1
                     WHERE id = :id
                     """).param("status", r.assigneeId() == null ? "SUBMITTED" : "ASSIGNED").param("id", r.id()).update();
-            requests.event(r.id(), r.reporterId(), "STUDENT", "Reopened: not fixed yet", note, false, now);
+            requests.event(r.id(), me, "STUDENT", "Reopened: not fixed yet", note, false, now);
         }
     }
 
-    /** The signed-in student's own request; anyone else's is 404. */
-    private RequestStore.Request own(String idOrCode, boolean lock) {
+    /**
+     * A request the signed-in student follows: their own, or one the back office opened in the Room they live in (an
+     * inspection finding), which any resident of the Room may confirm or reopen. Anyone else's is 404.
+     */
+    private RequestStore.Request visible(String idOrCode, boolean lock) {
         long me = currentUser.require(Role.STUDENT).userId();
-        return requests.find(idOrCode, lock).filter(r -> r.reporterId() == me)
+        return requests.find(idOrCode, lock).filter(r -> r.reporterId() == me
+                        || !r.source().equals("STUDENT") && audience.residentsOf(r.roomId()).contains(me))
                 .orElseThrow(() -> ApiException.notFound("This Maintenance Request does not exist."));
     }
 

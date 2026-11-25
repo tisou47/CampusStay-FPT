@@ -66,7 +66,7 @@ class _RequestsListState extends State<RequestsList> {
               final items = d.objects('items');
               final counts = d.obj('counts');
               final resolved = _kind == 'maintenance'
-                  ? items.where((r) => r.str('status') == 'Resolved').firstOrNull
+                  ? items.where(_canConfirm).firstOrNull
                   : null;
               return Cards(
                 bottom: 96,
@@ -157,9 +157,13 @@ class _RequestsListState extends State<RequestsList> {
   }
 }
 
-Widget _maintenanceStatus(String? status) => status == 'Resolved'
+/// A request the dormitory office opened in the student's Room (an inspection finding, `reportedByYou: false`) is
+/// followed and, once Resolved, confirmed or reopened by any student living there.
+bool _canConfirm(Json r) => r.str('status') == 'Resolved';
+
+Widget _maintenanceStatus(Json r) => _canConfirm(r)
     ? Tag(t('Resolved · confirm the fix', 'Đã xử lý · hãy xác nhận'), tone: Tone.success)
-    : StatusChip(status);
+    : StatusChip(r.str('status'));
 
 /// Runs one answer at a time: [builder] gets whether one is running and the way to start one (MOB-25).
 class _OneAtATime extends StatefulWidget {
@@ -315,7 +319,7 @@ class MaintenanceScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      _maintenanceStatus(status),
+                      _maintenanceStatus(r),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -390,7 +394,7 @@ class MaintenanceScreen extends StatelessWidget {
                       ),
                   ],
                 ),
-              if (status == 'Resolved')
+              if (_canConfirm(r))
                 _OneAtATime(
                   builder: (busy, run) => Row(
                     spacing: 8,

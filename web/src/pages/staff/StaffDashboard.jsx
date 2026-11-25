@@ -14,7 +14,7 @@ import { campusClock, formatDate, formatDateTime, formatDuration, formatNumber, 
 import { attentionText } from '@/lib/attention'
 import { cx } from '@/lib/cx'
 import { t, tr } from '@/i18n'
-import { Block, CARD, FilterChip, FloorBars, Queue, Section, ShiftPill, Skeleton, Stat, TermLine, Tile, Timeline } from './today/TodayParts'
+import { Block, FilterChip, FloorBars, Queue, Section, ShiftPill, Skeleton, TermLine, Tile, Timeline } from './today/TodayParts'
 
 // SCR-HOME-02 Staff home "Today" (Change Spec v2 §11.2), built around the person's work: their shift, the Term on
 // one line, five tiles of what needs handling (they filter the queue), ONE queue of requests and Block tasks sorted
@@ -54,18 +54,36 @@ const pad = (n) => String(n).padStart(2, '0')
 const minutesOf = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
 const isoDay = (c) => `${c.y}-${pad(c.m)}-${pad(c.d)}`
 
-/** The shift going on now (an overnight shift of yesterday counts until it ends) with the minutes left, or null. */
-function currentShift(shifts, c) {
+/**
+ * Today's time on duty: the person's shifts touching today in minutes from midnight (an overnight shift of yesterday
+ * from 0, one of today past 1440), back-to-back shifts joined into one span (07:00–15:00 then 15:00–23:00 is one
+ * span). `fromYesterday`: the span began the evening before; `start`/`end`: the "HH:mm" shown.
+ */
+function dutySpans(shifts, c) {
   const today = c.dow + 1
   const yesterday = today === 1 ? 7 : today - 1
-  const now = c.h * 60 + c.min
+  const parts = []
   for (const s of shifts) {
     const [a, b] = [minutesOf(s.start), minutesOf(s.end)]
-    if (a < b && s.weekday === today && a <= now && now < b) return { ...s, left: b - now }
-    if (a >= b && s.weekday === today && a <= now) return { ...s, left: 1440 - now + b }
-    if (a >= b && s.weekday === yesterday && now < b) return { ...s, left: b - now }
+    if (s.weekday === today) parts.push({ from: a, to: a < b ? b : 1440 + b, start: s.start, end: s.end })
+    if (s.weekday === yesterday && a >= b && b > 0) parts.push({ from: 0, to: b, start: s.start, end: s.end, fromYesterday: true })
   }
-  return null
+  parts.sort((x, y) => x.from - y.from)
+  const spans = []
+  for (const p of parts) {
+    const last = spans[spans.length - 1]
+    if (last && p.from <= last.to) {
+      if (p.to > last.to) Object.assign(last, { to: p.to, end: p.end })
+    } else spans.push({ ...p })
+  }
+  return spans
+}
+
+/** The time on duty going on now (back-to-back shifts count as one) with the minutes left, or null. */
+function currentShift(shifts, c) {
+  const now = c.h * 60 + c.min
+  const span = dutySpans(shifts, c).find((s) => s.from <= now && now < s.to)
+  return span ? { start: span.start, end: span.end, left: span.to - now } : null
 }
 
 /** Where an item goes: past its deadline, due today (or now-ish), or later. */
@@ -210,7 +228,7 @@ export default function StaffDashboard() {
       title: t('Check-in opens {date} · {n} expected', { date: formatDate(ci.checkInStart), n: formatNumber(ci.expected) }),
       meta: t('{blocked} not paid yet', { blocked: ci.blocked }),
       chips: [{ label: formatTimeLeft(ci.checkInStart, now), tone: 'neutral' }],
-      action: { label: 'Open desk', to: '/staff/check-in' },
+      action: { label: 'Open', to: '/staff/check-in' },
     },
     ciOpen && ci.expected > 0 && {
       id: 'check-in',
@@ -222,7 +240,7 @@ export default function StaffDashboard() {
       meta: [t('{done} done · {waiting} waiting · {blocked} blocked', { done: ci.checkedIn, waiting: ci.waiting, blocked: ci.blocked }), t('{n} waiting at the desk', { n: ci.waiting })].join(' · '),
       progress: { value: ci.checkedIn, max: ci.expected, label: t('Check-ins today') },
       chips: [{ label: t('Today'), tone: 'brand' }],
-      action: { label: 'Open desk', to: '/staff/check-in' },
+      action: { label: 'Open', to: '/staff/check-in' },
     },
     coToday && {
       id: 'check-out-today',
@@ -378,17 +396,18 @@ export default function StaffDashboard() {
 
   const nowMin = c.h * 60 + c.min
   const blockName = oneBlock ? t('Block {code}', { code: oneBlock }) : null
-  const today = c.dow + 1
-  const yesterday = today === 1 ? 7 : today - 1
   const plan = d?.checkInPlan?.days?.find((x) => x.date === isoDay(c))
+  // One start and one end per span on duty: back-to-back shifts are not split, a span from last night starts the
+  // day as "on duty since", and one running past midnight ends the day as "until … tomorrow".
   const timeline = [
-    ...shifts.flatMap((s) => {
-      const [a, b] = [minutesOf(s.start), minutesOf(s.end)]
-      const out = []
-      if (s.weekday === today) out.push({ id: `start-${s.start}`, at: a, time: s.start, title: t('Shift starts'), meta: [t('Desk handover'), blockName].filter(Boolean).join(' · ') })
-      if ((s.weekday === today && b > a) || (s.weekday === yesterday && b <= a)) out.push({ id: `end-${s.end}`, at: b, time: s.end, title: t('Shift ends'), meta: t('Hand over to the next shift') })
-      return out
-    }),
+    ...dutySpans(shifts, c).flatMap((s) => [
+      s.fromYesterday
+        ? { id: `since-${s.start}`, at: 0, time: '00:00', title: t('On duty since {time} yesterday', { time: s.start }), meta: blockName }
+        : { id: `start-${s.from}`, at: s.from, time: s.start, title: t('Shift starts'), meta: [t('Desk handover'), blockName].filter(Boolean).join(' · ') },
+      s.to > 1440
+        ? { id: `end-${s.to}`, at: 1440 - 1, time: s.end, title: t('Shift ends tomorrow at {time}', { time: s.end }), meta: t('Hand over to the next shift') }
+        : { id: `end-${s.to}`, at: s.to, time: s.end, title: t('Shift ends'), meta: t('Hand over to the next shift') },
+    ]),
     plan?.morning > 0 && { id: 'ci-morning', at: 8 * 60, until: 12 * 60, time: t('AM'), title: t('Check-in · {n} students', { n: formatNumber(plan.morning) }), meta: t('Check-in desk') },
     plan?.afternoon > 0 && { id: 'ci-afternoon', at: 13 * 60, until: 17 * 60, time: t('PM'), title: t('Check-in · {n} students', { n: formatNumber(plan.afternoon) }), meta: t('Check-in desk') },
     run?.date && String(run.date).slice(0, 10) === isoDay(c) && { id: 'insp-start', at: 0, time: '', title: tr(run.scheduleName), meta: t('{done} of {n} rooms', { done: run.inspected, n: run.rooms }) },
@@ -435,26 +454,6 @@ export default function StaffDashboard() {
             )}
           </div>
         </div>
-        {/* The person's last seven days, on one line beside the greeting */}
-        <section aria-labelledby="staff-stats" className={cx(CARD, 'flex min-w-0 flex-col gap-1 px-4 py-2')}>
-          <h2 id="staff-stats" className="text-sm font-semibold whitespace-nowrap text-fg">
-            {t('Your performance')} <span className="font-normal text-fg-tertiary">· {t('last 7 days')}</span>
-          </h2>
-          {me.data === undefined && me.error ? (
-            <Button size="sm" onClick={me.reload}>
-              {t('Retry')}
-            </Button>
-          ) : me.data === undefined ? (
-            <Skeleton className="h-5 w-72" />
-          ) : (
-            <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-              <Stat label="Requests resolved" value={formatNumber(me.data.resolved7d)} />
-              <Stat label="On time" missing />
-              <Stat label="Average handling time" missing />
-              <Stat label="Most common issues" missing />
-            </dl>
-          )}
-        </section>
       </div>
 
       <StaleNotice query={dash} />

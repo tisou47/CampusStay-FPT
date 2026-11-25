@@ -263,7 +263,7 @@ function RequestDetail({ r, staff, priorities }) {
           <Card className="flex shrink-0 flex-col gap-4">
             <InspectionFinding finding={r.inspectionFinding} item={r.furnitureItem} />
             {r.description && r.description.trim() !== r.inspectionFinding?.note?.trim() && (
-              <p className="rounded-md bg-subtle px-4 py-3 text-base whitespace-pre-line text-fg">{r.description}</p>
+              <p className="rounded-md bg-subtle px-4 py-3 text-base whitespace-pre-line text-fg">{tr(r.description)}</p>
             )}
             {r.photos?.length > 0 && (
               <ul className="flex flex-wrap gap-2" aria-label={t('Photos')}>
@@ -358,7 +358,7 @@ function RequestDetail({ r, staff, priorities }) {
               )}
             </Field>
           )}
-          <VisitWindowField value={visit} onChange={setVisit} />
+          <VisitWindowField value={visit} onChange={setVisit} hours={r.visitHours} />
           <Button variant="primary" icon={Check} block onClick={() => save.run()} disabled={busy}>
             {studentRequest ? 'Save and notify student' : 'Save'}
           </Button>
@@ -371,34 +371,69 @@ function RequestDetail({ r, staff, priorities }) {
 // The visit window stays the text "dd/mm/yyyy hh:mm – hh:mm" the API stores; it is picked as a day and two whole
 // hours. A window written another way is kept until a new day is chosen.
 const WINDOW = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2}) – (\d{2}:\d{2})$/
-function VisitWindowField({ value, onChange }) {
+// A new window starts from now on and stays inside the Block's desk hours (hours: { from, until } "HH:mm", or null:
+// the whole day); the API refuses anything else.
+function VisitWindowField({ value, onChange, hours }) {
   const m = WINDOW.exec(value ?? '')
   const day = m ? `${m[3]}-${m[2]}-${m[1]}` : ''
   const [from, to] = m ? [m[4], m[5]] : ['', '']
+  const opens = hours?.from ?? '00:00'
+  const closes = hours?.until ?? '23:00'
+  const today = campusToday()
+  const now = campusNowTime()
+  // A start must still be ahead: today's hours already begun are greyed out.
+  const past = (d, s) => d === today && s <= now
+  const firstStart = (d) => {
+    const [h, mm] = opens.split(':').map(Number)
+    for (let x = h; x < 24; x++) {
+      const s = `${String(x).padStart(2, '0')}:${String(x === h ? mm : 0).padStart(2, '0')}`
+      if (s >= opens && s < closes && !past(d, s)) return s
+    }
+    return ''
+  }
   const write = (d, a, b) => {
     if (!d) return onChange('')
     const [y, mo, dd] = d.split('-')
-    const start = a || '08:00'
-    const end = b && b > start ? b : `${String(Math.min(23, Number(start.slice(0, 2)) + 2)).padStart(2, '0')}:00`
+    const start = a && !past(d, a) ? a : firstStart(d)
+    if (!start) return onChange('')
+    const twoLater = `${String(Math.min(23, Number(start.slice(0, 2)) + 2)).padStart(2, '0')}:${start.slice(3)}`
+    const end = b && b > start && b <= closes ? b : twoLater <= closes ? twoLater : closes
     onChange(`${dd}/${mo}/${y} ${start} – ${end}`)
   }
-  const min = campusToday()
+  // Today is offered only while a start is still possible before the desk closes.
+  const min = firstStart(today) ? today : nextDay(today)
+  const outside = m && (from < opens || to > closes)
   return (
-    <Field label="Visit window" helper={value && !m ? t('Written as: {value}', { value }) : undefined}>
+    <Field
+      label="Visit window"
+      error={outside ? t("Outside the Block's hours") : undefined}
+      helper={value && !m ? t('Written as: {value}', { value }) : hours ? t("Visits are planned within the Block's hours, {from} – {until}, from now on.", { from: opens, until: closes }) : undefined}
+    >
       {(id) => (
         <div className="flex flex-col gap-2">
           <DatePicker id={id} clearable value={day} minDate={min} onChange={(d) => write(d, from, to)} />
           <TimeRangePicker
             value={{ start: from, end: to }}
             disabled={!day}
-            minTime="00:00"
-            maxTime="23:00"
+            minTime={opens}
+            maxTime={closes}
+            disabledTimes={(s) => past(day, s)}
             onChange={({ start, end }) => write(day, start, end)}
           />
         </div>
       )}
     </Field>
   )
+}
+
+function campusNowTime() {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date())
+}
+
+function nextDay(isoDay) {
+  const d = new Date(`${isoDay}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
 }
 
 export default function MaintenanceDetail() {

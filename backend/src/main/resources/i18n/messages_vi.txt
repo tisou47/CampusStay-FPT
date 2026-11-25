@@ -1142,3 +1142,6 @@ This conversation is not valid. Start a new one. ⟶ Cuộc trò chuyện này k
 The reading is far above the meter's previous reading. Check it for a typo. ⟶ Chỉ số cao bất thường so với chỉ số công tơ gần nhất. Hãy kiểm tra xem có nhập nhầm không.
 The reading is lower than the Room's record ({0} {1}): meters only go up. Read the meter again; if it was replaced, record it in an inspection. ⟶ Chỉ số thấp hơn chỉ số gốc của phòng ({0} {1}): công tơ chỉ tăng. Hãy đọc lại đồng hồ; nếu đã thay công tơ, ghi nhận trong một lượt kiểm tra phòng.
 The reading is far above the Room's record ({0} {1}). Check it for a typo. ⟶ Chỉ số cao bất thường so với chỉ số gốc của phòng ({0} {1}). Hãy kiểm tra xem có nhập nhầm không.
+The visit cannot start in the past. Choose a later time. ⟶ Không thể hẹn giờ đến đã qua. Hãy chọn giờ muộn hơn.
+The visit starts and ends on the same day. ⟶ Giờ đến kiểm tra phải bắt đầu và kết thúc trong cùng một ngày.
+Plan the visit within the Block's hours, {0} – {1}. ⟶ Hãy hẹn trong giờ làm việc của tòa, {0} – {1}.

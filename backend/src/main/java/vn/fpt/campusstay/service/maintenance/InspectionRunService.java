@@ -185,11 +185,13 @@ public class InspectionRunService {
     private final FileStore files;
     private final FileLinks links;
     private final Parameters parameters;
+    private final RequestAudience audience;
 
     public InspectionRunService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, UserDirectory users,
             Inventory inventory, Catalog catalog, TermCatalog terms, Residences residences, ChecklistService checklists,
             RequestStore requests, Billing billing, ApplicationEventPublisher events, AuditLog audit, Clock clock,
-            BlockDirectory blockCodes, FileStore files, FileLinks links, Parameters parameters) {
+            BlockDirectory blockCodes, FileStore files, FileLinks links, Parameters parameters, RequestAudience audience) {
+        this.audience = audience;
         this.blockCodes = blockCodes;
         this.files = files;
         this.links = links;
@@ -772,6 +774,7 @@ public class InspectionRunService {
                 .query((rs, i) -> new NewRequest(rs.getLong("id"), rs.getString("code"))).single();
         requests.event(row.id(), reporter, "STAFF", "Created from inspection " + code, null, false, now);
         assignedToInspector(row.id(), assignee, now);
+        tellResidents(row, room, title, assignee, code);
         events.publishEvent(new MaintenanceReported(row.id(), row.code(), room.buildingId(), "FURNITURE", "NORMAL"));
         events.publishEvent(new FurnitureRepairLogged(itemId, row.code(), title, "Reported", reporter));
         return row;
@@ -803,9 +806,17 @@ public class InspectionRunService {
                 .query((rs, i) -> new NewRequest(rs.getLong("id"), rs.getString("code"))).single();
         requests.event(row.id(), reporter, "STAFF", "Created from inspection " + code, null, false, now);
         assignedToInspector(row.id(), assignee, now);
+        tellResidents(row, room, item.label(), assignee, code);
         events.publishEvent(new MaintenanceReported(row.id(), row.code(), room.buildingId(), item.category(),
                 item.severity().equals("CRITICAL") ? "URGENT" : "NORMAL"));
         return row;
+    }
+
+    /** The students living in the Room hear that a repair was opened there: Staff will come into their Room. */
+    private void tellResidents(NewRequest row, Inventory.BedSlot room, String title, Long assignee, String code) {
+        audience.notify(row.id(), row.code(), title.length() > 150 ? title.substring(0, 150) : title,
+                audience.residentsOf(room.roomId()), RequestStore.statusLabel(assignee == null ? "SUBMITTED" : "ASSIGNED"),
+                "Created from inspection " + code);
     }
 
     /**

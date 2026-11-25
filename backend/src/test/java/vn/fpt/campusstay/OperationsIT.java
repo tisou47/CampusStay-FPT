@@ -122,7 +122,8 @@ class OperationsIT {
         Instant before = Instant.now();
         String urgent = report(student, "Urgent", ac);
         String normal = report(student, "Normal", null);
-        String staff = bearer(mvc, STAFF_A);
+        // Unassigned requests are the Managers': Staff see only the ones assigned to them (TC-MNT-009).
+        String staff = bearer(mvc, MANAGER_A);
         String detail = getAs("/maintenance-requests/" + urgent, staff).andExpect(status().isOk())
                 .andExpect(jsonPath("$.furnitureItem.id").value(ac))
                 .andExpect(jsonPath("$.furnitureOptions[*].id", hasItem(ac)))
@@ -189,8 +190,11 @@ class OperationsIT {
                 .andExpect(jsonPath("$.items[?(@.kind == 'student')].detail", hasItem(org.hamcrest.Matchers.startsWith(studentCode))));
         getAs("/search?q=A504", manager)
                 .andExpect(jsonPath("$.items[?(@.kind == 'room')].id", hasItem("A-504")));
+        getAs("/search?q=" + code, manager)
+                .andExpect(jsonPath("$.items[?(@.kind == 'maintenance')].id", hasItem(code)));
+        // Staff find only the Maintenance Requests assigned to them: this one has nobody yet.
         getAs("/search?q=" + code, bearer(mvc, STAFF_A))
-                .andExpect(jsonPath("$.items[?(@.kind == 'maintenance')].id", hasItem(code)))
+                .andExpect(jsonPath("$.items[?(@.kind == 'maintenance')]").isEmpty())
                 .andExpect(jsonPath("$.items[?(@.kind == 'student')]").isEmpty());
         String staffB = bearer(mvc, STAFF_B2);
         getAs("/search?q=A-504", staffB).andExpect(jsonPath("$.items[?(@.kind == 'room')]", hasSize(0)));
