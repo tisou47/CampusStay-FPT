@@ -64,6 +64,12 @@ export const api = {
     sendVerification: (body) => http.put('/students/me/verification', body),
     /** { room, status (Ready, Not ready, Not set), note, changedAt }; the code itself only through revealDoorCode. */
     doorCode: g('/students/me/door-code'),
+    /** My data (Decree 13/2023, W3-D3): { noticeVersion, consent, consentCurrent, erasure }. */
+    privacy: g('/students/me/privacy'),
+    acceptPrivacy: (version) => http.post('/students/me/privacy/consent', { version }),
+    exportData: () => download('/students/me/privacy/export', { fallbackName: 'my-data.json' }),
+    /** { reason? } → { id, status }; 409 ERASURE_PENDING. */
+    requestErasure: (body) => http.post('/students/me/privacy/erasure', body),
     /** { room, code, changedAt }; every view is written to the Audit Log. */
     revealDoorCode: () => http.post('/students/me/door-code/reveal'),
     furniture: g('/students/me/furniture'),
@@ -372,6 +378,12 @@ export const api = {
     reject: (id, body) => http.post(`/student-accounts/${id}/reject`, body),
     lock: (id, body) => http.post(`/student-accounts/${id}/lock`, body),
     unlock: (id) => http.post(`/student-accounts/${id}/unlock`),
+  },
+  /** Managers: erasure requests (W3-D3). */
+  privacy: {
+    requests: g('/privacy/erasure-requests'),
+    /** { decision: 'Approved'|'Rejected', note } → 204; 409 ERASURE_HAS_ALLOCATION / ERASURE_OPEN_INVOICE / ERASURE_OPEN_REFUND. */
+    decide: (id, body) => http.post(`/privacy/erasure-requests/${id}/decision`, body),
   },
   studentImports: {
     history: g('/student-imports'),

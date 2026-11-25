@@ -167,6 +167,7 @@ export const backOffice = {
             tabs: [
               { label: 'Students', to: '/manager/students' },
               { label: 'Import student list', to: '/manager/student-import' },
+              { label: 'Erasure requests', to: '/manager/erasure-requests' },
             ],
           },
           { label: 'Reconciliation', icon: FileSearch, to: '/manager/reconciliation' },

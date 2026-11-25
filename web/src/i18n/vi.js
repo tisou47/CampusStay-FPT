@@ -536,6 +536,7 @@ const vi = {
   "{name} is not a JPEG or PNG photo.": "{name} không phải ảnh JPEG hoặc PNG.",
   "Some photos were not added": "Một số ảnh không được thêm",
   "System health": "Sức khỏe hệ thống",
+  "Erasure requests": "Yêu cầu xóa dữ liệu",
 }
 
 export default vi

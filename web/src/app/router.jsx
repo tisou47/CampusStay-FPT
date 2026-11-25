@@ -90,6 +90,8 @@ const InspectionSchedule = () => import('@/pages/manager/InspectionSchedule')
 const Students = () => import('@/pages/manager/Students')
 const StudentHub = () => import('@/pages/manager/StudentHub')
 const StudentImport = () => import('@/pages/manager/StudentImport')
+const ErasureRequests = () => import('@/pages/manager/ErasureRequests')
+const MyData = () => import('@/pages/student/MyData')
 const StaffAccounts = () => import('@/pages/manager/StaffAccounts')
 const StaffActivity = () => import('@/pages/manager/StaffActivity')
 const StaffSchedule = () => import('@/pages/manager/StaffSchedule')
@@ -215,6 +217,7 @@ export const router = createBrowserRouter([
         { path: 'requests/swap/invitations/:id', ...page(SwapInvitation) },
         { path: 'notifications', ...page(Notifications) },
         { path: 'verification', ...page(Verification) },
+        { path: 'my-data', ...page(MyData) },
         { path: 'profile', ...page(Profile, { role: 'student' }) },
         { path: 'registration-periods/:termId', ...page(RegistrationPeriod) },
         { path: 'family-days', ...page(MyFamilyDays) },
@@ -297,6 +300,7 @@ export const router = createBrowserRouter([
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
         { path: 'student-import', ...page(StudentImport) },
+        { path: 'erasure-requests', ...page(ErasureRequests) },
         { path: 'staff-accounts', ...page(StaffAccounts) },
         { path: 'staff-activity', ...page(StaffActivity) },
         { path: 'staff-schedule', ...page(StaffSchedule) },

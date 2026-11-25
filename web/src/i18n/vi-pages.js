@@ -1528,4 +1528,7 @@ export default {
   "Page {n} of {total}": "Trang {n} / {total}",
   "Print this page": "In trang này",
   "Print / Save as PDF ({n} pages)": "In / Lưu PDF ({n} trang)",
+  "My data": "Dữ liệu của tôi",
+  "Open My data": "Mở Dữ liệu của tôi",
+  "Download what CampusStay holds about you, or ask for it to be erased (Decree 13/2023).": "Tải về dữ liệu CampusStay đang lưu về bạn, hoặc yêu cầu xóa (Nghị định 13/2023).",
 }
