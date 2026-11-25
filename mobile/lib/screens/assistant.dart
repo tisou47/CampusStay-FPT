@@ -1,3 +1,5 @@
+import 'dart:async';
+
 // ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
@@ -15,7 +17,9 @@ Future<bool> assistantEnabled() async {
 
 /// The CampusStay Assistant (web `AssistantChat`): answers from the user guide and the student's own records. The
 /// conversation lasts while the app runs; each question sends the last 20 turns.
-/// `POST /students/me/assistant/chat { messages: [{ role, content, signature? }] }` → `{ reply, signature }`.
+/// The answer is written as it comes (`POST /students/me/assistant/chat/stream`, Server-Sent Events, D6) and can be
+/// stopped; a server without the stream answers with `POST /students/me/assistant/chat`.
+/// `{ messages: [{ role, content, signature? }] }` → `{ reply, signature }`.
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
 
@@ -31,10 +35,16 @@ class _AssistantScreenState extends State<AssistantScreen> {
   final _scroll = ScrollController();
   bool _pending = false;
 
+  /// The answer so far while it streams in.
+  String _partial = '';
+  StreamSubscription<(String, Json)>? _stream;
+  Completer<void>? _streamDone;
+
   List<({String role, String content, bool error, String? signature})> get _messages => AssistantScreen.messages;
 
   @override
   void dispose() {
+    _stream?.cancel();
     _draft.dispose();
     _scroll.dispose();
     super.dispose();
@@ -58,13 +68,26 @@ class _AssistantScreenState extends State<AssistantScreen> {
       _pending = true;
     });
     _toEnd();
+    final body = {'messages': turns.sublist(turns.length > 20 ? turns.length - 20 : 0)};
     try {
-      // A small model on a busy server may take over a minute (MOB-04).
-      final r = await Api.post('/students/me/assistant/chat', {
-        'messages': turns.sublist(turns.length > 20 ? turns.length - 20 : 0),
-      }, const Duration(seconds: 100));
-      // The server signs each answer; it goes back with its signature or is ignored (BE-PLT-02).
-      _messages.add((role: 'assistant', content: r.text('reply'), error: false, signature: r.str('signature')));
+      Json? r;
+      try {
+        r = await _streamed(body);
+      } on ApiException catch (e) {
+        if (e.status != 404 && e.status != 405) rethrow;
+        // A server without the stream: the whole answer at once. A small model on a busy server may take over a
+        // minute (MOB-04).
+        r = await Api.post('/students/me/assistant/chat', body, const Duration(seconds: 100));
+      }
+      if (r == null) {
+        // Stopped by the student: what came so far stays on screen, and is not sent back to the model.
+        if (_partial.trim().isNotEmpty) {
+          _messages.add((role: 'assistant', content: '$_partial …', error: true, signature: null));
+        }
+      } else {
+        // The server signs each answer; it goes back with its signature or is ignored (BE-PLT-02).
+        _messages.add((role: 'assistant', content: r.text('reply'), error: false, signature: r.str('signature')));
+      }
     } on ApiException catch (e) {
       final text = e.code == 'TIMEOUT'
           ? t(
@@ -74,8 +97,55 @@ class _AssistantScreenState extends State<AssistantScreen> {
           : e.message;
       _messages.add((role: 'assistant', content: text, error: true, signature: null));
     }
+    _partial = '';
     if (mounted) setState(() => _pending = false);
     _toEnd();
+  }
+
+  /// Streams the answer into [_partial]; the `done` event's `{ reply, signature }`, or null when stopped.
+  Future<Json?> _streamed(Json body) async {
+    Json? done;
+    ApiException? failed;
+    final finished = Completer<void>();
+    _streamDone = finished;
+    _partial = '';
+    _stream = Api.events('/students/me/assistant/chat/stream', body).listen(
+      (e) {
+        final (event, data) = e;
+        switch (event) {
+          case 'delta':
+            _partial += data.text('text');
+          case 'reset':
+            _partial = '';
+          case 'done':
+            done = data;
+          case 'error':
+            failed = ApiException(200, data.str('code'), data.text('message'));
+        }
+        if (mounted) setState(() {});
+        _toEnd();
+      },
+      onError: (Object e) {
+        failed = e is ApiException ? e : ApiException(0, 'NETWORK', '$e');
+        if (!finished.isCompleted) finished.complete();
+      },
+      onDone: () {
+        if (!finished.isCompleted) finished.complete();
+      },
+      cancelOnError: true,
+    );
+    await finished.future;
+    _stream = null;
+    if (failed != null) throw failed!;
+    return done;
+  }
+
+  /// Stops the answer being written (the web's "Stop" button).
+  Future<void> _stop() async {
+    await _stream?.cancel();
+    _stream = null;
+    final done = _streamDone;
+    if (done != null && !done.isCompleted) done.complete();
   }
 
   @override
@@ -109,11 +179,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
               decoration: InputDecoration(hintText: t('Ask a question', 'Đặt câu hỏi'), counterText: ''),
             ),
           ),
-          IconButton.filled(
-            tooltip: t('Send', 'Gửi'),
-            onPressed: _pending ? null : () => _ask(_draft.text),
-            icon: const Icon(Icons.send),
-          ),
+          if (_pending && _stream != null)
+            IconButton.filled(
+              tooltip: t('Stop', 'Dừng'),
+              onPressed: _stop,
+              icon: const Icon(Icons.stop),
+            )
+          else
+            IconButton.filled(
+              tooltip: t('Send', 'Gửi'),
+              onPressed: _pending ? null : () => _ask(_draft.text),
+              icon: const Icon(Icons.send),
+            ),
         ],
       ),
       body: ListView(
@@ -145,6 +222,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ),
           ],
           for (final m in _messages) _Bubble(role: m.role, content: m.content, error: m.error),
+          if (_pending && _partial.isNotEmpty) _Bubble(role: 'assistant', content: _partial, error: false),
           if (_pending)
             const Padding(
               padding: EdgeInsets.only(top: 8),
