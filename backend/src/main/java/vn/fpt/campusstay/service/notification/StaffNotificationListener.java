@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.event.EscalationAssigned;
 import vn.fpt.campusstay.event.InspectionAssigned;
+import vn.fpt.campusstay.event.InspectionHeld;
 import vn.fpt.campusstay.event.MeterPeriodLate;
 import vn.fpt.campusstay.event.WeekScheduleReminderDue;
 import vn.fpt.campusstay.event.WeekScheduleSent;
@@ -69,6 +70,12 @@ class StaffNotificationListener {
             notifier.notify(manager, "WEEK_SCHEDULE_REMINDER", Map.of("week", e.week(), "blocks", e.blocks()),
                     "/manager/staff");
         }
+    }
+
+    @EventListener
+    void on(InspectionHeld e) {
+        notifier.notify(e.inspectorId(), e.paused() ? "INSPECTION_PAUSED" : "INSPECTION_RESUMED",
+                Map.of("schedule", e.scheduleName(), "run", e.runCode()), "/staff/inspections");
     }
 
     @EventListener

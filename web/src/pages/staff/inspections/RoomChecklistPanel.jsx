@@ -43,7 +43,9 @@ export function RoomChecklistPanel({ run, room }) {
 
   const sent = run.status === 'Submitted'
   const mine = Boolean(run.mine)
-  const done = sent || !mine || room.status === 'Done'
+  // A run whose schedule a Manager paused is read only until it is resumed.
+  const held = run.status === 'Paused'
+  const done = sent || held || !mine || room.status === 'Done'
   const failed = Object.values(results).filter((r) => r.result === 'Fail').length
   const untouched = Object.values(results).every((r) => r.result === 'Not checked') && meters.electricity === '' && meters.water === ''
   const metersMissing = room.metersNeeded && (meters.electricity === '' || meters.water === '')

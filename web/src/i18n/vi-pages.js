@@ -5098,6 +5098,9 @@ const managerOverview = {
   "Report 1 · Staff pre-arrival check": "Report 1 · Nhân viên kiểm tra trước nhận phòng",
   "Report group": "Nhóm biên bản",
   "Room inspection reports": "Biên bản kiểm tra phòng",
+  // Inspections: a paused schedule holds its open run (user decision 26/11/2026).
+  "A Manager paused this inspection": "Quản lý đã tạm dừng đợt kiểm tra này",
+  "The run is on hold: nothing can be saved or submitted until a Manager resumes the schedule. What you saved is kept, and you are notified when it resumes.": "Đợt kiểm tra đang bị giữ lại: không thể lưu hay nộp cho đến khi Quản lý cho tiếp tục lịch. Những gì bạn đã lưu vẫn được giữ, và bạn sẽ được báo khi đợt được tiếp tục.",
   // Rooms and beds: room filters (user decision 26/11/2026).
   "Room state": "Trạng thái phòng",
   "With free beds": "Còn giường trống",

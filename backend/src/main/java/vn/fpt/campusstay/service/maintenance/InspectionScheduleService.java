@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.event.InspectionAssigned;
+import vn.fpt.campusstay.event.InspectionHeld;
 import vn.fpt.campusstay.service.assignment.Residences;
 import vn.fpt.campusstay.security.BlockScope;
 import vn.fpt.campusstay.security.BlockSelection;
@@ -356,8 +357,57 @@ public class InspectionScheduleService {
                                     new InspectionAssigned(assignee, name, code((Long) r[0]), (Instant) r[1])));
                 }
             }
+            boolean notify = body.containsKey("notifyResidents") ? !Boolean.FALSE.equals(body.get("notifyResidents"))
+                    : s.notifyResidents();
+            noticesOfOpenRuns(s, name, status, notify);
             audit.record("INSPECTION_SCHEDULE_UPDATED", AuditLog.Tone.INFO, "Inspection schedule", s.id(), name,
                     Map.of("status", scheduleStatusLabel(status)));
+        }
+
+        private record OpenRun(long id, Long inspectorId, LocalDate date, Instant dueAt) {
+        }
+
+        /**
+         * The schedule's open runs follow its change (user decision 26/11/2026): a pause holds them (Staff can no
+         * longer save, see {@code InspectionRunService}) and a resume opens them again, and their inspector is told;
+         * turning on "notify residents" while a run is open tells the residents of its Rooms not inspected yet (a run
+         * notifies when it starts, so they would otherwise hear nothing about it).
+         */
+        private void noticesOfOpenRuns(Schedule s, String name, String status, boolean notify) {
+            List<OpenRun> open = jdbc.sql("""
+                    SELECT id, inspector_id, run_date, due_at FROM mnt_inspection_run
+                    WHERE schedule_id = :id AND status <> 'SUBMITTED' ORDER BY id
+                    """).param("id", s.id())
+                    .query((rs, i) -> new OpenRun(rs.getLong("id"), rs.getObject("inspector_id", Long.class),
+                            rs.getObject("run_date", LocalDate.class), rs.getTimestamp("due_at").toInstant()))
+                    .list();
+            if (open.isEmpty()) {
+                return;
+            }
+            boolean paused = status.equals("PAUSED") && !s.status().equals("PAUSED");
+            boolean resumed = status.equals("ACTIVE") && s.status().equals("PAUSED");
+            if (paused || resumed) {
+                for (OpenRun r : open) {
+                    if (r.inspectorId() != null) {
+                        events.publishEvent(new InspectionHeld(r.inspectorId(), name, code(r.id()), paused));
+                    }
+                }
+            }
+            if (notify && !s.notifyResidents() && !status.equals("PAUSED")) {
+                List<Inventory.BedSlot> beds = inventory.bedsOfBuilding(s.buildingId());
+                for (OpenRun r : open) {
+                    Set<Long> rooms = new java.util.HashSet<>(jdbc.sql("""
+                            SELECT room_id FROM mnt_inspection_room
+                            WHERE run_id = :run AND status NOT IN ('INSPECTED', 'UNREACHABLE')
+                            """).param("run", r.id()).query(Long.class).list());
+                    List<Long> students = residences.residentsOfBeds(beds.stream()
+                            .filter(b -> rooms.contains(b.roomId())).map(Inventory.BedSlot::bedId).toList())
+                            .values().stream().distinct().toList();
+                    if (!students.isEmpty()) {
+                        events.publishEvent(new InspectionScheduled(r.id(), code(r.id()), students, r.date(), r.dueAt()));
+                    }
+                }
+            }
         }
 
         private static String scheduleStatusLabel(String status) {

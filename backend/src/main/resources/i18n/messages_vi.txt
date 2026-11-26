@@ -1149,3 +1149,4 @@ The check-in period is over: students who did not file have report 1 as their fi
 Nobody to remind: the students chosen have filed their check-in inventory, checked in or not paid yet. ⟶ Không có ai để nhắc: các sinh viên đã chọn đã nộp biên bản kiểm kê, đã nhận phòng hoặc chưa thanh toán.
 Remind at most 500 students at a time. ⟶ Mỗi lần chỉ nhắc tối đa 500 sinh viên.
 Keep the message under 1,000 characters. ⟶ Nội dung tối đa 1.000 ký tự.
+A Manager paused this inspection schedule: the run is on hold until it is resumed. ⟶ Quản lý đã tạm dừng lịch kiểm tra này: đợt kiểm tra bị giữ lại cho đến khi được tiếp tục.

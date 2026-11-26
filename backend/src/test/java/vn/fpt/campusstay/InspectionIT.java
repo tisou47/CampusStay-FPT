@@ -466,4 +466,51 @@ class InspectionIT {
         getAs("/inspection-reports?block=A", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isForbidden());
         getAs("/inspection-reports?room=A-509", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isNotFound());
     }
+
+    /**
+     * TC-MNT-019: pausing a schedule holds its open run (user decision 26/11/2026): Staff read it as Paused but cannot
+     * save a Room, and the inspector hears of the pause and of the resume; turning on "notify residents" while the
+     * run is open tells the residents of its Rooms not inspected yet.
+     */
+    @Test
+    void pausingHoldsTheOpenRun() throws Exception {
+        stay.livesIn(3, "A-301", "A", true);
+        String manager = bearer(mvc, MANAGER_A);
+        long a2 = stay.userId(STAFF_A2);
+        String id = read(stay.postJson("/inspection-schedules", manager, """
+                {"block":"A","name":"Floor 3 hold","checklistId":"CL-ROOM","scope":"FLOOR_3","repeat":"WEEKLY",
+                 "assignee":"%d","dueWithinDays":3,"createRequests":true,"notifyResidents":false}""".formatted(a2))
+                .andExpect(status().isOk()), "$.id");
+        String staff = bearer(mvc, STAFF_A2);
+        String list = getAs("/inspection-runs?block=A", staff).andReturn().getResponse().getContentAsString();
+        String run = ((List<String>) JsonPath.read(list, "$.items[?(@.scheduleName == 'Floor 3 hold')].id")).getFirst();
+        String countSql = """
+                SELECT count(*) FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id
+                WHERE u.email = :e AND n.event_key = :k""";
+        java.util.function.BiFunction<String, String, Long> sent = (email, key) -> jdbc.sql(countSql)
+                .param("e", email).param("k", key).query(Long.class).single();
+        assertThat(sent.apply(StayFlow.student(3), "INSPECTION_SCHEDULED")).isZero();
+
+        putAs("/inspection-schedules/" + id, manager, "{\"notifyResidents\":true}").andExpect(status().isNoContent());
+        assertThat(sent.apply(StayFlow.student(3), "INSPECTION_SCHEDULED")).isEqualTo(1);
+
+        putAs("/inspection-schedules/" + id, manager, "{\"status\":\"Paused\"}").andExpect(status().isNoContent());
+        assertThat(sent.apply(STAFF_A2, "INSPECTION_PAUSED")).isEqualTo(1);
+        getAs("/inspection-runs/" + run, staff).andExpect(jsonPath("$.run.status").value("Paused"));
+        putAs("/inspection-runs/" + run + "/rooms/A-301", staff, "{\"results\":[]}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INSPECTION_PAUSED"));
+        stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INSPECTION_PAUSED"));
+
+        putAs("/inspection-schedules/" + id, manager, "{\"status\":\"Active\"}").andExpect(status().isNoContent());
+        assertThat(sent.apply(STAFF_A2, "INSPECTION_RESUMED")).isEqualTo(1);
+        getAs("/inspection-runs/" + run, staff).andExpect(jsonPath("$.run.status").value("Open"));
+
+        // The other tests of this class read the first open run of staff.a2: this run goes.
+        long scheduleId = Long.parseLong(id.replaceAll("[^0-9]", ""));
+        jdbc.sql("DELETE FROM mnt_inspection_run WHERE schedule_id = :id").param("id", scheduleId).update();
+        jdbc.sql("DELETE FROM mnt_inspection_schedule WHERE id = :id").param("id", scheduleId).update();
+    }
 }

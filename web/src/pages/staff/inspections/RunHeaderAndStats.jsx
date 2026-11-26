@@ -2,11 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import { CalendarDays, ChevronDown, Download, Printer } from 'lucide-react'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
+import { Alert } from '@/components/ui/Display'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { ProgressSegmentBar } from '../checkin-reports/components/ReportUI'
+
+/** A Manager paused the run's schedule (user decision 26/11/2026): it is read only until resumed. */
+export function PausedRunNote() {
+  return (
+    <Alert type="warning" title={t('A Manager paused this inspection')}>
+      {t('The run is on hold: nothing can be saved or submitted until a Manager resumes the schedule. What you saved is kept, and you are notified when it resumes.')}
+    </Alert>
+  )
+}
 
 export function RunSwitcher({ runs, value, onChange }) {
   if (runs.length === 0) return null
@@ -15,6 +25,7 @@ export function RunSwitcher({ runs, value, onChange }) {
       {runs.map((r) => {
         const active = r.id === value
         const done = (r.inspected ?? 0) + (r.unreachable ?? 0)
+        const held = r.status === 'Paused'
         return (
           <button
             key={r.id}
@@ -27,6 +38,7 @@ export function RunSwitcher({ runs, value, onChange }) {
               active
                 ? 'border-primary bg-brand-subtle text-fg shadow-xs'
                 : 'border-line bg-surface text-fg-secondary hover:bg-subtle hover:text-fg',
+              held && 'opacity-60 grayscale',
             )}
           >
             <span className="font-mono font-semibold text-fg">{r.id}</span>
@@ -34,7 +46,7 @@ export function RunSwitcher({ runs, value, onChange }) {
             <span className="rounded bg-subtle px-1.5 py-0.5 font-medium text-fg tabular">
               {done}/{r.rooms}
             </span>
-            {r.overdue && <Tag tone="error">Overdue</Tag>}
+            {held ? <Tag tone="neutral">Paused</Tag> : r.overdue && <Tag tone="error">Overdue</Tag>}
           </button>
         )
       })}
@@ -169,13 +181,15 @@ export function RunHeaderAndStats({
               onPrintBatch={onPrintBatch}
             />
             {!sent && mine && (
-              <Button size="sm" variant="primary" onClick={onOpenReview} disabled={submitPending}>
+              <Button size="sm" variant="primary" onClick={onOpenReview} disabled={submitPending || run.status === 'Paused'}>
                 Submit results
               </Button>
             )}
           </div>
         }
       />
+
+      {run.status === 'Paused' && <PausedRunNote />}
 
       {/* Run Switcher + Run Metadata (cleanly separated so long task lists never get clipped) */}
       <div className="flex shrink-0 flex-col gap-2.5 rounded-lg border border-line bg-surface p-3">

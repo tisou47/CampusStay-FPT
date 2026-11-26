@@ -17,6 +17,7 @@ import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { conditionName, conditionOptions, conditionTone } from '@/lib/furniture'
 import { t, tr } from '@/i18n'
 import { printRoom, roomItems } from './inspectionPrint'
+import { PausedRunNote } from './RunHeaderAndStats'
 
 const resultTone = { Pass: 'success', Fail: 'error', 'Not checked': 'neutral' }
 const statusTone = { 'In progress': 'info', Done: 'success', 'To do': 'neutral', 'Not reachable': 'warning' }
@@ -65,7 +66,9 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
   const sent = run.status === 'Submitted'
   const mine = Boolean(run.mine)
   const assignee = run.assigneeName ?? run.inspectorName
-  const done = sent || !mine || room.status === 'Done'
+  // A run whose schedule a Manager paused is read only until it is resumed.
+  const held = run.status === 'Paused'
+  const done = sent || held || !mine || room.status === 'Done'
   const failed = Object.values(results).filter((r) => r.result === 'Fail').length
   const untouched = Object.values(results).every((r) => r.result === 'Not checked') && meters.electricity === '' && meters.water === ''
   const metersMissing = room.metersNeeded && (meters.electricity === '' || meters.water === '')
@@ -161,6 +164,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
 
   return (
     <div className="flex flex-col gap-5 pb-8">
+      {held && <PausedRunNote />}
       {/* Sticky Header Segment Bar */}
       <div className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface/95 px-3 py-2 backdrop-blur-xs">
         <Button size="sm" icon={ArrowLeft} onClick={() => (new URLSearchParams(window.location.search).get('from') ? navigate(-1) : navigate('/staff/inspections'))}>

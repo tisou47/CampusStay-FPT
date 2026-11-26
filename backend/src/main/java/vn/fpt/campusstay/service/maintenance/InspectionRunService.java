@@ -62,7 +62,8 @@ public class InspectionRunService {
     }
 
     /**
-     * @param status Open (Staff fill it in) or Submitted (read only); {@code mine}: assigned to the user
+     * @param status Open (Staff fill it in), Paused (its schedule is paused: read only until resumed) or Submitted
+     *               (read only); {@code mine}: assigned to the user
      */
     public record RunView(String id, LocalDate date, Instant dueAt, String scheduleName, String scope, int rooms,
             int inspected, int failed, int unreachable, String inspectorName, ChecklistView checklist, String status,
@@ -637,7 +638,7 @@ public class InspectionRunService {
                 (int) rows.stream().filter(r -> r.status().equals("UNREACHABLE")).count(),
                 run.inspectorId() == null ? null : users.displayNames(List.of(run.inspectorId())).get(run.inspectorId()),
                 new ChecklistView(version.name(), "v" + version.version(), items),
-                run.status().equals("SUBMITTED") ? "Submitted" : "Open",
+                run.status().equals("SUBMITTED") ? "Submitted" : paused(run) ? "Paused" : "Open",
                 blockCodes.codesByIds(Set.of(run.buildingId())).get(run.buildingId()),
                 run.inspectorId() != null ? run.inspectorId() == currentUser.id()
                         : currentUser.require(Permission.PROCESS_MAINTENANCE).role() == Role.STAFF,
@@ -858,10 +859,21 @@ public class InspectionRunService {
         }
     }
 
-    private static void open(Run run) {
+    private void open(Run run) {
         if (run.status().equals("SUBMITTED")) {
             throw ApiException.conflict("RUN_SUBMITTED", "This inspection run is already submitted.");
         }
+        if (paused(run)) {
+            throw ApiException.conflict("INSPECTION_PAUSED",
+                    "A Manager paused this inspection schedule: the run is on hold until it is resumed.");
+        }
+    }
+
+    /** A run whose schedule a Manager paused is on hold (user decision 26/11/2026): read only until resumed. */
+    private boolean paused(Run run) {
+        return run.scheduleId() != null && !run.status().equals("SUBMITTED") && jdbc.sql(
+                "SELECT status = 'PAUSED' FROM mnt_inspection_schedule WHERE id = :id").param("id", run.scheduleId())
+                .query(Boolean.class).optional().orElse(false);
     }
 
     private Run run(String id, boolean lock) {

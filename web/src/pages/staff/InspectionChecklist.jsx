@@ -121,6 +121,8 @@ function Run({ run, switcher, onSubmitted }) {
         onOpenReview={() => setReviewing(true)}
       />
 
+      {/* A paused run stays readable but greyed: its rooms open read only. */}
+      <div className={run.status === 'Paused' ? 'flex min-h-0 flex-1 flex-col opacity-60 grayscale' : 'contents'}>
       <RoomListPane
         run={run}
         roomsQuery={rooms}
@@ -131,6 +133,7 @@ function Run({ run, switcher, onSubmitted }) {
         page={page}
         onPageChange={setPage}
       />
+      </div>
 
       {reviewing && (
         <SubmitReviewModal run={run} pending={submit.pending} onClose={() => setReviewing(false)} onSubmit={() => submit.run()} />
