@@ -1,9 +1,9 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router'
+import { createBrowserRouter, Navigate, Outlet, useRouteError } from 'react-router'
 import { RequireRole } from '@/app/session'
 import { Toaster } from '@/app/toast'
 import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout'
 import { StudentLayout } from '@/components/layout/StudentLayout'
-import { LoadingState } from '@/components/ui/States'
+import { ErrorState, LoadingState } from '@/components/ui/States'
 import { ScreenIndex } from '@/dev/ScreenIndex'
 
 // Sign-in and the pages opened from emails are in the first chunk; every other page loads on its first visit.
@@ -13,7 +13,7 @@ import ForgotPassword from '@/pages/auth/ForgotPassword'
 import ResetPassword from '@/pages/auth/ResetPassword'
 import SignIn from '@/pages/auth/SignIn'
 import NotFound from '@/pages/common/NotFound'
-import { loadPortalTexts } from '@/i18n'
+import { loadPortalTexts, t } from '@/i18n'
 const Announcements = () => import('@/pages/common/Announcements')
 const Profile = () => import('@/pages/common/Profile')
 const FamilyDays = () => import('@/pages/manager/FamilyDays')
@@ -147,6 +147,13 @@ function RootLayout() {
   )
 }
 
+/** A page that failed while showing: a short apology in the user's language, Retry reloads it. */
+function PageCrash() {
+  const error = useRouteError()
+  console.error(error)
+  return <ErrorState title="This page ran into a problem" error={{ message: t('Try again. If it keeps happening, tell the dormitory office what you were doing.') }} onRetry={() => window.location.reload()} className="min-h-80" />
+}
+
 /** Shown while the first page's code loads; later navigations keep the current page until the next one is ready. */
 function PageLoading() {
   return <LoadingState className="min-h-screen" />
@@ -192,13 +199,15 @@ function page(load, props) {
 function portal(role, layout, children) {
   // The portal's Vietnamese texts load before its first page shows (WEB-ADM-32).
   const texts = role === 'student' ? 'student' : 'office'
-  return { path: role, element: <RequireRole role={role} />, loader: () => loadPortalTexts(texts).then(() => null), children: [{ element: layout, children }] }
+  // A page that throws shows PageCrash inside the shell (band and menu stay), never the router's English default.
+  return { path: role, element: <RequireRole role={role} />, loader: () => loadPortalTexts(texts).then(() => null), children: [{ element: layout, children: [{ errorElement: <PageCrash />, children }] }] }
 }
 
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     HydrateFallback: PageLoading,
+    errorElement: <PageCrash />,
     children: [
       { index: true, element: <Navigate to="/signin" replace /> },
       { path: 'signin', element: <SignIn /> },

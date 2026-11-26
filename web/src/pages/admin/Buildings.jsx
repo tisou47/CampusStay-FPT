@@ -167,9 +167,9 @@ export default function Buildings() {
           </Button>
         }
       />
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-h-0 w-75 shrink-0 flex-col gap-3 overflow-y-auto">
-          <QueryState query={query} compact empty={<EmptyBlock icon={Building} title="No blocks yet" />}>
+      <div className="flex min-h-0 flex-1 items-stretch gap-4 max-md:flex-col max-md:*:w-full max-md:*:shrink-0">
+        <div className="flex min-h-0 w-60 shrink-0 flex-col gap-3 overflow-y-auto xl:w-75">
+          <QueryState query={query} compact skeleton="table" empty={<EmptyBlock icon={Building} title="No blocks yet" />}>
             {(data) =>
               data.items.map((b) => {
                 const active = b.id === block?.id
@@ -205,13 +205,13 @@ export default function Buildings() {
         <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           {block ? (
             <>
-              <div className="flex shrink-0 items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-h3 font-semibold text-fg">{t('Block {code} · Floors', { code: block.name })}</h2>
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <h2 className="text-h3 font-semibold text-fg sm:whitespace-nowrap">{t('Block {code} · Floors', { code: block.name })}</h2>
                   {block.gender && <Tag>{block.gender}</Tag>}
                   <Tag tone={block.status === 'Active' ? 'success' : 'neutral'}>{block.status}</Tag>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button icon={Pencil} onClick={() => setModal({ type: 'block', block })}>
                     Edit block
                   </Button>

@@ -109,9 +109,9 @@ export default function NotificationTemplates() {
           </Button>
         }
       />
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
+      <div className="flex min-h-0 flex-1 items-stretch gap-4 max-md:flex-col max-md:*:w-full max-md:*:shrink-0">
         <Card padding="none" className="flex min-h-0 w-95 shrink-0 flex-col overflow-y-auto p-2">
-          <QueryState query={query} compact empty={<EmptyBlock icon={Bell} title="No templates" />}>
+          <QueryState query={query} compact skeleton="table" empty={<EmptyBlock icon={Bell} title="No templates" />}>
             {(data) =>
               data.items.map((t) => {
                 const active = t.key === selected?.key

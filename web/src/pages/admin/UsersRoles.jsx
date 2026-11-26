@@ -126,7 +126,7 @@ export default function UsersRoles() {
           <Select fit wrapperClassName="max-w-80" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={[{ value: '', label: 'Status: All' }, ...['Active', 'Invited', 'Disabled'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) }))]} />
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
+      <div className="flex min-h-0 flex-1 items-stretch gap-4 max-md:flex-col max-md:*:w-full max-md:*:shrink-0">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <Table fill>
             <THead>
@@ -180,7 +180,7 @@ export default function UsersRoles() {
         <Card className="flex min-h-0 w-95 shrink-0 flex-col gap-2.5 overflow-y-auto">
           <h2 className="text-h3 font-semibold text-fg">{t('Role permissions')}</h2>
           <p className="text-sm text-fg-tertiary">{t('Fixed by role. Staff see their blocks; managers and admins see every block.')}</p>
-          <QueryState query={perms} compact isEmpty={(p) => !p.rows?.length}>
+          <QueryState query={perms} compact skeleton="table" isEmpty={(p) => !p.rows?.length}>
             {(p) => (
               <table className="w-full text-base">
                 <thead>

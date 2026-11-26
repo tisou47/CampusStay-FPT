@@ -150,7 +150,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
       {request?.decisionNote && request.status === 'Needs changes' && (
         <Alert type="warning" title="The admin asked for changes">{request.decisionNote}</Alert>
       )}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field label="Term" required error={fields.termName} helper="e.g. Spring 2027">
           {(id) => <Input id={id} value={form.termName} onChange={(e) => set('termName', e.target.value)} />}
         </Field>
@@ -177,7 +177,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
         </div>
         <p className="text-sm text-fg-tertiary">{t('No block ticked: every block.')}</p>
         {fieldError('blocks')}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium text-fg-secondary">{t('Room types offered')}</span>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
@@ -230,7 +230,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
           <h3 className="text-base font-medium text-fg-secondary">{t('Proposed prices')}</h3>
           <p className="text-sm text-fg-tertiary">{t('A base price per bed for each room type and a surcharge for each room tier; the price per bed is base × (1 + surcharge), rounded up to {step}. Filled with today’s values.', { step: formatVnd(defaults.priceStep) })}</p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             {offeredTypes.map((x) => (
               <Field key={x.id} label={t('Base price · {name} (₫)', { name: tr(x.name) })} helper={Number(form.basePrices[x.id]) !== x.basePrice ? t('Today {amount}', { amount: formatVnd(x.basePrice) }) : undefined}>
@@ -278,7 +278,7 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
       </section>
       <section className="flex flex-col gap-2">
         <h3 className="text-base font-medium text-fg-secondary">{t('Money and capacity')}</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Deposit (% of the price)" error={fields.depositPercent} helper={t('Today {n}%', { n: defaults.depositPercent })}>
             {(id) => <Input id={id} inputMode="decimal" value={form.depositPercent} onChange={(e) => set('depositPercent', decimal(e.target.value))} />}
           </Field>
@@ -598,7 +598,7 @@ function RequestDetail({ id, onEdit }) {
       </div>
 
       {r.notes && (
-        <div className="flex gap-3 rounded-lg border-l-4 border-primary bg-primary-subtle px-4 py-3">
+        <div className="flex gap-3 rounded-lg bg-primary-subtle px-4 py-3">
           <MessageSquareQuote size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="text-sm font-medium text-fg-brand">{t('Notes from {name}', { name: r.requestedBy })}</span>
@@ -701,7 +701,7 @@ export default function TermRequests() {
           )
         }
       />
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
+      <div className="flex min-h-0 flex-1 items-stretch gap-4 max-md:flex-col max-md:*:w-full max-md:*:shrink-0">
         <Card padding="none" className="flex min-h-0 w-80 shrink-0 flex-col overflow-hidden">
           <div role="radiogroup" aria-label={t('Status')} className="grid shrink-0 grid-cols-4 border-b border-line">
             {FILTERS.map((f) => {

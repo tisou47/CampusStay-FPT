@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
+import { useUnsavedChanges } from '@/app/unsaved'
 
 // Admin configuration grouped by subject (spec §9, D-25): Deadlines and reminders; Refunds, penalties and
 // terminations; Stay and renewal. Each setting says where it acts and from when it applies; a saved change is
@@ -26,6 +27,7 @@ export function useSettingsGroup(group, { onSaved } = {}) {
     },
     onError: (err) => setFields(err.fields ?? {}),
   })
+  useUnsavedChanges(Object.keys(changed).length > 0)
   return {
     query,
     values,

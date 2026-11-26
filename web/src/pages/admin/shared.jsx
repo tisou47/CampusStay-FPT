@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Ellipsis } from 'lucide-react'
 import { useMutation, useQuery } from '@/api/hooks'
+import { useUnsavedChanges } from '@/app/unsaved'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { IconButton } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Choice'
@@ -28,6 +29,7 @@ export function useConfigForm(name, resource, { onSaved } = {}) {
   }
   const saved = query.data
   const dirty = Boolean(draft && saved && JSON.stringify(draft) !== JSON.stringify(saved))
+  useUnsavedChanges(dirty)
   const mutation = useMutation((extra = {}) => resource.save({ ...draft, ...extra }), {
     invalidates: ['admin-config', 'dashboard', 'catalog'],
     onSuccess: (result) => {
@@ -63,7 +65,7 @@ export function ConfigPage({ form, title, actions, children }) {
           {form.saveError.message}
         </Alert>
       )}
-      {form.draft ? children : form.query.error ? <ErrorState error={form.query.error} onRetry={form.query.reload} /> : <LoadingState />}
+      {form.draft ? children : form.query.error ? <ErrorState error={form.query.error} onRetry={form.query.reload} /> : <LoadingState variant="form" />}
     </>
   )
 }

@@ -200,6 +200,7 @@ function ConditionsCard({ conditions, onEdit }) {
 }
 
 export default function FurnitureTypes() {
+  const { lang } = useI18n()
   const query = useQuery(['admin-furniture-types'], ({ signal }) => api.admin.furnitureTypes.list(undefined, { signal }))
   const [editing, setEditing] = useState(null)
   const items = query.data?.items ?? []
@@ -243,8 +244,8 @@ export default function FurnitureTypes() {
               <Td className="font-medium">{x.code}</Td>
               <Td>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-fg">{x.name}</span>
-                  <span className="text-sm text-fg-tertiary">{x.nameVi}</span>
+                  <span className="text-fg">{lang === 'vi' ? x.nameVi : x.name}</span>
+                  <span className="text-sm text-fg-tertiary">{lang === 'vi' ? x.name : x.nameVi}</span>
                 </div>
               </Td>
               <Td>{tr(x.category)}</Td>

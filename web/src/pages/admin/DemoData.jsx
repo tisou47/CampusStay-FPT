@@ -37,7 +37,7 @@ export default function DemoData() {
   const download = useMutation((f) => api.admin.demo.file(f.kind, f.name), {
     onError: (err) => notify({ type: 'error', title: t('Download failed'), message: err.message }),
   })
-  if (!query.data) return query.error ? <ErrorState error={query.error} onRetry={query.reload} /> : <LoadingState />
+  if (!query.data) return query.error ? <ErrorState error={query.error} onRetry={query.reload} /> : <LoadingState variant="form" />
   const d = query.data
   const vi = getLang() === 'vi'
   const scenarios = d.scenarios.filter((s) => s.stages.includes(stage))

@@ -122,7 +122,8 @@ function compiled() {
         const m = /^\{(\w+)\}$/.exec(part)
         if (!m) return escape(part)
         names.push(m[1])
-        return '(.+?)'
+        // Count slots take only numbers: else "{n} of {total}" turned any API text with " of " into "a/b".
+        return /^(n|total|count|done|p)$/.test(m[1]) ? '([\\d.,]+%?)' : '(.+?)'
       })
       return { re: new RegExp(`^${source.join('')}$`, 's'), names, value, fixed: key.replace(/\{\w+\}/g, '').length }
     })
