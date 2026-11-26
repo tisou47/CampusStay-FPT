@@ -49,11 +49,11 @@ class DemoResetIT {
         mvc.perform(get("/admin/demo").header(HttpHeaders.AUTHORIZATION, bearer(mvc, ADMIN)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(true))
-                .andExpect(jsonPath("$.stages[*].code", contains("0", "A", "B", "C", "D")))
+                .andExpect(jsonPath("$.stages[*].code", contains("0", "A", "B", "C", "D", "E")))
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D05')].account", contains("manager01@fpt.edu.vn")))
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D12')].scenarioVi").isNotEmpty())
                 // The scenario texts hold ";": every line keeps its eight columns (the place stays the place).
-                .andExpect(jsonPath("$.scenarios", hasSize(21)))
+                .andExpect(jsonPath("$.scenarios", hasSize(25)))
                 .andExpect(jsonPath("$.scenarios[?(@.id == 'D03')].whereVi", contains("Sinh viên › Đăng ký · Manager › Tài chính › Xác nhận thanh toán")))
                 .andExpect(jsonPath("$.files", hasSize(5)))
                 .andExpect(jsonPath("$.lastReset").isEmpty());
@@ -70,9 +70,9 @@ class DemoResetIT {
         String admin = bearer(mvc, ADMIN);
         long terms = jdbc.sql("SELECT count(*) FROM cfg_term").query(Long.class).single();
         mvc.perform(post("/admin/demo/reset").header(HttpHeaders.AUTHORIZATION, admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"stage\":\"E\",\"confirm\":\"reset\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"stage\":\"F\",\"confirm\":\"reset\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.stage").value("Choose stage 0, A, B, C or D."))
+                .andExpect(jsonPath("$.details.fields.stage").value("Choose stage 0, A, B, C, D or E."))
                 .andExpect(jsonPath("$.details.fields.confirm").value("Type RESET to confirm."));
         mvc.perform(post("/admin/demo/reset").header(HttpHeaders.AUTHORIZATION, admin)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"stage\":\"0\",\"confirm\":\"RESET\"}"))

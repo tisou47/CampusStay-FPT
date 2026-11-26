@@ -4,10 +4,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.common.demo.DemoData;
+import vn.fpt.campusstay.common.demo.DemoScripts;
 
 /**
- * Family Days' demo part: the reset clears them (they point at students and Buildings); no stage loads one, a Manager
- * creates the Family Day during the demo.
+ * Family Days' demo part: the reset clears them (they point at students and Buildings). Only stage E loads them
+ * ({@code db/demo/vis.sql}: one to close, one on now, one open for registration, a Draft and a completed one); in the
+ * other stages a Manager creates the Family Day during the demo.
  */
 @Component
 class VisitorDemoData implements DemoData {
@@ -33,6 +35,8 @@ class VisitorDemoData implements DemoData {
 
     @Override
     public void load(Stage stage) {
-        // Nothing to load: see the class comment.
+        if (stage.familyDays()) {
+            DemoScripts.run(jdbc, "vis.sql", stage);
+        }
     }
 }
