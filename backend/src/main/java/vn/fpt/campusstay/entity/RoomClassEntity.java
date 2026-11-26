@@ -17,7 +17,6 @@ import jakarta.persistence.Version;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import vn.fpt.campusstay.service.setting.ActiveStatus;
 
 /** Room Class = amenity level with a surcharge on the Room Type price; set per Floor (OI-04). */
 @Entity

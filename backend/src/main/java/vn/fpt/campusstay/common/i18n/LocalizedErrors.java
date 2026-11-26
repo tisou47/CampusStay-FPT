@@ -1,4 +1,4 @@
-package vn.fpt.campusstay.exception;
+package vn.fpt.campusstay.common.i18n;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,8 +11,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-import vn.fpt.campusstay.common.i18n.Locales;
-import vn.fpt.campusstay.common.i18n.Messages;
+import vn.fpt.campusstay.exception.ApiError;
 
 /**
  * Writes every error body in the request's language (ADR-25): the message and each field message of

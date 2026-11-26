@@ -12,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import vn.fpt.campusstay.service.setting.ActiveStatus;
 
 /** Room Type = number of Beds + base price per Bed for one Term (OI-04). */
 @Entity

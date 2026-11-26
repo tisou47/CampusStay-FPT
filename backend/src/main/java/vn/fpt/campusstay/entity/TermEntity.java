@@ -13,7 +13,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import vn.fpt.campusstay.service.setting.AdminTermService;
 
 /**
  * A Term with its registration, payment and check-in windows (Admin › Terms). A Draft saved by the wizard may still
@@ -88,7 +87,7 @@ public class TermEntity {
     protected TermEntity() {
     }
 
-    public TermEntity(String code, AdminTermService.TermValues values, int depositHours) {
+    public TermEntity(String code, TermValues values, int depositHours) {
         this.code = code;
         this.status = Status.DRAFT;
         apply(values, depositHours);
@@ -99,7 +98,7 @@ public class TermEntity {
         updatedAt = Instant.now();
     }
 
-    public void apply(AdminTermService.TermValues v, int depositHours) {
+    public void apply(TermValues v, int depositHours) {
         name = v.name().trim();
         stayStart = v.stayStart();
         stayEnd = v.stayEnd();
@@ -114,8 +113,8 @@ public class TermEntity {
         checkOutBy = v.checkOutBy();
     }
 
-    public AdminTermService.TermValues values() {
-        return new AdminTermService.TermValues(name, stayStart, stayEnd, registrationOpensAt, registrationClosesAt,
+    public TermValues values() {
+        return new TermValues(name, stayStart, stayEnd, registrationOpensAt, registrationClosesAt,
                 resultsPublishedAt, roommateHours, depositHours, balanceDueAt, checkInStart, checkInEnd, checkOutBy);
     }
 
