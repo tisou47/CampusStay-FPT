@@ -59,7 +59,7 @@ const _labels = {
   'Damage': 'Bồi thường',
   'Notice sent': 'Đã gửi thông báo',
   'Checked out': 'Đã trả phòng',
-  'Stay ended': 'Hết thời gian ở',
+  'Stay ended': 'Đã kết thúc hợp đồng ở',
   'Awaiting Deposit': 'Chờ đặt cọc',
   'Awaiting Roommate': 'Chờ bạn cùng phòng',
   'Under Review': 'Đang xét duyệt',

@@ -49,7 +49,8 @@ class ApplicationsList extends StatelessWidget {
                         icon: Icons.description_outlined,
                         title: r.str('termName') ?? r.text('id'),
                         note: joinDot([label(r.str('roomTypeName')), label(r.str('roomClassName')), r.str('id')]),
-                        trailing: StatusChip(r.str('status')),
+                        // An Allocated Application whose stay is over (stayEnded, BE-4) no longer reads Allocated.
+                        trailing: StatusChip(r.flag('stayEnded') ? 'Stay ended' : r.str('status')),
                         onTap: () => open(ApplicationScreen(id: r.text('id'))),
                       ),
                   ],
