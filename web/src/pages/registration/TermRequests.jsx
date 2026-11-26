@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { ClipboardList, Hammer, MessageSquare, Pencil, Plus, Send, Trash2, X } from 'lucide-react'
+import { Bed, Building, CalendarRange, ClipboardList, DoorClosed, Hammer, MessageSquare, MessageSquareQuote, Pencil, Play, Plus, Send, Trash2, Undo2, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -8,14 +8,14 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
-import { Alert, Card, DescriptionList } from '@/components/ui/Display'
+import { Alert, Card } from '@/components/ui/Display'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Drawer, Modal } from '@/components/ui/Overlay'
-import { EmptyBlock, LoadingState, ErrorState, TableStatus } from '@/components/ui/States'
-import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
-import { Segmented } from '@/components/ui/Tabs'
-import { formatDate, formatDateRange, formatDateTime, formatVnd } from '@/lib/format'
-import { DifferencesTable, ExcludedRoomsField, MILESTONES, RequestStatus, showValue, TimelineFields, timelineBody, timelineForm } from './shared'
+import { EmptyBlock, LoadingState, ErrorState, QueryState } from '@/components/ui/States'
+import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
+import { cx } from '@/lib/cx'
+import { formatDateRange, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
+import { DifferencesTable, ExcludedRoomsField, REGISTRATION, RENEWAL, RequestStatus, showValue, TimelineFields, timelineBody, timelineForm } from './shared'
 import { t, tr } from '@/i18n'
 import { DatePicker } from '@/components/ui/date-time'
 
@@ -354,27 +354,58 @@ function DecisionModal({ request, status, onClose }) {
 
 const percent = (n) => `${n}%`
 
-/** What the Term offers and the money and information the Manager proposed (review R-03). */
-function SettingsCard({ settings: s }) {
-  if (!s) return null
-  const row = (label, value, today) => (
-    <li key={label} className="flex justify-between gap-3 text-base">
+/** One part of the request: a heading (with an optional note) over its content, set apart by a rule. */
+function Section({ title, note, children }) {
+  return (
+    <section className="flex flex-col gap-3 border-t border-line pt-5">
+      <div className="flex flex-col gap-0.5">
+        <h3 className="text-base font-semibold text-fg">{t(title)}</h3>
+        {note && <p className="text-sm text-fg-tertiary">{note}</p>}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+/** A key fact of the request: label over value, with an optional line under it. */
+function Fact({ icon: Glyph, label, value, note }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1 rounded-lg bg-canvas px-4 py-3">
+      <span className="flex items-center gap-1.5 text-sm whitespace-nowrap text-fg-tertiary">
+        <Glyph size={14} aria-hidden="true" className="shrink-0" />
+        <span className="truncate">{t(label)}</span>
+      </span>
+      <span className="text-base font-semibold text-fg">{value}</span>
+      {note && <span className="truncate text-sm text-fg-tertiary" title={note}>{note}</span>}
+    </div>
+  )
+}
+
+/** Label on the left, value on the right; today's value under it when the request proposes another one. */
+function ValueRow({ label, value, today }) {
+  return (
+    <li className="flex items-start justify-between gap-3 py-2 text-base">
       <span className="text-fg-secondary">{t(label)}</span>
-      <span className="flex flex-col items-end">
-        <span className="font-medium text-fg">{value ?? '—'}</span>
+      <span className="flex flex-col items-end text-right">
+        <span className="font-medium text-fg tabular">{value ?? t('As today')}</span>
         {value != null && today != null && today !== value && <span className="text-sm text-fg-tertiary">{t('Today {value}', { value: today })}</span>}
+        {value == null && today != null && <span className="text-sm text-fg-tertiary tabular">{today}</span>}
       </span>
     </li>
   )
+}
+
+/** What the Term offers and the money and information the Manager proposed (review R-03). */
+function SettingsList({ settings: s }) {
+  if (!s) return <p className="text-sm text-fg-tertiary">—</p>
   return (
-    <Card className="flex flex-col gap-2">
-      <h3 className="text-h3 font-semibold text-fg">{t('Offer and money')}</h3>
-      <ul className="flex flex-col gap-1.5">
-        {row('Room Types offered', s.roomTypes.length ? s.roomTypes.map((x) => tr(x.name)).join(', ') : t('All'))}
-        {row('Room Classes offered', s.roomClasses.length ? s.roomClasses.map((x) => tr(x.name)).join(', ') : t('All'))}
-        {row('Deposit', s.depositPercent != null ? percent(s.depositPercent) : null, percent(s.defaultDepositPercent))}
-        {row('Utility Deposit', s.utilityDeposit != null ? formatVnd(s.utilityDeposit) : null, formatVnd(s.defaultUtilityDeposit))}
-        {row('Beds kept for new students', s.reservedNewPercent != null ? percent(s.reservedNewPercent) : null, percent(s.defaultReservedNewPercent))}
+    <div className="flex flex-col gap-3">
+      <ul className="flex flex-col divide-y divide-line">
+        <ValueRow label="Room Types offered" value={s.roomTypes.length ? s.roomTypes.map((x) => tr(x.name)).join(', ') : t('All')} />
+        <ValueRow label="Room Classes offered" value={s.roomClasses.length ? s.roomClasses.map((x) => tr(x.name)).join(', ') : t('All')} />
+        <ValueRow label="Deposit" value={s.depositPercent != null ? percent(s.depositPercent) : null} today={percent(s.defaultDepositPercent)} />
+        <ValueRow label="Utility Deposit" value={s.utilityDeposit != null ? formatVnd(s.utilityDeposit) : null} today={formatVnd(s.defaultUtilityDeposit)} />
+        <ValueRow label="Beds kept for new students" value={s.reservedNewPercent != null ? percent(s.reservedNewPercent) : null} today={percent(s.defaultReservedNewPercent)} />
       </ul>
       {s.houseRules && (
         <div className="flex flex-col gap-1">
@@ -383,30 +414,48 @@ function SettingsCard({ settings: s }) {
         </div>
       )}
       {s.faq?.length > 0 && <p className="text-sm text-fg-tertiary">{t(s.faq.length === 1 ? '{n} question and answer' : '{n} questions and answers', { n: s.faq.length })}</p>}
-    </Card>
+    </div>
+  )
+}
+
+/** The proposed milestones in two groups, each in time order as the form lists them. */
+function MilestoneList({ timeline }) {
+  const groups = [
+    { title: 'Registration for new students', items: REGISTRATION },
+    { title: 'Renewal for continuing residents', items: RENEWAL },
+  ]
+    .map((g) => ({ ...g, items: g.items.filter((m) => timeline?.[m.key] != null) }))
+    .filter((g) => g.items.length)
+  if (!groups.length) return <p className="text-sm text-fg-tertiary">{t('No milestone proposed.')}</p>
+  return (
+    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+      {groups.map((g) => (
+        <div key={g.title} className="flex min-w-0 flex-col gap-1">
+          <span className="text-sm font-medium text-fg-tertiary">{t(g.title)}</span>
+          <ul className="flex flex-col divide-y divide-line">
+            {g.items.map((m) => (
+              <li key={m.key} className="flex justify-between gap-3 py-1.5 text-base">
+                <span className="text-fg-secondary">{t(m.label)}</span>
+                <span className="font-medium whitespace-nowrap text-fg tabular">{showValue(m.type, timeline[m.key])}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
   )
 }
 
 /** Base prices and surcharges with the price table they give (read-only, BR-10). */
-function PricesCard({ r }) {
-  if (!r.prices?.length) {
-    return (
-      <Card className="flex flex-col gap-2">
-        <h3 className="text-h3 font-semibold text-fg">{t('Prices per bed')}</h3>
-        <p className="text-sm text-fg-tertiary">{t('No prices proposed.')}</p>
-      </Card>
-    )
-  }
+function PriceTable({ r }) {
+  if (!r.prices?.length) return <p className="text-sm text-fg-tertiary">{t('No prices proposed.')}</p>
   const types = [...new Map(r.prices.map((p) => [p.roomTypeId, p.roomType])).entries()]
   const classes = [...new Map(r.prices.map((p) => [p.roomClassId, p.roomClass])).entries()]
   const price = (type, cls) => r.prices.find((p) => p.roomTypeId === type && p.roomClassId === cls)
   const base = (type) => r.basePrices?.find((b) => b.roomTypeId === type)
   const surcharge = (cls) => r.surcharges?.find((c) => c.roomClassId === cls)
   return (
-    <Card className="flex flex-col gap-2">
-      <h3 className="text-h3 font-semibold text-fg">{t('Prices per bed')}</h3>
-      {r.basePrices?.length > 0 && <p className="text-sm text-fg-tertiary">{t('Price per bed = base price × (1 + room tier surcharge), rounded up. Today’s values in grey.')}</p>}
-      <Table>
+    <Table>
         <THead>
           <tr>
             <Th>Room type</Th>
@@ -452,7 +501,6 @@ function PricesCard({ r }) {
           })}
         </TBody>
       </Table>
-    </Card>
   )
 }
 
@@ -480,13 +528,14 @@ function RequestDetail({ id, onEdit }) {
 
   if (query.data === undefined) return query.error ? <ErrorState error={query.error} onRetry={query.reload} /> : <LoadingState />
   const r = query.data
-  const filled = MILESTONES.filter((m) => r.timeline?.[m.key] != null)
   const error = send.error ?? progress.error ?? build.error
+  const totalPlaces = r.places?.reduce((s, p) => s + p.places, 0) ?? 0
+  const hasActions = r.actions.edit || r.actions.decide || r.actions.build
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-      <div className="flex flex-col gap-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <div className="flex items-center gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1">
+      <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-h2 font-semibold text-fg">{r.termName}</h2>
             <RequestStatus status={r.status} />
           </div>
@@ -494,29 +543,35 @@ function RequestDetail({ id, onEdit }) {
             {t('{code} · sent by {name} on {date}', { code: r.code, name: r.requestedBy, date: formatDateTime(r.requestedAt) })}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {r.actions.edit && (
-            <Button icon={Pencil} onClick={() => onEdit(r)}>
-              Change
-            </Button>
-          )}
-          {r.actions.decide && r.status === 'Submitted' && (
-            <Button onClick={() => progress.run()} disabled={progress.pending}>
-              Take in progress
-            </Button>
-          )}
-          {r.actions.decide && r.status !== 'Needs changes' && <Button onClick={() => setDeciding('Needs changes')}>Ask for changes</Button>}
-          {r.actions.decide && (
-            <Button variant="danger" icon={X} onClick={() => setDeciding('Rejected')}>
-              Reject
-            </Button>
-          )}
-          {r.actions.build && (
-            <Button variant="primary" icon={Hammer} onClick={() => (r.term ? navigate(`/admin/terms/${r.term.id}`) : build.run())} disabled={build.pending}>
-              {r.term ? t('Open the term') : t('Build the term from this request')}
-            </Button>
-          )}
-        </div>
+        {hasActions && (
+          <div className="flex flex-wrap items-center gap-2">
+            {r.actions.build && (
+              <Button variant="primary" icon={Hammer} onClick={() => (r.term ? navigate(`/admin/terms/${r.term.id}`) : build.run())} disabled={build.pending}>
+                {r.term ? t('Open the term') : t('Build the term from this request')}
+              </Button>
+            )}
+            {r.actions.edit && (
+              <Button icon={Pencil} onClick={() => onEdit(r)}>
+                Change
+              </Button>
+            )}
+            {r.actions.decide && r.status === 'Submitted' && (
+              <Button icon={Play} onClick={() => progress.run()} disabled={progress.pending}>
+                Take in progress
+              </Button>
+            )}
+            {r.actions.decide && r.status !== 'Needs changes' && (
+              <Button icon={Undo2} onClick={() => setDeciding('Needs changes')}>
+                Ask for changes
+              </Button>
+            )}
+            {r.actions.decide && (
+              <Button variant="danger" icon={X} className="ml-auto" onClick={() => setDeciding('Rejected')}>
+                Reject
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       {error && <Alert type="error" title="Could not save">{error.message}</Alert>}
       {r.decisionNote && (
@@ -529,68 +584,78 @@ function RequestDetail({ id, onEdit }) {
           {r.term.status === 'Published' ? t('The term opened with the values below; differences from this request are listed with their reasons.') : t('The admin is building the term; differences from this request appear below.')}
         </Alert>
       )}
-      <DescriptionList
-        columns={2}
-        items={[
-          ['Stay', formatDateRange(r.stayStart, r.stayEnd)],
-          ['Blocks', r.blocks?.length ? r.blocks.map((b) => t('Block {code}', { code: b })).join(', ') : t('Every block')],
-          ['Rooms left out', r.excludedRooms?.length ? r.excludedRooms.join(', ') : '—'],
-          ['Notes', r.notes || '—'],
-        ]}
-      />
-      <Card className="flex flex-col gap-2">
-        <h3 className="text-h3 font-semibold text-fg">{t('Milestones')}</h3>
-        {filled.length ? (
-          <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-            {filled.map((m) => (
-              <li key={m.key} className="flex justify-between gap-3 text-base">
-                <span className="text-fg-secondary">{t(m.label)}</span>
-                <span className="font-medium text-fg tabular">{showValue(m.type, r.timeline[m.key])}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-fg-tertiary">{t('No milestone proposed.')}</p>
-        )}
-      </Card>
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="flex flex-col gap-2">
-          <h3 className="text-h3 font-semibold text-fg">{t('Places')}</h3>
+
+      <div className="grid grid-cols-[1.3fr_0.8fr_0.9fr_1.2fr] gap-3">
+        <Fact icon={CalendarRange} label="Stay" value={formatDateRange(r.stayStart, r.stayEnd)} />
+        <Fact icon={Building} label="Blocks" value={r.blocks?.length ? r.blocks.map((b) => t('Block {code}', { code: b })).join(', ') : t('Every block')} />
+        <Fact icon={Bed} label="Places" value={totalPlaces ? formatNumber(totalPlaces) : t('Not proposed')} />
+        <Fact
+          icon={DoorClosed}
+          label="Rooms left out"
+          value={r.excludedRooms?.length ? formatNumber(r.excludedRooms.length) : t('None')}
+          note={r.excludedRooms?.length ? r.excludedRooms.join(', ') : null}
+        />
+      </div>
+
+      {r.notes && (
+        <div className="flex gap-3 rounded-lg border-l-4 border-primary bg-primary-subtle px-4 py-3">
+          <MessageSquareQuote size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-medium text-fg-brand">{t('Notes from {name}', { name: r.requestedBy })}</span>
+            <p className="text-base whitespace-pre-wrap text-fg">{r.notes}</p>
+          </div>
+        </div>
+      )}
+
+      <Section title="Milestones">
+        <MilestoneList timeline={r.timeline} />
+      </Section>
+
+      <div className="grid grid-cols-2 gap-x-8">
+        <Section title="Places">
           {r.places?.length ? (
-            <ul className="flex flex-col gap-1.5">
+            <ul className="flex flex-col divide-y divide-line">
               {r.places.map((p) => (
-                <li key={`${p.roomTypeId}:${p.roomClassId}:${p.gender}`} className="flex justify-between text-base">
+                <li key={`${p.roomTypeId}:${p.roomClassId}:${p.gender}`} className="flex justify-between gap-3 py-2 text-base">
                   <span className="text-fg-secondary">{`${tr(p.roomType)} · ${tr(p.roomClass)} · ${t(p.gender === 'M' ? 'Male' : 'Female')}`}</span>
-                  <span className="font-medium text-fg tabular">{p.places}</span>
+                  <span className="font-medium text-fg tabular">{formatNumber(p.places)}</span>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="text-sm text-fg-tertiary">{t('No places proposed.')}</p>
           )}
-        </Card>
-        <SettingsCard settings={r.settings} />
+        </Section>
+        <Section title="Offer and money">
+          <SettingsList settings={r.settings} />
+        </Section>
       </div>
-      <PricesCard r={r} />
+
+      <Section title="Prices per bed" note={r.basePrices?.length > 0 ? t('Price per bed = base price × (1 + room tier surcharge), rounded up. Today’s values in grey.') : null}>
+        <PriceTable r={r} />
+      </Section>
+
       {r.term && (
-        <Card className="flex flex-col gap-2">
-          <h3 className="text-h3 font-semibold text-fg">{t('What the admin changed')}</h3>
+        <Section title="What the admin changed">
           <DifferencesTable differences={r.differences} />
-        </Card>
+        </Section>
       )}
-      <Card className="flex flex-col gap-3">
-        <h3 className="text-h3 font-semibold text-fg">{t('History and comments')}</h3>
-        <ol className="flex flex-col gap-3">
+
+      <Section title="History and comments">
+        <ol className="flex flex-col">
           {r.history.map((h, i) => (
-            <li key={i} className="flex gap-3">
-              <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
-              <div className="flex min-w-0 flex-col">
-                <span className="text-base text-fg">
-                  <span className="font-medium">{tr(h.kind)}</span>
-                  {h.actor ? ` · ${h.actor}` : ''}
-                </span>
-                {h.note && <span className="text-base whitespace-pre-wrap text-fg-secondary">{h.note}</span>}
-                <span className="text-sm text-fg-tertiary">{formatDateTime(h.at)}</span>
+            <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
+              {i < r.history.length - 1 && <span aria-hidden="true" className="absolute top-4 bottom-0 left-[3px] w-px bg-line" />}
+              <span aria-hidden="true" className={cx('mt-1.5 size-2 shrink-0 rounded-full', i === r.history.length - 1 ? 'bg-primary' : 'bg-line-strong')} />
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <span className="text-base text-fg">
+                    <span className="font-medium">{tr(h.kind)}</span>
+                    {h.actor ? <span className="text-fg-secondary">{` · ${h.actor}`}</span> : null}
+                  </span>
+                  <span className="text-sm text-fg-tertiary tabular">{formatDateTime(h.at)}</span>
+                </div>
+                {h.note && <p className="rounded-md bg-canvas px-3 py-2 text-base whitespace-pre-wrap text-fg-secondary">{h.note}</p>}
               </div>
             </li>
           ))}
@@ -605,7 +670,7 @@ function RequestDetail({ id, onEdit }) {
             </Button>
           </div>
         )}
-      </Card>
+      </Section>
       {deciding && <DecisionModal request={r} status={deciding} onClose={() => setDeciding(null)} />}
     </div>
   )
@@ -628,7 +693,7 @@ export default function TermRequests() {
     <>
       <PageHeader
         title="Registration-period requests"
-        description={manager ? 'Ask the admin to open a term with its dates, rooms, places and prices; follow every answer here.' : 'Requests from managers to open a term. Build the term from one in the wizard.'}
+        description={manager ? 'Ask the admin to open a term with its dates, rooms, places and prices; follow every answer here.' : null}
         actions={
           manager && (
             <Button variant="primary" icon={Plus} onClick={() => setEditing({})}>
@@ -637,46 +702,83 @@ export default function TermRequests() {
           )
         }
       />
-      <div className="flex shrink-0 items-center gap-3">
-        <Segmented
-          options={FILTERS.map((f) => ({ value: f.value, label: f.value === 'Open' ? `${t('Open')} · ${open}` : f.value ? `${t(f.label)} · ${counts[f.value] ?? 0}` : t(f.label) }))}
-          value={status}
-          onChange={setStatus}
-        />
-      </div>
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-h-0 w-120 shrink-0 flex-col">
-          <Table fill>
-            <THead>
-              <tr>
-                <Th>Request</Th>
-                <Th className="w-36">Status</Th>
-              </tr>
-            </THead>
-            <TBody>
-              <TableStatus query={query} colSpan={2} emptyIcon={ClipboardList} emptyTitle="No requests" emptyText={manager ? 'Request a registration period to start one.' : undefined} />
-              {items.map((r) => (
-                <Tr key={r.id} selected={r.id === selected} onClick={() => setParams({ id: r.id })}>
-                  <Td>
-                    <TwoLine
-                      primary={`${r.code} · ${r.termName}`}
-                      secondary={`${formatDateRange(r.stayStart, r.stayEnd)} · ${r.requestedBy ?? ''}${r.comments ? ` · ${t(r.comments === 1 ? '{n} comment' : '{n} comments', { n: r.comments })}` : ''}`}
-                    />
-                  </Td>
-                  <Td>
-                    <RequestStatus status={r.status} />
-                  </Td>
-                </Tr>
-              ))}
-            </TBody>
-          </Table>
+        <Card padding="none" className="flex min-h-0 w-80 shrink-0 flex-col overflow-hidden">
+          <div role="radiogroup" aria-label={t('Status')} className="grid shrink-0 grid-cols-4 border-b border-line">
+            {FILTERS.map((f) => {
+              const active = f.value === status
+              const n = f.value === 'Open' ? open : f.value ? (counts[f.value] ?? 0) : Object.values(counts).reduce((s, x) => s + x, 0)
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setStatus(f.value)}
+                  className={cx(
+                    '-mb-px flex flex-col items-center gap-0.5 border-b-2 px-1 py-2.5 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
+                    active ? 'border-primary text-fg-brand' : 'border-transparent text-fg-secondary hover:bg-subtle hover:text-fg',
+                  )}
+                >
+                  <span className="text-sm font-medium whitespace-nowrap">{t(f.label)}</span>
+                  <span className={cx('text-base font-semibold tabular', active ? 'text-fg-brand' : 'text-fg')}>{formatNumber(n)}</span>
+                </button>
+              )
+            })}
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <QueryState
+              query={query}
+              empty={
+                <EmptyBlock icon={ClipboardList} title="No requests">
+                  {manager ? 'Request a registration period to start one.' : null}
+                </EmptyBlock>
+              }
+            >
+              {() => (
+                <ul className="flex flex-col gap-1 p-2" aria-label={t('Registration-period requests')}>
+                  {items.map((r) => {
+                    const active = r.id === selected
+                    return (
+                      <li key={r.id}>
+                        <button
+                          type="button"
+                          aria-current={active ? 'true' : undefined}
+                          onClick={() => setParams({ id: r.id })}
+                          className={cx(
+                            'flex w-full flex-col gap-1 rounded-md border px-3 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary',
+                            active ? 'border-primary bg-primary-subtle' : 'border-transparent hover:bg-subtle',
+                          )}
+                        >
+                          <span className="flex items-center justify-between gap-2">
+                            <span className={cx('truncate text-base font-semibold', active ? 'text-fg-brand' : 'text-fg')}>{r.termName}</span>
+                            <RequestStatus status={r.status} />
+                          </span>
+                          <span className="text-sm text-fg-secondary tabular">{formatDateRange(r.stayStart, r.stayEnd)}</span>
+                          <span className="flex items-center gap-1.5 text-sm text-fg-tertiary">
+                            <span className="truncate">{`${r.code} · ${r.requestedBy ?? ''}`}</span>
+                            {r.comments > 0 && (
+                              <span className="ml-auto flex shrink-0 items-center gap-1" title={t(r.comments === 1 ? '{n} comment' : '{n} comments', { n: r.comments })}>
+                                <MessageSquare size={14} aria-hidden="true" />
+                                {formatNumber(r.comments)}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </QueryState>
+          </div>
           {/* The API returns at most 100 rows (PageQuery.MAX_SIZE): say when older ones are not listed (WEB-STU-19). */}
           {query.data?.total > items.length && (
-            <p className="shrink-0 pt-2 text-sm text-fg-tertiary" role="status">
+            <p className="shrink-0 border-t border-line px-3 py-2 text-sm text-fg-tertiary" role="status">
               {t('Showing the latest {n} of {total} requests. Filter by status to find older ones.', { n: items.length, total: query.data.total })}
             </p>
           )}
-        </div>
+        </Card>
         <Card padding="lg" className="flex min-h-0 min-w-0 flex-1 flex-col">
           {selected ? <RequestDetail key={selected} id={selected} onEdit={(r) => setEditing(r)} /> : <EmptyBlock icon={ClipboardList} title="Select a request" />}
         </Card>

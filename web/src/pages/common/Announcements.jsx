@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Megaphone, Pin, PinOff, Plus, Send, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
+import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button, IconButton } from '@/components/ui/Button'
@@ -163,6 +164,7 @@ function NewAnnouncement({ options, onClose }) {
 
 export default function Announcements() {
   const { notifyError } = useToast()
+  const { user } = useSession()
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
   const [page, setPage] = useState(1)
@@ -180,7 +182,7 @@ export default function Announcements() {
     <>
       <PageHeader
         title="Announcements"
-        description="News on the students' board: written here, and by the system for every published term and every money or policy change."
+        description={user?.role === 'admin' ? null : "News on the students' board: written here, and by the system for every published term and every money or policy change."}
         actions={
           <Button variant="primary" icon={Plus} disabled={!options.data} onClick={() => setWriting(true)}>
             New announcement

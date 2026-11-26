@@ -105,14 +105,10 @@ const AdminDashboard = () => import('@/pages/admin/AdminDashboard')
 const Terms = () => import('@/pages/admin/Terms')
 const TermWizard = () => import('@/pages/admin/TermWizard')
 const NewTerm = () => import('@/pages/admin/NewTerm')
-const Deadlines = () => import('@/pages/admin/Deadlines')
-const StayRenewal = () => import('@/pages/admin/StayRenewal')
 const RefundsTerminations = () => import('@/pages/admin/RefundsTerminations')
 const RoomTypes = () => import('@/pages/admin/RoomTypes')
 const RoomClasses = () => import('@/pages/admin/RoomClasses')
 const FurnitureTypes = () => import('@/pages/admin/FurnitureTypes')
-const FeesRules = () => import('@/pages/admin/FeesRules')
-const UtilitySettings = () => import('@/pages/admin/UtilitySettings')
 const EligibilityRules = () => import('@/pages/admin/EligibilityRules')
 const MatchingCriteria = () => import('@/pages/admin/MatchingCriteria')
 const InspectionChecklists = () => import('@/pages/admin/InspectionChecklists')
@@ -317,15 +313,19 @@ export const router = createBrowserRouter([
         { path: 'terms/new', ...page(NewTerm) },
         { path: 'terms/:id', ...page(TermWizard) },
         { path: 'term-requests', ...page(TermRequests) },
-        { path: 'deadlines', ...page(Deadlines) },
+        // Deadlines and reminders is a section of System parameters since 22/11/2026.
+        { path: 'deadlines', element: <Navigate to="/admin/system-parameters#deadlines" replace /> },
         { path: 'refunds', ...page(RefundsTerminations) },
-        { path: 'stay', ...page(StayRenewal) },
+        // Stay and renewal is a section of System parameters since 22/11/2026.
+        { path: 'stay', element: <Navigate to="/admin/system-parameters#stay" replace /> },
         { path: 'announcements', ...page(Announcements) },
         { path: 'profile', ...page(Profile, { role: 'admin' }) },
         { path: 'room-types', ...page(RoomTypes) },
         { path: 'room-classes', ...page(RoomClasses) },
-        { path: 'fees', ...page(FeesRules) },
-        { path: 'utility', ...page(UtilitySettings) },
+        // The Deposit is a section of System parameters since 22/11/2026; old links still land there.
+        { path: 'fees', element: <Navigate to="/admin/system-parameters#deposit" replace /> },
+        // Utility billing and the Utility deposit are sections of System parameters since 22/11/2026.
+        { path: 'utility', element: <Navigate to="/admin/system-parameters#utility-billing" replace /> },
         { path: 'eligibility', ...page(EligibilityRules) },
         { path: 'matching', ...page(MatchingCriteria) },
         { path: 'inspection-checklists', ...page(InspectionChecklists) },

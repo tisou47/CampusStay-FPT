@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import { Check, Layers, Package, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Building2, Check, DoorOpen, Layers, Package, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
-import { Field, Input, Select } from '@/components/ui/Field'
+import { Field, Input, SearchInput, Select } from '@/components/ui/Field'
 import { Drawer } from '@/components/ui/Overlay'
-import { QueryState, TableStatus } from '@/components/ui/States'
+import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
 import { countLines, typeName } from '@/lib/furniture'
 import { formatNumber, formatVnd } from '@/lib/format'
 import { parseDecimal } from '@/lib/numbers'
@@ -32,6 +33,13 @@ function EditDrawer({ item, onClose }) {
     status: item.status ?? 'Active',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  // An existing tier is renamed only while it is (or is being set) Inactive; setting it back to Active undoes the rename.
+  const renamable = isNew || form.status === 'Inactive'
+  const setStatus = (e) => {
+    const status = e.target.value
+    setForm((f) => ({ ...f, status, name: !isNew && status !== 'Inactive' ? item.name : f.name }))
+  }
+  const statusField = <Field label="Status">{(id) => <Select id={id} value={form.status} onChange={setStatus} options={['Active', 'Inactive']} />}</Field>
   const save = useMutation(
     () => {
       const body = { name: form.name.trim(), surchargeRate: (parseDecimal(form.surcharge) ?? 0) / 100, status: form.status }
@@ -61,12 +69,15 @@ function EditDrawer({ item, onClose }) {
       }
     >
       {save.error && <Alert type="error" title="Could not save">{save.error.message}</Alert>}
-      <Field label="Name">{(id) => <Input id={id} value={form.name} onChange={set('name')} disabled={!isNew} placeholder="e.g. Deluxe" />}</Field>
+      {!isNew && statusField}
+      <Field label="Name" helper={isNew ? undefined : renamable ? 'The tier is inactive, so its name can change.' : 'Set the status to Inactive to change the name.'}>
+        {(id) => <Input id={id} value={form.name} onChange={set('name')} disabled={!renamable} placeholder="e.g. Deluxe" />}
+      </Field>
       <Field label="Surcharge (%)" helper="Added to every room type base price for this class.">
         {(id) => <Input id={id} value={form.surcharge} onChange={set('surcharge')} inputMode="numeric" />}
       </Field>
       <p className="text-sm text-fg-tertiary">{t('Students see the furniture the class requires (Furniture in the list).')}</p>
-      <Field label="Status">{(id) => <Select id={id} value={form.status} onChange={set('status')} options={['Active', 'Inactive']} />}</Field>
+      {isNew && statusField}
     </Drawer>
   )
 }
@@ -120,12 +131,141 @@ function RequirementsDrawer({ roomClass, current, types, onClose }) {
   )
 }
 
+/** "A 48 · B 24" (Rooms of the tier per Block this Term) → [{ block: 'A', rooms: 48 }, …]. */
+const blocksOf = (usedIn) =>
+  (usedIn ?? '')
+    .split('·')
+    .map((part) => part.trim().split(/\s+/))
+    .filter(([block, n]) => block && n)
+    .map(([block, n]) => ({ block, rooms: Number(n) || 0 }))
+
+/**
+ * All the Rooms of one tier in one Block, read from Manager › Room tiers by term (the API's default Term is the next
+ * one, while the tier list counts the current Term, so the current Term is asked for when there is one).
+ */
+async function tierRooms(roomClassId, block, signal) {
+  const get = (query) => api.inventory.roomClasses({ roomClassId, block, pageSize: 100, ...query }, { signal })
+  let first = await get({ page: 1 })
+  const current = first.terms?.find((x) => x.current)
+  const termId = current && current.id !== first.term?.id ? current.id : undefined
+  if (termId) first = await get({ page: 1, termId })
+  const items = [...(first.items ?? [])]
+  for (let page = 2; items.length < first.total; page++) {
+    const next = await get({ page, termId })
+    if (!next.items?.length) break
+    items.push(...next.items)
+  }
+  return { term: first.term, items }
+}
+
+/** The Rooms of a tier, one Block at a time, grouped by floor. */
+function TierRoomsDrawer({ tier, onClose }) {
+  const blocks = blocksOf(tier.usedIn)
+  const [block, setBlock] = useState(blocks[0]?.block)
+  const [q, setQ] = useState('')
+  const query = useQuery(['admin-tier-rooms', tier.id, block], ({ signal }) => tierRooms(tier.id, block, signal))
+  const needle = q.trim().toLowerCase()
+  const rooms = (query.data?.items ?? []).filter((r) => !needle || r.room.toLowerCase().includes(needle))
+  const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b)
+  const offTier = (query.data?.items ?? []).filter((r) => r.conformance?.status === 'Does not match').length
+
+  return (
+    <Drawer
+      open
+      onClose={onClose}
+      width={640}
+      title={t('Rooms · {name}', { name: tr(tier.name) })}
+      description={query.data?.term ? t('{n} rooms in {term}', { n: formatNumber(tier.rooms), term: query.data.term.name }) : t('{n} rooms', { n: formatNumber(tier.rooms) })}
+      footer={<Button onClick={onClose}>Close</Button>}
+    >
+      {blocks.length > 1 && (
+        <div
+          role="tablist"
+          className="grid shrink-0 gap-2"
+          style={{ gridTemplateColumns: `repeat(${blocks.length <= 5 ? blocks.length : Math.ceil(blocks.length / 2)}, minmax(0, 1fr))` }}
+        >
+          {blocks.map((b) => {
+            const active = b.block === block
+            return (
+              <button
+                key={b.block}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setBlock(b.block)}
+                className={cx(
+                  'flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
+                  active ? 'border-primary bg-primary-subtle' : 'border-line hover:border-line-strong hover:bg-subtle',
+                )}
+              >
+                <span className={cx('flex items-center gap-1.5 text-base font-medium whitespace-nowrap', active ? 'text-fg-brand' : 'text-fg')}>
+                  <Building2 aria-hidden="true" size={16} />
+                  {t('Block {code}', { code: b.block })}
+                </span>
+                <span className={cx('text-sm tabular', active ? 'text-fg-brand' : 'text-fg-tertiary')}>{formatNumber(b.rooms)}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      <div className="flex shrink-0 items-center gap-3">
+        <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search room code" wrapperClassName="flex-1" aria-label={t('Search room code')} />
+        {offTier > 0 && (
+          <span className="flex items-center gap-1.5 text-sm text-warning-fg">
+            <TriangleAlert aria-hidden="true" size={14} />
+            {t('{n} rooms lack the furniture', { n: formatNumber(offTier) })}
+          </span>
+        )}
+      </div>
+
+      <QueryState query={query} compact isEmpty={() => !rooms.length} empty={<EmptyBlock icon={DoorOpen} title={needle ? 'No room matches' : 'No rooms'} />}>
+        {() => (
+          <div className="flex flex-col gap-5">
+            {floors.map((floor) => {
+              const onFloor = rooms.filter((r) => r.floor === floor)
+              return (
+                <section key={floor} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-semibold text-fg">{t('Floor {n}', { n: floor })}</h3>
+                    <span className="rounded-full bg-subtle px-2 py-0.5 text-xs font-medium text-fg-secondary tabular">{t('{n} rooms', { n: formatNumber(onFloor.length) })}</span>
+                    <span aria-hidden="true" className="h-px flex-1 bg-line" />
+                  </div>
+                  <ul className="grid grid-cols-[repeat(auto-fill,minmax(128px,1fr))] gap-2">
+                    {onFloor.map((r) => {
+                      const off = r.conformance?.status === 'Does not match'
+                      return (
+                        <li
+                          key={r.room}
+                          title={off ? t('The room lacks furniture this tier requires') : undefined}
+                          className={cx('flex min-w-0 flex-col gap-0.5 rounded-lg border px-3 py-2', off ? 'border-warning bg-warning-bg' : 'border-line bg-surface')}
+                        >
+                          <span className="flex items-center justify-between gap-1">
+                            <span className="truncate text-base font-semibold text-fg tabular">{r.room}</span>
+                            {off && <TriangleAlert aria-label={t('The room lacks furniture this tier requires')} size={14} className="shrink-0 text-warning-fg" />}
+                          </span>
+                          <span className="truncate text-sm text-fg-tertiary">{tr(r.roomType)}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              )
+            })}
+          </div>
+        )}
+      </QueryState>
+    </Drawer>
+  )
+}
+
 export default function RoomClasses() {
   const query = useQuery(['admin-room-classes'], ({ signal }) => api.admin.roomClasses.list(undefined, { signal }))
   const requirements = useQuery(['admin-requirements'], ({ signal }) => api.admin.requirements.list(undefined, { signal }))
   const required = Object.fromEntries((requirements.data?.items ?? []).map((r) => [r.roomClassId, r.requirements]))
   const [editing, setEditing] = useState(null)
   const [furnishing, setFurnishing] = useState(null)
+  const [viewing, setViewing] = useState(null)
   const items = query.data?.items ?? []
   const active = items.filter((c) => c.status === 'Active')
   const rate = query.data?.depositRate ?? 0
@@ -134,7 +274,6 @@ export default function RoomClasses() {
     <>
       <PageHeader
         title="Room tiers"
-        description="Amenity levels defined by the furniture they require. Each adds a surcharge (%) to the room type base price; each room has its class per term."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})}>
             New room tier
@@ -166,10 +305,13 @@ export default function RoomClasses() {
               <Td align="right">+{Math.round(c.surchargeRate * 100)}%</Td>
               <Td className={required[c.id]?.length ? undefined : 'text-fg-tertiary'}>{required[c.id]?.length ? countLines(required[c.id]) : t('None')}</Td>
               <Td align="right" className="tabular">
-                <div className="flex flex-col items-end gap-0.5 py-1">
-                  <span className="font-medium text-fg">{formatNumber(c.rooms)}</span>
-                  {c.usedIn && <span className="text-sm text-fg-tertiary">{c.usedIn}</span>}
-                </div>
+                {c.rooms > 0 ? (
+                  <Button variant="text" icon={DoorOpen} onClick={() => setViewing(c)} className="ml-auto" aria-label={t('View the {n} rooms of {name}', { n: formatNumber(c.rooms), name: tr(c.name) })}>
+                    {t('{n} rooms', { n: formatNumber(c.rooms) })}
+                  </Button>
+                ) : (
+                  <span className="text-fg-tertiary">{t('{n} rooms', { n: 0 })}</span>
+                )}
               </Td>
               <Td>
                 <StatusTag status={c.status} />
@@ -234,6 +376,7 @@ export default function RoomClasses() {
           )}
         </QueryState>
       </Card>
+      {viewing && <TierRoomsDrawer key={viewing.id} tier={viewing} onClose={() => setViewing(null)} />}
       {editing && <EditDrawer key={editing.id ?? 'new'} item={editing} onClose={() => setEditing(null)} />}
       {furnishing && (
         <RequirementsDrawer key={furnishing.id} roomClass={furnishing} current={required[furnishing.id] ?? []} types={requirements.data?.types ?? []} onClose={() => setFurnishing(null)} />

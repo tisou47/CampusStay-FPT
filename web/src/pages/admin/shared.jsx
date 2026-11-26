@@ -54,10 +54,10 @@ export function useConfigForm(name, resource, { onSaved } = {}) {
 }
 
 /** Page header plus the loading / error state of a config form; renders children once the draft is ready. */
-export function ConfigPage({ form, title, description, actions, children }) {
+export function ConfigPage({ form, title, actions, children }) {
   return (
     <>
-      <PageHeader title={title} description={description} actions={form.draft ? actions : null} />
+      <PageHeader title={title} actions={form.draft ? actions : null} />
       {form.saveError && (
         <Alert type="error" title="Could not save" className="shrink-0">
           {form.saveError.message}

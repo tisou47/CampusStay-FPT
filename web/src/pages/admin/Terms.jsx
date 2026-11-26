@@ -28,7 +28,6 @@ export default function Terms() {
     <>
       <PageHeader
         title="Terms"
-        description="Build a term step by step and publish it. Students see a term, its prices and its rules once it is published."
         actions={
           <>
             <Button icon={ClipboardList} to="/admin/term-requests">

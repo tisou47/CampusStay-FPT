@@ -45,7 +45,6 @@ export default function DemoData() {
     <>
       <PageHeader
         title="Demo data"
-        description="Replace the business data by a demo stage whose dates are relative to today. Accounts, buildings, furniture and settings stay."
       />
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-2">
         {!d.enabled && (

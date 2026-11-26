@@ -74,12 +74,24 @@ export function Textarea({ size = 'md', invalid, className, rows = 4, placeholde
 
 /**
  * Native select styled like the Figma Select. `options` accepts strings or { value, label }.
+ * `fit`: the box is as wide as the chosen option's text (filter bars), so "Role: All" or "Date: Last 30 days" is never
+ * cut; `wrapperClassName` may still cap it (max-w-…), and then a long name ends with "…".
  */
-export function Select({ size = 'md', invalid, options = [], className, wrapperClassName, children, ...props }) {
+export function Select({ size = 'md', invalid, options = [], className, wrapperClassName, children, fit = false, ...props }) {
+  const chosen = fit
+    ? options.map((opt) => (typeof opt === 'string' ? { value: opt, label: opt } : opt)).find((o) => String(o.value) === String(props.value ?? ''))
+    : null
   return (
-    <div className={cx('relative min-w-0', wrapperClassName)}>
+    <div className={cx('relative min-w-0', fit && 'shrink-0', wrapperClassName)}>
+      {fit && (
+        // Invisible copy of the chosen text: it gives the box its width, and the select lies over it. (A select's own
+        // width follows its longest option, which is what made filters too wide or cut.)
+        <span aria-hidden="true" className={cx('invisible block truncate border px-3 pr-9 leading-[30px] whitespace-pre', sizes[size])}>
+          {tx(chosen?.label ?? '')}
+        </span>
+      )}
       <select
-        className={cx(controlClasses({ size, invalid }), 'cursor-pointer appearance-none truncate pr-9', className)}
+        className={cx(controlClasses({ size, invalid }), 'cursor-pointer appearance-none truncate pr-9', fit && 'absolute inset-0', className)}
         aria-invalid={invalid || undefined}
         {...props}
       >
@@ -97,7 +109,7 @@ export function Select({ size = 'md', invalid, options = [], className, wrapperC
         size={16}
         aria-hidden="true"
         className={cx(
-          'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2',
+          'pointer-events-none absolute top-1/2 right-3 z-1 -translate-y-1/2',
           props.disabled ? 'text-fg-disabled' : 'text-fg-secondary',
         )}
       />

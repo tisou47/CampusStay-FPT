@@ -209,7 +209,6 @@ export default function FurnitureTypes() {
     <>
       <PageHeader
         title="Furniture types"
-        description="Kinds of furniture the dormitory tracks. Types that define a room tier are what the classes require (Room tiers)."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!query.data}>
             New furniture type
