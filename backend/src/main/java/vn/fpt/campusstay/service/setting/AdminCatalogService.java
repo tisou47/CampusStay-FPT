@@ -21,6 +21,7 @@ import vn.fpt.campusstay.service.setting.RoomUsage;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
+import vn.fpt.campusstay.entity.ActiveStatus;
 import vn.fpt.campusstay.entity.RoomClassEntity;
 import vn.fpt.campusstay.entity.RoomTypeEntity;
 import vn.fpt.campusstay.repository.RoomClassRepository;

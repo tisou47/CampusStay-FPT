@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.entity.TermEntity;
+import vn.fpt.campusstay.entity.TermValues;
 import vn.fpt.campusstay.repository.TermRepository;
 
 /**
@@ -26,12 +27,6 @@ import vn.fpt.campusstay.repository.TermRepository;
  */
 @Service
 public class AdminTermService {
-
-    /** The editable fields of a Term; null means "not filled in" (the contract sends empty fields as null). */
-    public record TermValues(String name, LocalDate stayStart, LocalDate stayEnd, Instant registrationOpensAt,
-            Instant registrationClosesAt, Instant resultsPublishedAt, Integer roommateHours, Integer depositHours,
-            Instant balanceDueAt, LocalDate checkInStart, LocalDate checkInEnd, LocalDate checkOutBy) {
-    }
 
     /**
      * Contract item of {@code GET /admin/terms}; status is a label (Draft, Published, Registration open, In stay,

@@ -1,4 +1,4 @@
-package vn.fpt.campusstay.service.setting;
+package vn.fpt.campusstay.entity;
 
 import java.util.Optional;
 
