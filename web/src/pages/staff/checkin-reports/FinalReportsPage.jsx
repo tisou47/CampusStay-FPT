@@ -10,6 +10,7 @@ import { FilterSelect, SearchInput } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
+import { Tabs } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { t, tr } from '@/i18n'
 import { formatDateTime, formatNumber } from '@/lib/format'
@@ -271,24 +272,49 @@ export default function FinalReportsPage() {
   // Every checklist the Admin published is a report type of its own (with how many reports used it).
   const options = useQuery(['inspection-reports', 'checklists', scope], ({ signal }) => api.inspections.reports({ ...scope, pageSize: 1 }, { signal }))
   const checklists = options.data?.checklists ?? []
-  const types = [
+  // Two groups (user decision 26/11/2026), so a report is easy to find: what the students filed (their check-in
+  // inventories and the rooms' final reports) and what the dormitory filed (report 1 and every other inspection).
+  const studentTypes = [
     { value: 'student', label: t('Student check-in inventories') },
     { value: 'final', label: t('Final room reports') },
+  ]
+  const dormTypes = [
     { value: 'report1', label: t('Report 1 · Staff pre-arrival check') },
     ...checklists.map((c) => ({ value: `cl:${c.key}`, label: `${tr(c.name)} (${formatNumber(c.reports)})` })),
   ]
   const asked = params.get('type') ?? 'student'
-  const type = asked.startsWith('cl:') || types.some((x) => x.value === asked) ? asked : 'student'
+  const type = asked.startsWith('cl:') || [...studentTypes, ...dormTypes].some((x) => x.value === asked) ? asked : 'student'
+  const group = studentTypes.some((x) => x.value === type) ? 'student' : 'dorm'
+  const setType = (v) => setParams(v === 'student' ? {} : { type: v }, { replace: true })
   const typeSelect = (
-    <FilterSelect label="Report type" value={type} onChange={(v) => setParams(v === 'student' ? {} : { type: v }, { replace: true })} options={types} />
+    <FilterSelect label="Report type" value={type} onChange={setType} options={group === 'student' ? studentTypes : dormTypes} />
   )
+  const groups = [
+    {
+      key: 'student',
+      label: 'Student reports',
+      hint: 'What the students filed: their check-in inventories (report 2) and the rooms’ final reports.',
+    },
+    {
+      key: 'dorm',
+      label: 'Dormitory reports',
+      hint: 'What the dormitory filed: report 1 (Staff’s pre-arrival check) and every other inspection the Admin configured.',
+    },
+  ]
   return (
     <>
       <PageHeader
         title="Final reports"
         tip="Every report kept for the rooms, updated as soon as one is filed: the students' check-in inventories, the rooms' final reports, report 1 and each inspection the Admin configured. Students see only their own inventory and their room's final report."
       />
-      {type === 'student' && <StudentReports key="student" typeSelect={typeSelect} />}
+      <Tabs
+        label={t('Report group')}
+        value={group}
+        onChange={(g) => g !== group && setType(g === 'student' ? 'student' : 'report1')}
+        items={groups.map((g) => ({ key: g.key, label: g.label }))}
+      />
+      <p className="shrink-0 text-sm text-fg-secondary">{t(groups.find((g) => g.key === group).hint)}</p>
+      {type === 'student'&& <StudentReports key="student" typeSelect={typeSelect} />}
       {type === 'final' && <StudentReports key="final" finalOnly typeSelect={typeSelect} />}
       {type === 'report1' && <InspectionReports key="report1" kind="Pre-arrival" typeSelect={typeSelect} />}
       {type.startsWith('cl:') && <InspectionReports key={type} checklist={type.slice(3)} typeSelect={typeSelect} />}
