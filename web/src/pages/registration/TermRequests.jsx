@@ -598,7 +598,7 @@ function RequestDetail({ id, onEdit }) {
       </div>
 
       {r.notes && (
-        <div className="flex gap-3 rounded-lg border-l-4 border-primary bg-primary-subtle px-4 py-3">
+        <div className="flex gap-3 rounded-lg bg-primary-subtle px-4 py-3">
           <MessageSquareQuote size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="text-sm font-medium text-fg-brand">{t('Notes from {name}', { name: r.requestedBy })}</span>
