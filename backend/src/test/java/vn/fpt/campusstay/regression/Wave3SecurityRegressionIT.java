@@ -132,6 +132,9 @@ class Wave3SecurityRegressionIT {
         String admin = r.bearer(vn.fpt.campusstay.TestAuth.ADMIN);
         r.getAs("/maintenance-requests", admin).andExpect(status().isForbidden());
         r.getAs("/maintenance-requests/" + id, admin).andExpect(status().isForbidden());
+        // Staff read only the requests assigned to them (feat/manager-ui-1).
+        jdbc.sql("UPDATE mnt_request SET assignee_id = (SELECT id FROM auth_user WHERE email = 'staff.a1@campusstay.test') WHERE code = :c")
+                .param("c", id).update();
         r.getAs("/maintenance-requests/" + id, r.bearer(vn.fpt.campusstay.TestAuth.STAFF_A)).andExpect(status().isOk());
     }
 

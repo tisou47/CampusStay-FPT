@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { Ban, ChartColumn, CheckCheck, DoorOpen, Pencil, Send, TriangleAlert, UserX, Users } from 'lucide-react'
+import { Ban, ChartColumn, CheckCheck, DoorOpen, Pencil, Send, UserX, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -15,8 +15,9 @@ import { Pagination } from '@/components/ui/Pagination'
 import { QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { formatDateTime, formatDateTimeRange, formatNumber, formatTime } from '@/lib/format'
+import { formatDateTime, formatDateTimeRange, formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
+import { cx } from '@/lib/cx'
 import { FamilyDayFormModal } from './familyDayForm'
 import { guestStatusLabel, familyDayStatusLabel } from '@/lib/familyDayStatus'
 
@@ -85,7 +86,7 @@ function Registrations({ day, manager }) {
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <h2 className="text-h3 font-semibold text-fg">{t('Registrations')}</h2>
         <SearchInput
-          wrapperClassName="w-72"
+          wrapperClassName="w-96 max-w-full"
           placeholder="Student, student code or guest"
           value={q}
           onChange={(e) => {
@@ -221,7 +222,20 @@ export default function FamilyDayDetail() {
 
   return (
     <QueryState query={query} isEmpty={() => false}>
-      {() => (
+      {() => {
+        // What the page shows follows the day's stage: before it starts only places count; once guests can come
+        // in, who is inside and who left; after it, who never came.
+        const live = day.status !== 'Draft' && day.status !== 'Cancelled'
+        const running = day.status === 'In progress'
+        const over = day.status === 'Completed'
+        const started = running || over
+        const places = day.slots.reduce((sum, s) => sum + s.capacity, 0)
+        const history = [
+          t('Created by {name} · {time}', { name: day.createdBy ?? '—', time: formatDateTime(day.createdAt) }),
+          day.publishedAt && t('Published {time}', { time: formatDateTime(day.publishedAt) }),
+          day.closedAt && t('Closed {time}', { time: [formatDateTime(day.closedAt), day.closedBy].filter(Boolean).join(' · ') }),
+        ].filter(Boolean)
+        return (
         <>
           <PageHeader
             breadcrumb={<Breadcrumb items={[{ label: 'Family Days', to: `${base}/family-days` }, { label: day.title }]} />}
@@ -230,12 +244,12 @@ export default function FamilyDayDetail() {
             description={t('Block {block} · {area}', { block: day.block, area: day.area })}
             actions={
               <>
-                {day.status !== 'Draft' && day.status !== 'Cancelled' && (
+                {started && (
                   <Button icon={ChartColumn} onClick={() => navigate(`${base}/family-day-stats/${day.id}`)}>
                     Statistics
                   </Button>
                 )}
-                {day.status !== 'Draft' && day.status !== 'Cancelled' && (
+                {live && !over && (
                   <Button icon={DoorOpen} onClick={() => navigate(`${base}/family-days/${day.id}/desk`)}>
                     Visitor desk
                   </Button>
@@ -272,40 +286,45 @@ export default function FamilyDayDetail() {
             </Alert>
           )}
 
-          <div className="grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-5">
-            <KpiTile size="md" icon={Users} label="Guests registered" value={formatNumber(day.counts.guests)} note={t('{n} students', { n: formatNumber(day.counts.registrations) })} />
-            <KpiTile size="md" icon={DoorOpen} label="Inside now" value={formatNumber(day.counts.inside)} />
-            <KpiTile size="md" icon={TriangleAlert} label="Overdue" value={formatNumber(day.counts.overdue)} valueTone={day.counts.overdue ? 'error' : undefined} note="Inside after their time slot" />
-            <KpiTile size="md" icon={CheckCheck} label="Left" value={formatNumber(day.counts.checkedOut)} />
-            <KpiTile size="md" icon={UserX} label="No-shows" value={formatNumber(day.counts.noShow)} />
-          </div>
+          {started && (
+            <div className="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-3">
+              <KpiTile size="md" icon={Users} label="Guests registered" value={formatNumber(day.counts.guests)} note={t('{n} students', { n: formatNumber(day.counts.registrations) })} />
+              {running ? (
+                <KpiTile size="md" icon={DoorOpen} label="Inside now" value={formatNumber(day.counts.inside)} note={day.counts.overdue ? t('{n} past their time slot', { n: formatNumber(day.counts.overdue) }) : undefined} valueTone={day.counts.overdue ? 'error' : undefined} />
+              ) : (
+                <KpiTile size="md" icon={UserX} label="No-shows" value={formatNumber(day.counts.noShow)} />
+              )}
+              <KpiTile size="md" icon={CheckCheck} label="Left" value={formatNumber(day.counts.checkedOut)} />
+            </div>
+          )}
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
+          <div className={cx('grid gap-4', started ? 'lg:grid-cols-[1fr_2fr]' : 'lg:grid-cols-2')}>
             <Card>
               <CardHeader title="Details" />
               <DescriptionList
                 items={[
+                  ['Time', formatDateTimeRange(day.startsAt, day.endsAt)],
                   ['Registration', formatDateTimeRange(day.registrationOpensAt, day.registrationClosesAt)],
                   ['Guests per student', formatNumber(day.maxGuests)],
-                  ['Created by', `${day.createdBy ?? '—'} · ${formatDateTime(day.createdAt)}`],
-                  day.publishedAt && ['Published', formatDateTime(day.publishedAt)],
-                  day.closedAt && ['Closed', [formatDateTime(day.closedAt), day.closedBy, day.closeNote].filter(Boolean).join(' · ')],
                   day.description && ['Description', day.description],
+                  day.closeNote && ['Note for the report', day.closeNote],
                 ].filter(Boolean)}
               />
+              <p className="mt-3 border-t border-line pt-3 text-sm text-fg-tertiary">{history.join(' · ')}</p>
             </Card>
             <Card padding="none">
-              <div className="p-4">
+              <div className="flex items-baseline justify-between gap-3 p-4">
                 <h2 className="text-h3 font-semibold text-fg">{t('Time slots')}</h2>
+                {!started && <span className="text-sm text-fg-secondary">{t('{n} places in all', { n: formatNumber(places) })}</span>}
               </div>
               <Table>
                 <THead>
                   <tr>
                     <Th>Time slot</Th>
                     <Th align="right">Places taken</Th>
-                    <Th align="right">Inside</Th>
-                    <Th align="right">Left</Th>
-                    <Th align="right">No-shows</Th>
+                    {running && <Th align="right">Inside</Th>}
+                    {started && <Th align="right">Left</Th>}
+                    {started && <Th align="right">No-shows</Th>}
                   </tr>
                 </THead>
                 <TBody>
@@ -320,9 +339,9 @@ export default function FamilyDayDetail() {
                           </Tag>
                         )}
                       </Td>
-                      <Td align="right">{formatNumber(s.inside)}</Td>
-                      <Td align="right">{formatNumber(s.checkedOut)}</Td>
-                      <Td align="right">{formatNumber(s.noShow)}</Td>
+                      {running && <Td align="right">{formatNumber(s.inside)}</Td>}
+                      {started && <Td align="right">{formatNumber(s.checkedOut)}</Td>}
+                      {started && <Td align="right">{formatNumber(s.noShow)}</Td>}
                     </Tr>
                   ))}
                 </TBody>
@@ -383,7 +402,8 @@ export default function FamilyDayDetail() {
             </Field>
           </Modal>
         </>
-      )}
+        )
+      }}
     </QueryState>
   )
 }

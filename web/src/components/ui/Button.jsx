@@ -58,9 +58,9 @@ function BaseButton({
   )
   const content = (
     <>
-      {IconBefore && <IconBefore size={iconSize} aria-hidden="true" />}
+      {IconBefore && <IconBefore size={iconSize} aria-hidden="true" className="shrink-0" />}
       {tx(children)}
-      {IconAfter && <IconAfter size={iconSize} aria-hidden="true" />}
+      {IconAfter && <IconAfter size={iconSize} aria-hidden="true" className="shrink-0" />}
     </>
   )
 

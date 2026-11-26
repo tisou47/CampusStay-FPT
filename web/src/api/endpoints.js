@@ -1,4 +1,4 @@
-import { download, http, stream } from './client'
+import { download, http, recordExport, stream } from './client'
 
 /*
  * CampusStay API endpoints used by the web app. Paths are relative to VITE_API_BASE_URL.
@@ -659,5 +659,7 @@ export const api = {
   exports: {
     /** Server-side exports (CSV/XLSX). `report` names the export, e.g. "maintenance", "occupancy". */
     download: (report, query, fallbackName) => download(`/exports/${report}`, { query, fallbackName }),
+    /** Records an export the browser builds itself (an XLSX workbook): same permission check and Audit Log entry. */
+    record: (report, query) => recordExport(`/exports/${report}`, { query }),
   },
 }

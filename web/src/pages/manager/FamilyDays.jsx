@@ -12,10 +12,18 @@ import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { StatusTag } from '@/components/ui/Tag'
-import { formatDateTime, formatNumber } from '@/lib/format'
+import { formatDateTime, formatDateTimeRange, formatNumber } from '@/lib/format'
 import { t } from '@/i18n'
 import { FamilyDayFormModal } from './familyDayForm'
 import { familyDayStatusLabel } from '@/lib/familyDayStatus'
+
+/** Where registration stands: when it opens, until when it is open, or that it is over. */
+function registrationLabel(d) {
+  if (d.status === 'Cancelled') return <span className="text-fg-tertiary">—</span>
+  if (d.status === 'Draft' || d.status === 'Published') return t('Opens {time}', { time: formatDateTime(d.registrationOpensAt) })
+  if (d.status === 'Registration open') return t('Open until {time}', { time: formatDateTime(d.registrationClosesAt) })
+  return <span className="text-fg-secondary">{t('Closed')}</span>
+}
 
 // SCR-VIS-01 Family Days — Manager › Students (ADR-29, contract A-69) and Staff › Family Day desk list. A Manager
 // creates a Draft for a Block, publishes it (the Block's residents are told), cancels it while no guest came in and
@@ -54,7 +62,6 @@ export default function FamilyDays({ role = 'manager' }) {
     <>
       <PageHeader
         title="Family Days"
-        description="Days on which residents' families visit a common area of their block."
         actions={
           manager && (
             <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>
@@ -81,32 +88,29 @@ export default function FamilyDays({ role = 'manager' }) {
         <THead>
           <tr>
             <Th>Family Day</Th>
-            <Th className="w-20">Block</Th>
-            <Th className="w-48">Time</Th>
-            <Th className="w-48">Registration closes</Th>
-            <Th className="w-32" align="right">
+            <Th className="w-64">Time</Th>
+            <Th className="w-56">Registration</Th>
+            <Th className="w-36" align="right">
               Guests
             </Th>
-            <Th className="w-24" align="right">
-              Inside
-            </Th>
-            <Th className="w-44">Status</Th>
+            <Th className="w-40">Status</Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={HeartHandshake} emptyTitle="No Family Days yet" />
+          <TableStatus query={query} colSpan={5} emptyIcon={HeartHandshake} emptyTitle="No Family Days yet" />
           {items.map((d) => (
             <Tr key={d.id} className="[&>td]:h-12" onClick={() => navigate(`${base}/${d.id}`)}>
               <Td>
-                <TwoLine primary={d.title} secondary={d.area} />
+                <TwoLine primary={d.title} secondary={t('Block {block} · {area}', { block: d.block, area: d.area })} />
               </Td>
-              <Td>{d.block}</Td>
-              <Td className="whitespace-nowrap">
-                <TwoLine primary={formatDateTime(d.startsAt)} secondary={t('until {time}', { time: formatDateTime(d.endsAt) })} />
+              <Td className="whitespace-nowrap">{formatDateTimeRange(d.startsAt, d.endsAt)}</Td>
+              <Td className="whitespace-nowrap">{registrationLabel(d)}</Td>
+              <Td align="right">
+                <TwoLine
+                  primary={t('{booked} / {capacity}', { booked: formatNumber(d.booked), capacity: formatNumber(d.capacity) })}
+                  secondary={d.status === 'In progress' ? t('{n} inside now', { n: formatNumber(d.inside) }) : undefined}
+                />
               </Td>
-              <Td className="whitespace-nowrap">{formatDateTime(d.registrationClosesAt)}</Td>
-              <Td align="right">{t('{booked} / {capacity}', { booked: formatNumber(d.booked), capacity: formatNumber(d.capacity) })}</Td>
-              <Td align="right">{formatNumber(d.inside)}</Td>
               <Td>
                 <StatusTag status={d.status}>{familyDayStatusLabel(d.status)}</StatusTag>
               </Td>

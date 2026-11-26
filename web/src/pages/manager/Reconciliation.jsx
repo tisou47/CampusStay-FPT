@@ -167,7 +167,6 @@ export default function Reconciliation() {
     <>
       <PageHeader
         title="Reconciliation"
-        description="Compare the enrolled list of a term with its residents and applicants, and resolve every difference."
         actions={
           o?.terms?.length > 0 && (
             <Select
@@ -224,7 +223,8 @@ export default function Reconciliation() {
               <>
                 <div className="flex shrink-0 items-center gap-3">
                   <Select
-                    wrapperClassName="w-120"
+                    fit
+                    wrapperClassName="min-w-120 max-w-full"
                     aria-label={t('File')}
                     value={shownRun}
                     onChange={(e) => setRunId(e.target.value)}

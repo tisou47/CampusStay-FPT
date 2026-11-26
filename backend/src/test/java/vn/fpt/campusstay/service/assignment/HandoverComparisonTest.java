@@ -70,6 +70,24 @@ class HandoverComparisonTest {
         assertThat(over.notes()).containsExactly("Electricity +25 kWh (allowed 24 kWh)");
     }
 
+    /**
+     * TC-ASG-064: meters only go up: a reading below the record beyond the lower tolerance is a Major difference, one
+     * within it matches.
+     */
+    @Test
+    void readingBelowTheRecordIsMajor() {
+        HandoverComparison.Limits limits = new HandoverComparison.Limits(new BigDecimal("2"), new BigDecimal("0.25"),
+                new BigDecimal("0.2"), new BigDecimal("0.01"), 3, new BigDecimal("0.5"), new BigDecimal("0.05"));
+        HandoverComparison.Result lower = HandoverComparison.compare(List.of(), new BigDecimal("1450"),
+                new BigDecimal("1703"), new BigDecimal("45"), new BigDecimal("45"), 48, 1, limits);
+        assertThat(lower.level()).isEqualTo("MAJOR");
+        assertThat(lower.notes()).containsExactly("Electricity -253 kWh (lower than the record: meters only go up)");
+        assertThat(HandoverComparison.compare(List.of(), new BigDecimal("1702.6"), new BigDecimal("1703"),
+                new BigDecimal("44.96"), new BigDecimal("45"), 0, 1, limits).level()).isEqualTo("MATCHED");
+        // Without a lower tolerance any lower reading needs a visit.
+        assertThat(compare(List.of(), "99.9", "10", 0, 1).level()).isEqualTo("MAJOR");
+    }
+
     /** TC-ASG-052: items the record does not know are never a difference. */
     @Test
     void itemsWithoutRecordAreNotCompared() {

@@ -15,7 +15,7 @@ import { Field, Select, Textarea } from '@/components/ui/Field'
 import { EmptyBlock, ErrorState, LoadingState } from '@/components/ui/States'
 import { SlaBadge, StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
-import { campusToday, formatDateTime } from '@/lib/format'
+import { campusToday, formatDateTime, formatTime } from '@/lib/format'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
@@ -26,7 +26,10 @@ import { t, tr } from '@/i18n'
 //   assignee: { id, name } | null, suggestedAssigneeId, visitWindow,
 //   events: [{ who, role, at, text, message, internal }], roomSummary: { residents, capacity, otherOpen, pastThisTerm },
 //   slaDueAt, furnitureItem: { id, assetCode, type, typeVi } | null, furnitureOptions: [{ id, assetCode, type, typeVi }],
-//   inspectionFinding: { condition: Good | Worn | Damaged | Missing | null, result: Pass | Fail, note, runId, inspectedAt } | null }
+//   inspectionFinding: { condition: Good | Worn | Damaged | Missing | null, result: Pass | Fail, note, runId, inspectedAt } | null,
+//   staff: [{ id, name, skills }] (who may be assigned: the staff of the request's own Block),
+//   furnitureItemFixed (the item came with the request, from an inspection: shown as text) }
+// Staff only take an unassigned request for themselves (assigneeId = their own id); Managers assign anyone.
 // PATCH /maintenance-requests/:id { priority, furnitureItemId, assigneeId, visitWindow, status }
 // POST /maintenance-requests/:id/updates { message, internal }
 
@@ -77,6 +80,14 @@ function FurnitureItem({ r }) {
     { value: '', label: t('Not about a furniture item') },
     ...(r.furnitureOptions ?? []).map((f) => ({ value: f.id, label: `${typeName(f)} · ${f.assetCode}` })),
   ]
+  // Once a furniture item is already bound to the request (e.g. from an inspection or already linked), show it as static text instead of a dropdown.
+  if (r.furnitureItem && (r.furnitureItemFixed || r.inspectionFinding || r.furnitureItem.id || r.furnitureItem.assetCode)) {
+    return (
+      <Fact label="Furniture item" tip="This request is linked to this item. The item's history lists the repair.">
+        {r.furnitureItem.assetCode ? `${typeName(r.furnitureItem)} · ${r.furnitureItem.assetCode}` : typeName(r.furnitureItem) || '—'}
+      </Fact>
+    )
+  }
   return (
     <Fact label="Furniture item" tip="The item's history lists this request when it is reported and resolved.">
       <Select
@@ -135,16 +146,20 @@ function RequestDetail({ r, staff, priorities }) {
   const open = OPEN.includes(r.status)
   const options = { invalidates: ['maintenance', 'dashboard'] }
 
-  const save = useMutation(() => api.maintenance.update(r.id, { priority, assigneeId: assigneeId || null, visitWindow: visit.trim() || null }), {
-    ...options,
-    onSuccess: () => notify({ title: studentRequest ? 'Saved and student notified' : 'Saved', message: studentRequest ? t('{name} gets an in-app notification and an email.', { name: r.reporter.name }) : t('{id} was updated.', { id: r.id }) }),
-    onError: (e) => notifyError(e, 'Could not save'),
-  })
-  // The person in charge does the work: other Staff take the request over first (Managers may act on any request).
+  // The person in charge does the work. Staff only take an unassigned request for themselves; assigning it to someone
+  // else or moving it from one person to another is a Manager's (the server refuses it to Staff).
   const { user } = useSession()
   const isStaff = user?.role === 'staff'
   const mine = r.assignee && String(r.assignee.id) === String(user?.id)
   const someoneElse = isStaff && r.assignee && !mine
+  const save = useMutation(
+    () => api.maintenance.update(r.id, { priority, ...(isStaff ? {} : { assigneeId: assigneeId || null }), visitWindow: visit.trim() || null }),
+    {
+      ...options,
+      onSuccess: () => notify({ title: studentRequest ? 'Saved and student notified' : 'Saved', message: studentRequest ? t('{name} gets an in-app notification and an email.', { name: r.reporter.name }) : t('{id} was updated.', { id: r.id }) }),
+      onError: (e) => notifyError(e, 'Could not save'),
+    },
+  )
   const setStatus = useMutation(
     (status) =>
       api.maintenance.update(r.id, {
@@ -158,10 +173,11 @@ function RequestDetail({ r, staff, priorities }) {
       onError: (e) => notifyError(e, 'Could not change the status'),
     },
   )
+  // Staff take an unassigned request for themselves.
   const takeOver = useMutation(() => api.maintenance.update(r.id, { assigneeId: user.id }), {
     ...options,
-    onSuccess: () => notify({ title: t('You are now in charge of {id}', { id: r.id }), message: t('{name} sees the change in the request history.', { name: r.assignee?.name ?? t('Your colleague') }) }),
-    onError: (e) => notifyError(e, 'Could not take the request over'),
+    onSuccess: () => notify({ title: t('You are now in charge of {id}', { id: r.id }), message: 'Start the work, keep the student updated and mark it resolved when it is fixed.' }),
+    onError: (e) => notifyError(e, 'Could not take the request'),
   })
   const post = useMutation(() => api.maintenance.addUpdate(r.id, { message: message.trim(), internal }), {
     ...options,
@@ -181,8 +197,8 @@ function RequestDetail({ r, staff, priorities }) {
       <PageHeader
         breadcrumb={<Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: r.id }]} />}
         title={
-          <span className="block max-w-[34vw] truncate" title={r.title}>
-            {r.title}
+          <span className="block max-w-[34vw] truncate" title={tr(r.title)}>
+            {tr(r.title)}
           </span>
         }
         badge={
@@ -198,11 +214,7 @@ function RequestDetail({ r, staff, priorities }) {
         }
         actions={
           <>
-            {someoneElse && r.status !== 'Closed' ? (
-              <Button variant="primary" icon={UserCheck} onClick={() => takeOver.run()} disabled={busy}>
-                Take over
-              </Button>
-            ) : open ? (
+            {someoneElse && r.status !== 'Closed' ? null : open ? (
               <>
                 <Button variant={r.status === 'In progress' ? 'primary' : 'default'} icon={Check} onClick={() => setStatus.run('Resolved')} disabled={busy}>
                   Mark resolved
@@ -225,7 +237,7 @@ function RequestDetail({ r, staff, priorities }) {
 
       {someoneElse && r.status !== 'Closed' && (
         <Alert type="warning" title={t('{name} is in charge of this request', { name: r.assignee.name })} className="shrink-0">
-          {t('Only the person in charge changes its status. If they are away or off duty, take it over: the request history shows who took it from whom.')}
+          {t('Only the person in charge changes its status. If they are away or off duty, ask a Manager to move it to someone else.')}
         </Alert>
       )}
       {isStaff && mine && open && (
@@ -244,14 +256,15 @@ function RequestDetail({ r, staff, priorities }) {
         </Alert>
       )}
 
-      {/* One screen, two columns: the request and its conversation | what the desk decides.
-          Only the update history scrolls, inside its card; narrow screens stack the columns. */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto xl:grid-cols-[minmax(0,1fr)_360px] xl:overflow-hidden">
-        <div className="flex min-h-0 flex-col gap-4">
+      {/* Two columns: the request and its conversation | what the desk decides. */}
+      <div className="grid flex-1 grid-cols-1 items-start gap-4 pb-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-4">
           {/* What the student reported */}
           <Card className="flex shrink-0 flex-col gap-4">
             <InspectionFinding finding={r.inspectionFinding} item={r.furnitureItem} />
-            {r.description && <p className="rounded-md bg-subtle px-4 py-3 text-base whitespace-pre-line text-fg">{r.description}</p>}
+            {r.description && r.description.trim() !== r.inspectionFinding?.note?.trim() && (
+              <p className="rounded-md bg-subtle px-4 py-3 text-base whitespace-pre-line text-fg">{tr(r.description)}</p>
+            )}
             {r.photos?.length > 0 && (
               <ul className="flex flex-wrap gap-2" aria-label={t('Photos')}>
                 {r.photos.map((p) => (
@@ -272,28 +285,28 @@ function RequestDetail({ r, staff, priorities }) {
             </dl>
           </Card>
 
-          {/* The conversation: history scrolls, the composer stays at the bottom */}
-          <Card className="flex min-h-[360px] flex-1 flex-col gap-3 xl:min-h-0">
+          {/* The conversation: generous height for history + full-width composer at the bottom */}
+          <Card className="flex flex-col gap-3.5">
             <h2 className="flex shrink-0 items-center gap-2 text-h3 font-semibold text-fg">
               <MessageSquare size={18} aria-hidden="true" className="text-fg-secondary" />
               {t('Updates')}
               <span className="text-sm font-normal text-fg-tertiary">{(r.events ?? []).length}</span>
             </h2>
-            <ol className="-mr-2 flex min-h-0 flex-1 flex-col overflow-y-auto pr-2">
+            <ol className="-mr-2 flex max-h-80 min-h-44 flex-col overflow-y-auto pr-2">
               {(r.events ?? []).map((e, i, all) => (
                 <Event key={`${i}-${e.at}`} event={e} last={i === all.length - 1} />
               ))}
             </ol>
-            <div className="flex shrink-0 items-end gap-3 border-t border-line pt-3">
+            <div className="flex shrink-0 flex-col gap-2.5 border-t border-line pt-3">
               <Textarea
                 aria-label={t('Update')}
-                rows={2}
+                rows={3}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={internal || !studentRequest ? 'Write an internal note for staff…' : 'Write an update for the student…'}
-                className="min-w-0 flex-1"
+                className="w-full"
               />
-              <div className="flex shrink-0 flex-col items-end gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <Checkbox label="Internal note (hidden from the student)" checked={internal} onChange={(e) => setInternal(e.target.checked)} />
                 <Button variant="primary" onClick={() => post.run()} disabled={!message.trim() || post.pending}>
                   Post update
@@ -304,7 +317,7 @@ function RequestDetail({ r, staff, priorities }) {
         </div>
 
         {/* 3 · What the desk decides */}
-        <Card className="flex min-h-0 flex-col gap-3.5 self-start xl:max-h-full xl:overflow-y-auto">
+        <Card className="flex flex-col gap-3.5 self-start">
           <h2 className="text-h3 font-semibold text-fg">{t('Handling')}</h2>
           {r.slaDueAt && open && (
             <div className="flex items-center justify-between gap-3 rounded-md bg-subtle px-3 py-2 text-sm text-fg-secondary">
@@ -318,17 +331,34 @@ function RequestDetail({ r, staff, priorities }) {
           <Field label="Priority" helper={studentRequest && r.urgency ? t('The student marked it {urgency}.', { urgency: tr(r.urgency) }) : undefined}>
             {(id) => <Select id={id} value={priority ?? ''} onChange={(e) => setPriority(e.target.value)} options={priorities} />}
           </Field>
-          <Field label="Assignee">
-            {(id) => (
-              <Select
-                id={id}
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                options={[{ value: '', label: 'Unassigned' }, ...staff.map((m) => ({ value: m.id, label: m.skills?.length ? `${m.name} · ${tr(m.skills[0])}` : m.name }))]}
-              />
-            )}
-          </Field>
-          <VisitWindowField value={visit} onChange={setVisit} />
+          {isStaff ? (
+            // Staff see who is in charge; they can only take an unassigned request for themselves.
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-fg">{t('Assignee')}</span>
+              <div className="flex min-h-10 items-center justify-between gap-3 rounded-md border border-line bg-subtle px-3 py-2">
+                <span className={cx('min-w-0 truncate text-base', r.assignee ? 'font-medium text-fg' : 'text-fg-tertiary')}>
+                  {r.assignee ? (mine ? t('{name} (you)', { name: r.assignee.name }) : r.assignee.name) : t('Unassigned')}
+                </span>
+                {!r.assignee && open && (
+                  <Button size="sm" icon={UserCheck} onClick={() => takeOver.run()} disabled={busy}>
+                    Take this request
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Field label="Assignee">
+              {(id) => (
+                <Select
+                  id={id}
+                  value={assigneeId}
+                  onChange={(e) => setAssigneeId(e.target.value)}
+                  options={[{ value: '', label: 'Unassigned' }, ...staff.map((m) => ({ value: m.id, label: m.skills?.length ? `${m.name} · ${tr(m.skills[0])}` : m.name }))]}
+                />
+              )}
+            </Field>
+          )}
+          <VisitWindowField value={visit} onChange={setVisit} hours={r.visitHours} />
           <Button variant="primary" icon={Check} block onClick={() => save.run()} disabled={busy}>
             {studentRequest ? 'Save and notify student' : 'Save'}
           </Button>
@@ -341,28 +371,53 @@ function RequestDetail({ r, staff, priorities }) {
 // The visit window stays the text "dd/mm/yyyy hh:mm – hh:mm" the API stores; it is picked as a day and two whole
 // hours. A window written another way is kept until a new day is chosen.
 const WINDOW = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2}) – (\d{2}:\d{2})$/
-function VisitWindowField({ value, onChange }) {
+// A new window starts from now on and stays inside the Block's desk hours (hours: { from, until } "HH:mm", or null:
+// the whole day); the API refuses anything else.
+function VisitWindowField({ value, onChange, hours }) {
   const m = WINDOW.exec(value ?? '')
   const day = m ? `${m[3]}-${m[2]}-${m[1]}` : ''
   const [from, to] = m ? [m[4], m[5]] : ['', '']
+  const opens = hours?.from ?? '00:00'
+  const closes = hours?.until ?? '23:00'
+  const today = campusToday()
+  const now = formatTime(new Date()) // "HH:mm" on the campus clock
+  // A start must still be ahead: today's hours already begun are greyed out.
+  const past = (d, s) => d === today && s <= now
+  const firstStart = (d) => {
+    const [h, mm] = opens.split(':').map(Number)
+    for (let x = h; x < 24; x++) {
+      const s = `${String(x).padStart(2, '0')}:${String(x === h ? mm : 0).padStart(2, '0')}`
+      if (s >= opens && s < closes && !past(d, s)) return s
+    }
+    return ''
+  }
   const write = (d, a, b) => {
     if (!d) return onChange('')
     const [y, mo, dd] = d.split('-')
-    const start = a || '08:00'
-    const end = b && b > start ? b : `${String(Math.min(23, Number(start.slice(0, 2)) + 2)).padStart(2, '0')}:00`
+    const start = a && !past(d, a) ? a : firstStart(d)
+    if (!start) return onChange('')
+    const twoLater = `${String(Math.min(23, Number(start.slice(0, 2)) + 2)).padStart(2, '0')}:${start.slice(3)}`
+    const end = b && b > start && b <= closes ? b : twoLater <= closes ? twoLater : closes
     onChange(`${dd}/${mo}/${y} ${start} – ${end}`)
   }
-  const min = campusToday()
+  // Today is offered only while a start is still possible before the desk closes.
+  const min = firstStart(today) ? today : nextDay(today)
+  const outside = m && (from < opens || to > closes)
   return (
-    <Field label="Visit window" helper={value && !m ? t('Written as: {value}', { value }) : undefined}>
+    <Field
+      label="Visit window"
+      error={outside ? t("Outside the Block's hours") : undefined}
+      helper={value && !m ? t('Written as: {value}', { value }) : hours ? t("Visits are planned within the Block's hours, {from} – {until}, from now on.", { from: opens, until: closes }) : undefined}
+    >
       {(id) => (
         <div className="flex flex-col gap-2">
           <DatePicker id={id} clearable value={day} minDate={min} onChange={(d) => write(d, from, to)} />
           <TimeRangePicker
             value={{ start: from, end: to }}
             disabled={!day}
-            minTime="00:00"
-            maxTime="23:00"
+            minTime={opens}
+            maxTime={closes}
+            disabledTimes={(s) => past(day, s)}
             onChange={({ start, end }) => write(day, start, end)}
           />
         </div>
@@ -371,13 +426,19 @@ function VisitWindowField({ value, onChange }) {
   )
 }
 
+function nextDay(isoDay) {
+  const d = new Date(`${isoDay}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
 export default function MaintenanceDetail() {
   const { id } = useParams()
   const base = useRoleBase()
   const query = useQuery(['maintenance', id], ({ signal }) => api.maintenance.get(id, { signal }))
   const options = useQuery(['maintenance-options', 'staff'], ({ signal }) => api.maintenance.options({ for: 'staff' }, { signal }))
 
-  if (query.data) return <RequestDetail r={query.data} staff={options.data?.staff ?? []} priorities={options.data?.priorities ?? [query.data.priority].filter(Boolean)} />
+  if (query.data) return <RequestDetail r={query.data} staff={query.data.staff ?? options.data?.staff ?? []} priorities={options.data?.priorities ?? [query.data.priority].filter(Boolean)} />
   return (
     <>
       <PageHeader breadcrumb={<Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: id }]} />} title={id} />

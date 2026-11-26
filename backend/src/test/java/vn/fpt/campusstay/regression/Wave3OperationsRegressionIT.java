@@ -168,7 +168,8 @@ class Wave3OperationsRegressionIT {
     void closedRequestTakesOnlyInternalNotes() throws Exception {
         r.livesIn(2, "A-102", "A", true);
         String code = r.report(2, "Normal");
-        jdbc.sql("UPDATE mnt_request SET status = 'CLOSED', resolved_at = now(), closed_at = now() WHERE code = :c")
+        // Staff work only the requests assigned to them (feat/manager-ui-1).
+        jdbc.sql("UPDATE mnt_request SET status = 'CLOSED', resolved_at = now(), closed_at = now(), assignee_id = (SELECT id FROM auth_user WHERE email = 'staff.a1@campusstay.test') WHERE code = :c")
                 .param("c", code).update();
         String staff = r.bearer(TestAuth.STAFF_A);
         var res = r.postJson("/maintenance-requests/" + code + "/updates", staff,

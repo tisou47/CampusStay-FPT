@@ -420,7 +420,6 @@ export default function AssignmentRuns() {
     <>
       <PageHeader
         title="Assignment"
-        description="The engine proposes a room and bed for every approved application."
         tip="Managers resolve conflicts and commit per block; Round 2 then offers the free beds to waitlisted students."
         actions={
           tab === 'runs' && (

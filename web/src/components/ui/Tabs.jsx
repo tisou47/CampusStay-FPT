@@ -1,15 +1,19 @@
 import { Link } from 'react-router'
 import { tx } from '@/i18n'
 import { cx } from '@/lib/cx'
+import { formatNumber } from '@/lib/format'
+import { Tooltip } from './Tooltip'
 
 /**
- * Underline tabs (Requests, Approvals…): 2 px action/primary underline on the active tab,
- * Label/Base text, border/default baseline. Items: { key, label, count?, to? }.
+ * Underline tabs (Requests, Approvals, Inventories, Check-out, Inspections…):
+ * 2 px primary underline on the active tab, optional count pill badge, and optional hint tooltip.
+ * Items: { key, label, count?, hint?, to? }.
  */
-export function Tabs({ items, value, onChange, className }) {
+export function Tabs({ items, value, onChange, label, className }) {
   // Tabs that are links go to other pages: they are navigation (the active one is the current page), not a tablist.
   const isNav = items.some((item) => item.to)
   const Box = isNav ? 'nav' : 'div'
+  // Arrow keys move between tabs and Home / End jump to the ends; focus follows the selection (WAI-ARIA tabs).
   const onKeyDown = (e) => {
     const keys = items.map((item) => item.key)
     const i = keys.indexOf(value)
@@ -20,18 +24,39 @@ export function Tabs({ items, value, onChange, className }) {
     onChange?.(key)
     e.currentTarget.querySelector(`[data-tab-key="${CSS.escape(String(key))}"]`)?.focus()
   }
+
   return (
-    <Box role={isNav ? undefined : 'tablist'} onKeyDown={isNav ? undefined : onKeyDown} className={cx('flex items-start gap-6 border-b border-line', className)}>
+    <Box
+      role={isNav ? undefined : 'tablist'}
+      aria-label={label}
+      onKeyDown={isNav ? undefined : onKeyDown}
+      className={cx('flex shrink-0 items-center gap-6 overflow-x-auto border-b border-line scrollbar-none', className)}
+    >
       {items.map((item) => {
         const active = item.key === value
-        const label = item.count != null ? `${tx(item.label)} · ${item.count}` : tx(item.label)
+        const hasCount = item.count !== undefined
         const classes = cx(
-          '-mb-px flex items-center border-b-2 py-2.5 text-base font-medium whitespace-nowrap transition-colors',
+          'relative -mb-px flex cursor-pointer items-center gap-2 border-b-2 pt-1 pb-3 text-base font-medium whitespace-nowrap transition-colors focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus',
           active ? 'border-primary text-fg-brand' : 'border-transparent text-fg-secondary hover:text-fg',
         )
-        return item.to ? (
+        const content = (
+          <>
+            <span>{tx(item.label)}</span>
+            {hasCount && (
+              <span
+                className={cx(
+                  'rounded-full px-2 py-0.5 text-xs tabular-nums',
+                  active ? 'bg-primary-subtle font-semibold text-fg-brand' : 'bg-subtle font-medium text-fg-secondary',
+                )}
+              >
+                {item.count == null ? '—' : formatNumber(item.count)}
+              </span>
+            )}
+          </>
+        )
+        const node = item.to ? (
           <Link key={item.key} to={item.to} aria-current={active ? 'page' : undefined} className={classes}>
-            {label}
+            {content}
           </Link>
         ) : (
           <button
@@ -42,14 +67,26 @@ export function Tabs({ items, value, onChange, className }) {
             tabIndex={isNav || active || !items.some((x) => x.key === value) ? undefined : -1}
             aria-selected={isNav ? undefined : active}
             aria-current={isNav && active ? 'true' : undefined}
-            onClick={() => onChange?.(item.key)} className={classes}>
-            {label}
+            aria-description={item.hint ? tx(item.hint) : undefined}
+            onClick={() => onChange?.(item.key)}
+            className={classes}
+          >
+            {content}
           </button>
+        )
+        return item.hint ? (
+          <Tooltip key={item.key} label={tx(item.hint)}>
+            {node}
+          </Tooltip>
+        ) : (
+          node
         )
       })}
     </Box>
   )
 }
+
+export const UnderlineTabs = Tabs
 
 /** Segmented control (pill group) for compact filters. */
 export function Segmented({ options, value, onChange, className }) {

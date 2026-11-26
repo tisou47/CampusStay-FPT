@@ -46,11 +46,12 @@ class FinanceController {
         return finance.summary(termId, block);
     }
 
+    /** {@code q}: part of the student's name, student code or Invoice code. */
     @GetMapping("/finance/overdue")
     FinanceService.OverduePage overdue(@RequestParam(required = false) Long termId,
-            @RequestParam(required = false) String block, @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
-        return finance.overdue(termId, block, PageQuery.of(page, pageSize));
+            @RequestParam(required = false) String block, @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return finance.overdue(termId, block, q, PageQuery.of(page, pageSize));
     }
 
     @PostMapping("/finance/reminders")
@@ -58,18 +59,21 @@ class FinanceController {
         return finance.remind(body.invoiceIds());
     }
 
+    /** {@code q}: part of the student's name, student code or Invoice code. */
     @GetMapping("/invoices")
     FinanceService.InvoicePage invoices(@RequestParam(required = false) Long termId,
-            @RequestParam(required = false) String block, @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
-        return finance.invoices(termId, block, PageQuery.of(page, pageSize));
+            @RequestParam(required = false) String block, @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return finance.invoices(termId, block, q, PageQuery.of(page, pageSize));
     }
 
+    /** {@code q}: part of the student's name or student code. */
     @GetMapping("/refunds")
     FinanceService.RefundPage refunds(@RequestParam(required = false) Long termId,
             @RequestParam(required = false) String block, @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
-        return finance.refunds(termId, block, status, PageQuery.of(page, pageSize));
+            @RequestParam(required = false) String q, @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize) {
+        return finance.refunds(termId, block, status, q, PageQuery.of(page, pageSize));
     }
 
     record Reminded(Instant remindedAt) {

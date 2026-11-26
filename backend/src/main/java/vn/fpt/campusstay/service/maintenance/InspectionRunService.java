@@ -185,11 +185,13 @@ public class InspectionRunService {
     private final FileStore files;
     private final FileLinks links;
     private final Parameters parameters;
+    private final RequestAudience audience;
 
     public InspectionRunService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, UserDirectory users,
             Inventory inventory, Catalog catalog, TermCatalog terms, Residences residences, ChecklistService checklists,
             RequestStore requests, Billing billing, ApplicationEventPublisher events, AuditLog audit, Clock clock,
-            BlockDirectory blockCodes, FileStore files, FileLinks links, Parameters parameters) {
+            BlockDirectory blockCodes, FileStore files, FileLinks links, Parameters parameters, RequestAudience audience) {
+        this.audience = audience;
         this.blockCodes = blockCodes;
         this.files = files;
         this.links = links;
@@ -353,7 +355,7 @@ public class InspectionRunService {
             String note = e.getValue().note();
             Long requestId = before.containsKey(item.id()) ? before.get(item.id()).requestId() : null;
             if (result.equals("FAIL") && requestId == null && createRequests && info != null) {
-                NewRequest request = createRequest(run, info, item, note, me.userId(), now);
+                NewRequest request = createRequest(run, info, item, note, me.userId(), inspector(me), now);
                 requestId = request.id();
                 created.add(request.code());
             }
@@ -390,7 +392,7 @@ public class InspectionRunService {
             }
             if (result.equals("FAIL") && requestId == null && !handled && createRequests && info != null
                     && check.kind().equals("furniture")) {
-                NewRequest request = furnitureRequest(run, info, check, note, me.userId(), now);
+                NewRequest request = furnitureRequest(run, info, check, note, me.userId(), inspector(me), now);
                 requestId = request.id();
                 created.add(request.code());
             }
@@ -754,7 +756,7 @@ public class InspectionRunService {
     }
 
     private NewRequest furnitureRequest(Run run, Inventory.BedSlot room, RoomCheck check, String note, long reporter,
-            Instant now) {
+            Long assignee, Instant now) {
         String code = InspectionScheduleService.code(run.id());
         long itemId = Long.parseLong(check.id().substring("furniture-".length()));
         String title = check.type() + " " + check.assetCode() + " needs a repair";
@@ -762,11 +764,11 @@ public class InspectionRunService {
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('mnt_request', 'id')) AS id)
                 INSERT INTO mnt_request (id, code, term_id, room_id, building_id, room_code, reporter_id, source, title,
                                          description, category, location, urgency, priority, staff_may_enter,
-                                         reported_at, furniture_item_id)
+                                         reported_at, furniture_item_id, assignee_id, status)
                 OVERRIDING SYSTEM VALUE
                 SELECT id, 'MR-' || lpad(id::text, greatest(6, length(id::text)), '0'), :term, :room, :building, :roomCode,
                        :reporter, 'INSPECTION', :title, :description, 'FURNITURE', 'ROOM', 'NORMAL', 'MEDIUM', TRUE, :now,
-                       :item
+                       :item, :assignee, CASE WHEN :assignee::bigint IS NULL THEN 'SUBMITTED' ELSE 'ASSIGNED' END
                 FROM next
                 RETURNING id, code
                 """)
@@ -774,25 +776,28 @@ public class InspectionRunService {
                 .param("room", room.roomId()).param("building", room.buildingId()).param("roomCode", room.roomCode())
                 .param("reporter", reporter).param("title", title.length() > 150 ? title.substring(0, 150) : title)
                 .param("description", note != null ? note : "Failed in inspection " + code + ".")
-                .param("now", Timestamp.from(now)).param("item", itemId)
+                .param("now", Timestamp.from(now)).param("item", itemId).param("assignee", assignee)
                 .query((rs, i) -> new NewRequest(rs.getLong("id"), rs.getString("code"))).single();
         requests.event(row.id(), reporter, "STAFF", "Created from inspection " + code, null, false, now);
+        assignedToInspector(row.id(), assignee, now);
+        tellResidents(row, room, title, assignee, code);
         events.publishEvent(new MaintenanceReported(row.id(), row.code(), room.buildingId(), "FURNITURE", "NORMAL"));
         events.publishEvent(new FurnitureRepairLogged(itemId, row.code(), title, "Reported", reporter));
         return row;
     }
 
     private NewRequest createRequest(Run run, Inventory.BedSlot room, ChecklistService.VersionItem item, String note,
-            long reporter, Instant now) {
+            long reporter, Long assignee, Instant now) {
         String code = InspectionScheduleService.code(run.id());
         NewRequest row = jdbc.sql("""
                 WITH next AS (SELECT nextval(pg_get_serial_sequence('mnt_request', 'id')) AS id)
                 INSERT INTO mnt_request (id, code, term_id, room_id, building_id, room_code, reporter_id, source, title,
                                          description, category, location, urgency, priority, staff_may_enter,
-                                         reported_at)
+                                         reported_at, assignee_id, status)
                 OVERRIDING SYSTEM VALUE
                 SELECT id, 'MR-' || lpad(id::text, greatest(6, length(id::text)), '0'), :term, :room, :building, :roomCode,
-                       :reporter, 'INSPECTION', :title, :description, :category, 'ROOM', :urgency, :priority, TRUE, :now
+                       :reporter, 'INSPECTION', :title, :description, :category, 'ROOM', :urgency, :priority, TRUE, :now,
+                       :assignee, CASE WHEN :assignee::bigint IS NULL THEN 'SUBMITTED' ELSE 'ASSIGNED' END
                 FROM next
                 RETURNING id, code
                 """)
@@ -803,11 +808,36 @@ public class InspectionRunService {
                 .param("description", note != null ? note : "Failed in inspection " + code + ".")
                 .param("category", item.category()).param("urgency", item.severity().equals("CRITICAL") ? "URGENT" : "NORMAL")
                 .param("priority", PRIORITY.get(item.severity())).param("now", Timestamp.from(now))
+                .param("assignee", assignee)
                 .query((rs, i) -> new NewRequest(rs.getLong("id"), rs.getString("code"))).single();
         requests.event(row.id(), reporter, "STAFF", "Created from inspection " + code, null, false, now);
+        assignedToInspector(row.id(), assignee, now);
+        tellResidents(row, room, item.label(), assignee, code);
         events.publishEvent(new MaintenanceReported(row.id(), row.code(), room.buildingId(), item.category(),
                 item.severity().equals("CRITICAL") ? "URGENT" : "NORMAL"));
         return row;
+    }
+
+    /** The students living in the Room hear that a repair was opened there: Staff will come into their Room. */
+    private void tellResidents(NewRequest row, Inventory.BedSlot room, String title, Long assignee, String code) {
+        audience.notify(row.id(), row.code(), title.length() > 150 ? title.substring(0, 150) : title,
+                audience.residentsOf(room.roomId()), RequestStore.statusLabel(assignee == null ? "SUBMITTED" : "ASSIGNED"),
+                "Created from inspection " + code);
+    }
+
+    /**
+     * Who a request the inspection creates goes to: the Staff member who inspected the Room does the repair (the
+     * Block's routing rule is not asked). A Manager's inspection leaves it to the routing rule.
+     */
+    private static Long inspector(AuthenticatedUser me) {
+        return me.role() == Role.STAFF ? me.userId() : null;
+    }
+
+    private void assignedToInspector(long requestId, Long assignee, Instant now) {
+        if (assignee != null) {
+            requests.event(requestId, null, null, "Assigned to " + users.displayNames(List.of(assignee)).get(assignee)
+                    + " (inspector)", null, false, now);
+        }
     }
 
     private void started(Run run) {

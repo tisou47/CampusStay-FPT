@@ -786,4 +786,6 @@ export default {
   "Answer each item and the meters, then submit before the deadline.": "Khai từng món và chỉ số điện nước, rồi nộp trước hạn.",
   "A Manager reviews it and decides whether it is charged.": "Ban quản lý sẽ xem xét và quyết định có tính khoản này hay không.",
   "Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: a Manager reviews it and decides.": "Nhân viên ghi nhận món này là {condition}. Nếu đúng do bạn, hãy xác nhận trước {date}: {amount} sẽ được tính khi trả phòng. Nếu không, hãy từ chối: ban quản lý sẽ xem xét và quyết định.",
+  "Found in a room inspection": "Phát hiện khi kiểm tra phòng",
+  "The dormitory office found this during a room inspection. Maintenance staff will come into your room to fix it.": "Ban quản lý ký túc xá phát hiện lỗi này khi kiểm tra phòng. Nhân viên bảo trì sẽ đến phòng bạn để sửa.",
 }

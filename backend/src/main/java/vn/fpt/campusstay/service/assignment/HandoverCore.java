@@ -25,6 +25,7 @@ import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.event.CheckInInventoryFinal;
 import vn.fpt.campusstay.event.FurnitureFoundDamaged;
 import vn.fpt.campusstay.exception.ApiException;
+import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.service.billing.Billing;
 import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.service.setting.Parameters;
@@ -195,6 +196,60 @@ class HandoverCore {
         return inspected.get().electricity().compareTo(billed.get().electricity()) >= 0 ? inspected : billed;
     }
 
+    /**
+     * Refuses meter readings that cannot be right against the Room's record (Report 1, the staff inspection before
+     * arrival, or Billing's latest reading, whichever is higher): meters only go up, so a reading lower than the
+     * record by more than {@code handover.*_below_tolerance} is refused, and one higher than the record plus the use
+     * accepted since it plus {@code handover.*_max_above} (0: no limit) is refused as a typo. Anything in between is
+     * compared afterwards ({@link HandoverComparison}: beyond the accepted use is a Major difference).
+     *
+     * @param forStaff Staff may see the record's numbers in the message; a student never does
+     */
+    void checkReadings(Row h, BigDecimal electricity, BigDecimal water, boolean forStaff) {
+        BigDecimal baseE = h.baselineElectricity();
+        BigDecimal baseW = h.baselineWater();
+        Optional<Billing.MeterValue> last = billing.lastReading(h.roomId());
+        if (last.isPresent()) {
+            baseE = baseE == null ? last.get().electricity() : baseE.max(last.get().electricity());
+            baseW = baseW == null ? last.get().water() : baseW.max(last.get().water());
+        }
+        // The typo limit comes on top of the use accepted for the person-hours lived in the Room since the reading, so a
+        // Room lived in for weeks is never refused for its normal use.
+        long hours = personHours(h.roomId(), h.baselineAt(), Instant.now(clock));
+        BigDecimal useE = HandoverComparison.allowed(parameters.decimalValue("handover.electricity_tolerance"),
+                parameters.decimalValue("handover.electricity_per_person_hour"), hours, 1);
+        BigDecimal useW = HandoverComparison.allowed(parameters.decimalValue("handover.water_tolerance"),
+                parameters.decimalValue("handover.water_per_person_hour"), hours, 1);
+        FieldErrors errors = new FieldErrors();
+        checkReading(errors, "electricity", "kWh", electricity, baseE,
+                parameters.decimalValue("handover.electricity_below_tolerance"), useE,
+                parameters.decimalValue("handover.electricity_max_above"), forStaff);
+        checkReading(errors, "water", "m³", water, baseW, parameters.decimalValue("handover.water_below_tolerance"),
+                useW, parameters.decimalValue("handover.water_max_above"), forStaff);
+        errors.throwIfAny();
+    }
+
+    private static void checkReading(FieldErrors errors, String field, String unit, BigDecimal value, BigDecimal base,
+            BigDecimal belowTolerance, BigDecimal use, BigDecimal maxAbove, boolean forStaff) {
+        if (value == null || base == null) {
+            return;
+        }
+        BigDecimal floor = base.subtract(belowTolerance.max(BigDecimal.ZERO));
+        String record = forStaff ? " (" + base.stripTrailingZeros().toPlainString() + " " + unit + ")" : "";
+        if (value.compareTo(floor) < 0) {
+            errors.check(false, field, forStaff
+                    ? "The reading is lower than the Room's record" + record
+                            + ": meters only go up. Read the meter again; if it was replaced, record it in an inspection."
+                    : "The reading cannot be lower than the meter's previous reading. Please check the meter in the Room again.");
+            return;
+        }
+        if (maxAbove.signum() > 0 && value.compareTo(base.add(use).add(maxAbove)) > 0) {
+            errors.check(false, field, forStaff
+                    ? "The reading is far above the Room's record" + record + ". Check it for a typo."
+                    : "The reading is far above the meter's previous reading. Check it for a typo.");
+        }
+    }
+
     /** The other students' final inventories of the Room, for prefilling shared items: item id → condition. */
     Map<Long, String> roommateAnswers(long roomId, long exceptAllocation) {
         Map<Long, String> answers = new LinkedHashMap<>();
@@ -279,7 +334,9 @@ class HandoverCore {
                 parameters.decimalValue("handover.electricity_per_person_hour"),
                 parameters.decimalValue("handover.water_tolerance"),
                 parameters.decimalValue("handover.water_per_person_hour"),
-                parameters.intValue("handover.major_mismatches"));
+                parameters.intValue("handover.major_mismatches"),
+                parameters.decimalValue("handover.electricity_below_tolerance"),
+                parameters.decimalValue("handover.water_below_tolerance"));
         HandoverComparison.Result result = HandoverComparison.compare(items, h.electricity(), h.baselineElectricity(),
                 h.water(), h.baselineWater(), hours, residents, limits);
         String note = String.join("\n", result.notes());

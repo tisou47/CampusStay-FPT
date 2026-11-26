@@ -37,7 +37,6 @@ export default function BlockReports() {
     <>
       <PageHeader
         title={block ? t('Reports · Block {code}', { code: block }) : 'Reports'}
-        description={`${term ? `${term.name} · ` : ''}${t('Data refreshes nightly. Exports are CSV files and include the blocks in your scope.')}`}
       />
 
       <div className="flex shrink-0 items-stretch gap-4">

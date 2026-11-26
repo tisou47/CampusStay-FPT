@@ -38,6 +38,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   TriangleAlert,
+  Timer,
   Upload,
   User,
   Users,
@@ -104,10 +105,11 @@ export const backOffice = {
         ],
       },
       {
-        title: 'Desk',
+        title: 'Check-in & Check-out',
         items: [
           { label: 'Check-in', icon: LogIn, to: '/staff/check-in', end: true },
           { label: 'Check-in inventories', icon: ClipboardList, to: '/staff/check-in/inventories' },
+          { label: 'Final reports', icon: ScrollText, to: '/staff/final-reports' },
           { label: 'Check-out', icon: LogOut, to: '/staff/check-out' },
         ],
       },
@@ -122,10 +124,10 @@ export const backOffice = {
       {
         title: 'Rooms',
         items: [
-          { label: 'Rooms and beds', icon: Building, to: '/staff/inventory' },
+          { label: 'Rooms and beds', icon: Building, to: '/staff/inventory', match: ['/staff/rooms'] },
           { label: 'Door codes', icon: KeyRound, to: '/staff/door-codes' },
           { label: 'Furniture', icon: Package, to: '/staff/furniture' },
-          { label: 'Operational moves', icon: ArrowRightLeft, to: '/staff/moves' },
+          { label: 'Room transfers', icon: ArrowRightLeft, to: '/staff/moves' },
         ],
       },
       {
@@ -186,7 +188,7 @@ export const backOffice = {
             to: '/manager/room-changes',
             tabs: [
               { label: 'Room changes and swaps', to: '/manager/room-changes' },
-              { label: 'Operational moves', to: '/manager/moves' },
+              { label: 'Room transfers', to: '/manager/moves' },
             ],
           },
         ],
@@ -210,7 +212,6 @@ export const backOffice = {
       {
         title: 'Operations',
         items: [
-          { label: 'Overdue requests', icon: TriangleAlert, to: '/manager/escalations' },
           { label: 'Maintenance', icon: Wrench, to: '/manager/maintenance' },
           { label: 'Inspection schedules', icon: ClipboardCheck, to: '/manager/inspections' },
           { label: 'Check-in inventories', icon: ClipboardList, to: '/manager/check-in/inventories' },
@@ -229,7 +230,7 @@ export const backOffice = {
       {
         title: 'Inventory',
         items: [
-          { label: 'Rooms and beds', icon: Building, to: '/manager/inventory' },
+          { label: 'Rooms and beds', icon: Building, to: '/manager/inventory', match: ['/manager/rooms'] },
           { label: 'Room tiers by term', icon: Layers, to: '/manager/room-classes' },
           { label: 'Furniture', icon: Package, to: '/manager/furniture' },
           { label: 'Door codes', icon: KeyRound, to: '/manager/door-codes' },

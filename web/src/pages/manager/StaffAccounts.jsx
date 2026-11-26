@@ -167,9 +167,9 @@ export default function StaffAccounts() {
         }
       />
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search name, email or title" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-35" aria-label={t('Block')} value={block} onChange={(e) => { setBlock(e.target.value); setPage(1) }} options={[{ value: '', label: 'Block: All' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block: {b}', { b }) }))]} />
-        <Select wrapperClassName="w-38" aria-label={t('Status')} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }} options={[{ value: '', label: 'Status: All' }, ...(d?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) }))]} />
+        <SearchInput wrapperClassName="w-96" aria-label={t('Search')} placeholder="Search name, email or title" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Select fit wrapperClassName="max-w-80" aria-label={t('Block')} value={block} onChange={(e) => { setBlock(e.target.value); setPage(1) }} options={[{ value: '', label: 'Block: All' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block: {b}', { b }) }))]} />
+        <Select fit wrapperClassName="max-w-80" aria-label={t('Status')} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }} options={[{ value: '', label: 'Status: All' }, ...(d?.statuses ?? []).map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) }))]} />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <Table fill>

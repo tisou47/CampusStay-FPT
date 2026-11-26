@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -74,6 +75,11 @@ class InspectionIT {
                 .content(body));
     }
 
+    private ResultActions patchAs(String path, String auth, String body) throws Exception {
+        return mvc.perform(patch(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
     private String read(ResultActions result, String path) throws Exception {
         return JsonPath.read(result.andReturn().getResponse().getContentAsString(), path);
     }
@@ -122,7 +128,8 @@ class InspectionIT {
     /**
      * TC-MNT-005: a schedule starts its first run at once and notifies residents; Staff record the Rooms with their own
      * checks (people, furniture), a failed item creates a Maintenance Request with the severity's priority (a failed
-     * furniture item one that names it); the run is submitted; the job starts the next.
+     * furniture item one that names it, which cannot change); each request goes to the Staff member who inspected the
+     * Room, not to the routing rule; the run is submitted; the job starts the next.
      */
     @Test
     void scheduleAndRun() throws Exception {
@@ -204,11 +211,12 @@ class InspectionIT {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(1)))
                 .andReturn().getResponse().getContentAsString();
         String request = JsonPath.read(saved, "$.createdRequests[0]");
-        Map<String, Object> mr = jdbc.sql("SELECT priority, urgency, source, category, description FROM mnt_request WHERE code = :c")
+        Map<String, Object> mr = jdbc.sql("SELECT priority, urgency, source, category, description, status, assignee_id FROM mnt_request WHERE code = :c")
                 .param("c", request).query().singleRow();
         assertThat(mr).containsEntry("priority", "HIGH").containsEntry("urgency", "URGENT")
                 .containsEntry("source", "INSPECTION").containsEntry("category", "ELECTRICAL")
-                .containsEntry("description", "No beep when tested");
+                .containsEntry("description", "No beep when tested").containsEntry("status", "ASSIGNED")
+                .containsEntry("assignee_id", stay.userId(STAFF_A2));
         putAs("/inspection-runs/" + run + "/rooms/A-401", staff, "{\"results\":[" + results + "]}")
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ROOM_DONE"));
 
@@ -389,7 +397,13 @@ class InspectionIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.inspectionFinding.condition").value("Damaged"))
                 .andExpect(jsonPath("$.inspectionFinding.note").value("Door hinge broken"))
-                .andExpect(jsonPath("$.inspectionFinding.runId").value(run));
+                .andExpect(jsonPath("$.inspectionFinding.runId").value(run))
+                .andExpect(jsonPath("$.status").value("Assigned"))
+                .andExpect(jsonPath("$.assignee.id").value(String.valueOf(stay.userId(STAFF_A2))))
+                .andExpect(jsonPath("$.furnitureItemFixed").value(true))
+                .andExpect(jsonPath("$.events[*].text", hasItem("Assigned to Vo Thanh Tung (inspector)")));
+        patchAs("/maintenance-requests/" + request, bearer(mvc, MANAGER_A), "{\"furnitureItemId\":null}")
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("FURNITURE_ITEM_FIXED"));
         getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
                 .andExpect(jsonPath("$.items[?(@.room == 'A-405')].status").value(hasItem("In progress")));
         putAs("/inspection-runs/" + run + "/rooms/A-405", staff, "{\"results\":[" + items + "]}")

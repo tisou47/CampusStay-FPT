@@ -6,7 +6,7 @@ import { Alert } from '@/components/ui/Display'
 import { DatePicker, DateTimePicker, TimePicker } from '@/components/ui/date-time'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
-import { campusToday, fromDateTimeInput, toDateTimeInput } from '@/lib/format'
+import { campusToday, formatDateTime, fromDateTimeInput, toDateTimeInput } from '@/lib/format'
 import { t } from '@/i18n'
 
 // The Family Day form (ADR-29): create a Draft or edit it. Times are whole hours in the browser's zone and go to the
@@ -79,6 +79,14 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
   const setSlot = (i, patch) => setForm((f) => ({ ...f, slots: f.slots.map((s, j) => (j === i ? { ...s, ...patch } : s)) }))
   const fields = error?.details?.fields ?? {}
   const today = campusToday()
+  // Registration closes before the event: a time slot starts at that moment or later (the server checks it too).
+  const closesDay = form.closes.slice(0, 10)
+  const closesTime = form.closes.slice(11, 16)
+  const opensDay = form.opens.slice(0, 10)
+  const opensTime = form.opens.slice(11, 16)
+  const tooEarly = (s) => Boolean(form.closes && s.date && s.start && at(s.date, s.start) < form.closes)
+  const early = form.slots.some(tooEarly)
+  const earlyText = t('Starts before registration closes: choose {time} or later.', { time: form.closes ? formatDateTime(iso(form.closes)) : '' })
 
   // A new time slot follows the last one: same day, starting when it ends, two hours long.
   const addSlot = () =>
@@ -98,7 +106,7 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={saving} onClick={() => onSave(toBody(form))}>
+          <Button variant="primary" disabled={saving || early} onClick={() => onSave(toBody(form))}>
             {saving ? t('Saving…') : day ? t('Save changes') : t('Save as Draft')}
           </Button>
         </>
@@ -153,16 +161,17 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Registration opens" required error={fields.registrationOpensAt}>
-          {(id) => <DateTimePicker id={id} value={form.opens} minDate={today} minTime="00:00" maxTime="23:00" placeholder="Choose a day and time" error={!!fields.registrationOpensAt} onChange={(v) => set('opens', v)} />}
+          {(id) => <DateTimePicker id={id} value={form.opens} minDate={today} minTime="00:00" maxTime="23:00" disablePastTimes={false} placeholder="Choose a day and time" error={!!fields.registrationOpensAt} onChange={(v) => set('opens', v)} />}
         </Field>
         <Field label="Registration closes" required error={fields.registrationClosesAt}>
           {(id) => (
             <DateTimePicker
               id={id}
               value={form.closes}
-              minDate={form.opens || today}
+              minDate={opensDay || today}
               minTime="00:00"
               maxTime="23:00"
+              disabledTimes={(h, d) => Boolean(opensTime) && d === opensDay && h <= opensTime}
               placeholder="Choose a day and time"
               error={!!fields.registrationClosesAt}
               onChange={(v) => set('closes', v)}
@@ -186,21 +195,24 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
                 <DatePicker
                   id={id}
                   value={s.date}
-                  minDate={form.closes?.slice(0, 10) || today}
+                  minDate={closesDay || today}
                   placeholder="Choose a day"
                   error={!!fields[`slots[${i}].startsAt`]}
                   onChange={(date) => setSlot(i, { date })}
                 />
               )}
             </Field>
-            <Field label="From">
+            <Field label="From" error={tooEarly(s) ? earlyText : undefined}>
               {(id) => (
                 <TimePicker
                   id={id}
                   value={s.start}
                   minTime="06:00"
                   maxTime="21:00"
+                  // On the day registration closes, the hours before it are off.
+                  disabledTimes={(h) => Boolean(closesTime) && s.date === closesDay && h < closesTime}
                   placeholder="--:--"
+                  error={tooEarly(s)}
                   onChange={(start) => setSlot(i, { start, end: s.end && s.end > start ? s.end : plusHours(start, 2) })}
                 />
               )}

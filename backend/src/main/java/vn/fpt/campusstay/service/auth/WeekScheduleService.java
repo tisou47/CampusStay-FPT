@@ -306,6 +306,13 @@ public class WeekScheduleService {
         long id = staffOf(staffId);
         List<StaffShifts.Shift> clean = StaffShifts.clean(list);
         List<StaffShifts.Shift> before = shifts.forWeek(List.of(id), monday).getOrDefault(id, List.of());
+        LocalDate today = now().toLocalDate();
+        if (monday.equals(StaffShifts.mondayOf(today))) {
+            // This week: the days already past keep what was recorded; an overnight shift of yesterday may then meet
+            // today's, so the whole week is checked again.
+            clean = StaffShifts.keepPastDays(before, clean, today);
+            StaffShifts.refuseOverlaps(clean);
+        }
         shifts.replaceWeek(id, monday, clean, manager.userId());
         List<StaffShifts.Shift> after = shifts.forWeek(List.of(id), monday).getOrDefault(id, List.of());
         audit.record("STAFF_WEEK_PLANNED", AuditLog.Tone.INFO, "User", id, nameOf(id), Map.of("week", weekText(monday),
@@ -313,13 +320,25 @@ public class WeekScheduleService {
         return after;
     }
 
-    /** Drops the plan of one Staff member's week: it follows the default weekly shifts again. */
+    /**
+     * Drops the plan of one Staff member's week: it follows the default weekly shifts again. For this week only today
+     * and the days after change: when the days already past differ from the default, they stay planned as they were.
+     */
     @Transactional
     public List<StaffShifts.Shift> resetWeek(String staffId, LocalDate wanted) {
-        currentUser.require(Permission.MANAGE_BLOCK);
+        AuthenticatedUser manager = currentUser.require(Permission.MANAGE_BLOCK);
         LocalDate monday = week(wanted, true);
         long id = staffOf(staffId);
-        shifts.resetWeek(id, monday);
+        LocalDate today = now().toLocalDate();
+        List<StaffShifts.Shift> defaults = shifts.of(id);
+        List<StaffShifts.Shift> before = shifts.forWeek(List.of(id), monday).getOrDefault(id, List.of());
+        List<StaffShifts.Shift> kept = monday.equals(StaffShifts.mondayOf(today))
+                ? StaffShifts.keepPastDays(before, defaults, today) : defaults;
+        if (kept.equals(defaults)) {
+            shifts.resetWeek(id, monday);
+        } else {
+            shifts.replaceWeek(id, monday, kept, manager.userId());
+        }
         audit.record("STAFF_WEEK_RESET", AuditLog.Tone.INFO, "User", id, nameOf(id), Map.of("week", weekText(monday)));
         return shifts.forWeek(List.of(id), monday).getOrDefault(id, List.of());
     }

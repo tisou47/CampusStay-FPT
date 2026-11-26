@@ -11,7 +11,6 @@ import { InfoTip, Tooltip, isTruncated } from '@/components/ui/Tooltip'
 import { t, tr, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
-import { FlowTrail } from './FlowTrail'
 import { SectionTabs } from './SectionTabs'
 import { ShiftConfirmHost } from './ShiftConfirm'
 import { NavWorkBadge, useWorkPolling } from './WorkInbox'
@@ -19,6 +18,7 @@ import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
 import { campusToday } from '@/lib/format'
+import { useFocusModeOn } from '@/app/focus'
 
 // Back-office shell (Change Specification v2 §11): the FPT-orange band across the top carries the logo, the Term
 // and Block scope, search (pages and records), language and notifications; below it a 248 px menu grouped by the
@@ -434,14 +434,17 @@ function BackOfficeTopBar({ role }) {
 // One-screen shell: the window never scrolls. Pages fill <main> and scroll inside their own lists and panels;
 // <main> only scrolls as a fallback when the window is smaller than the layout needs.
 export function BackOfficeLayout({ role }) {
+  // Focus mode (app/focus.js): a page reading reports side by side takes the sidebar's width.
+  const focus = useFocusModeOn()
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-canvas">
       <BackOfficeTopBar role={role} />
       <div className="flex min-h-0 flex-1">
-        <Sidebar role={role} />
+        {!focus && <Sidebar role={role} />}
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
-          <FlowTrail role={role} />
-          <SectionTabs role={role} />
+          {/* The Term stage trail (FlowTrail) is no longer shown above every page: the screens get its height back
+              (user decision 24/11/2026). The dashboards still use its stage steps. */}
+          {!focus && <SectionTabs role={role} />}
           <Outlet />
           <ShiftConfirmHost />
         </main>
@@ -456,17 +459,34 @@ export function BackOfficeLayout({ role }) {
  */
 /** tip: a "?" after the title explaining what the screen is for and when to use it. */
 /** compact: one row, a 22 px title and the actions centred beside it (screens where the table needs the height). */
+/**
+ * On Staff screens (/staff/…) the description is not a line under the title: it moves into the "?" beside the
+ * title, so the header takes less height (user decision 25/11/2026). Other roles keep the line.
+ */
 export function PageHeader({ title, tip, description, actions, badge, breadcrumb, compact = false, className }) {
+  const staff = useLocation().pathname.startsWith('/staff')
+  const tipParts = (staff ? [description, tip] : [tip]).filter(Boolean)
+  const tipLabel =
+    tipParts.length > 1 ? (
+      <span className="flex flex-col gap-1">
+        {tipParts.map((part, i) => (
+          <span key={i}>{tx(part)}</span>
+        ))}
+      </span>
+    ) : (
+      tipParts[0]
+    )
+  const tipName = tipParts.length && tipParts.every((part) => typeof part === 'string') ? tipParts.map(tx).join(' ') : undefined
   return (
     <div className={cx('flex shrink-0 flex-wrap justify-between gap-4 gap-y-2', compact ? 'items-center' : 'items-end', className)}>
       <div className="flex min-w-[220px] flex-1 flex-col gap-0.5">
         {breadcrumb}
         <div className={cx('flex items-center', compact ? 'gap-2' : 'gap-3')}>
           <h1 className={cx('font-bold tracking-tight text-fg', compact ? 'text-[22px] leading-8 whitespace-nowrap' : 'text-h1')}>{tx(title)}</h1>
-          {tip && <InfoTip label={tip} size={16} side="bottom" align="start" />}
+          {tipLabel && <InfoTip label={tipLabel} ariaLabel={tipName} size={16} side="bottom" align="start" />}
           {badge}
         </div>
-        {description && <p className="max-w-[520px] text-base text-fg-secondary [text-wrap:pretty]">{tx(description)}</p>}
+        {description && !staff && <p className="max-w-[520px] text-base text-fg-secondary [text-wrap:pretty]">{tx(description)}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
     </div>

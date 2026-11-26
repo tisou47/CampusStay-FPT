@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, Navigate, useSearchParams } from 'react-router'
 import { Check, Clock, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
-import { useMutation, useQuery } from '@/api/hooks'
-import { useScopeQuery, useSession } from '@/app/session'
+import { useMutation } from '@/api/hooks'
 import { useToast } from '@/app/toast'
-import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
 import { Field, Select, Textarea } from '@/components/ui/Field'
@@ -15,13 +13,16 @@ import { Tag } from '@/components/ui/Tag'
 import { formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
-// SCR-REQ-21 Escalations (Figma 69:1335)
+// SCR-REQ-21 Escalations (Figma 69:1335): since 24/11/2026 the "Overdue" tab of Manager › Maintenance (user decision:
+// one page for the repair work); /manager/escalations opens that tab.
 // GET /escalations?termId&block → { items: [{ id, kind: 'maintenance'|'room-change', title, subtitle, room, why, tone, openFor, ownerName,
-//   handled: { action, at, note } | null, events: [{ text, at }], suggestedAssigneeId, link, canOfferTemporaryBed }], assignees: [{ id, name }] }
+//   handled: { action, at, note } | null, events: [{ text, at }], suggestedAssigneeId, link, canOfferTemporaryBed,
+//   assignees: [{ id, name }] (the staff of the request's own Block) }] }
 // POST /escalations/:id/actions { action: 'reassign', assigneeId, note } | { action: 'temporary-bed', note }
 
-function Detail({ item, assignees }) {
+function Detail({ item }) {
   const { notify, notifyError } = useToast()
+  const assignees = item.assignees ?? []
   const [assigneeId, setAssigneeId] = useState(item.suggestedAssigneeId ?? '')
   const [note, setNote] = useState('')
   useEffect(() => {
@@ -44,7 +45,13 @@ function Detail({ item, assignees }) {
     <Card className="flex min-h-0 w-85 shrink-0 flex-col gap-3 overflow-y-auto">
       <div className="flex flex-col gap-0.5">
         <p className="text-sm font-medium text-fg-tertiary">
-          {item.id}
+          {item.link ? (
+            <Link to={item.link} className="text-fg-brand hover:underline">
+              {item.id}
+            </Link>
+          ) : (
+            item.id
+          )}
           {item.room ? ` · ${item.room}` : ''}
         </p>
         <h2 className="text-h3 font-semibold text-fg">{tr(item.title)}</h2>
@@ -66,12 +73,11 @@ function Detail({ item, assignees }) {
         </Alert>
       ) : (
         <>
-          <Field label="Reassign to">
+          <Field label="Reassign to" helper={item.assignees && !assignees.length ? t('Nobody works in this block yet.') : undefined}>
             {(id) => <Select id={id} value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} options={[{ value: '', label: 'Choose…', disabled: true }, ...assignees.map((a) => ({ value: a.id, label: a.name }))]} />}
           </Field>
           <Textarea aria-label={t('Manager note')} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Manager note…" />
-          <div className="flex flex-wrap gap-2">
-            {item.link && <Button to={item.link}>Open request</Button>}
+          <div className="flex flex-wrap justify-end gap-2">
             {item.canOfferTemporaryBed && (
               <Button
                 tip="Write in the note which bed and until when: the student and the request's owner are told."
@@ -91,52 +97,53 @@ function Detail({ item, assignees }) {
   )
 }
 
-export default function Escalations() {
-  const { block } = useSession()
-  const scope = useScopeQuery()
-  const [params] = useSearchParams()
-  const query = useQuery(['escalations', scope], ({ signal }) => api.escalations.list(scope, { signal }))
+/** The overdue requests of the scope with the selected one's history and actions; `query` is the page's GET /escalations. */
+export function OverdueRequests({ query, selectedId, onSelect }) {
   const items = query.data?.items ?? []
-  const [selectedId, setSelectedId] = useState(params.get('id'))
   const selected = items.find((e) => e.id === selectedId) ?? items[0]
-
   return (
-    <>
-      <PageHeader title={block ? t('Overdue requests · Block {code}', { code: block }) : 'Overdue requests'} description="Requests that passed their time limit or were escalated by staff. Reassign them or add a note." />
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <Table fill className="min-w-0">
-          <THead>
-            <tr>
-              <Th className="w-36">Request</Th>
-              <Th>Title</Th>
-              <Th className="w-44">Why</Th>
-              <Th className="w-22">Open for</Th>
-              <Th className="w-36">Owner</Th>
-            </tr>
-          </THead>
-          <TBody>
-            <TableStatus query={query} colSpan={5} emptyIcon={TriangleAlert} emptyTitle="No overdue requests" emptyText="Requests that pass their time limit appear here." />
-            {items.map((e) => (
-              <Tr key={e.id} selected={e.id === selected?.id} onClick={() => setSelectedId(e.id)} className="[&>td]:h-15">
-                <Td className="font-medium whitespace-nowrap text-fg-brand">{e.id}</Td>
-                <Td>
-                  <TwoLine primary={tr(e.title)} secondary={e.subtitle?.split(' · ').map((part) => tr(part)).join(' · ')} />
-                </Td>
-                <Td>{e.handled ? <Tag tone="success">Handled</Tag> : <Tag tone={e.tone ?? 'warning'}>{tr(e.why)}</Tag>}</Td>
-                <Td className="whitespace-nowrap">{tr(e.openFor)}</Td>
-                <Td className="whitespace-nowrap">{e.ownerName ?? '—'}</Td>
-              </Tr>
-            ))}
-          </TBody>
-        </Table>
-        {selected ? (
-          <Detail item={selected} assignees={query.data?.assignees ?? []} />
-        ) : (
-          <Card className="flex w-85 shrink-0 flex-col">
-            <EmptyBlock icon={TriangleAlert} title="Select a request" />
-          </Card>
-        )}
-      </div>
-    </>
+    <div className="flex min-h-0 flex-1 items-stretch gap-4">
+      <Table fill className="min-w-0">
+        <THead>
+          <tr>
+            <Th className="w-36">Request</Th>
+            <Th>Title</Th>
+            <Th className="w-44">Why</Th>
+            <Th className="w-22">Open for</Th>
+            <Th className="w-36">Owner</Th>
+          </tr>
+        </THead>
+        <TBody>
+          <TableStatus query={query} colSpan={5} rows={items} emptyIcon={TriangleAlert} emptyTitle="No overdue requests" emptyText="Requests that pass their time limit appear here." />
+          {items.map((e) => (
+            <Tr key={e.id} selected={e.id === selected?.id} onClick={() => onSelect(e.id)} className="[&>td]:h-15">
+              <Td className="whitespace-nowrap">
+                <TwoLine primary={<span className="font-medium text-fg-brand">{e.id}</span>} secondary={e.kind === 'room-change' ? t('Room change') : t('Maintenance')} />
+              </Td>
+              <Td>
+                <TwoLine primary={tr(e.title)} secondary={e.subtitle?.split(' · ').map((part) => tr(part)).join(' · ')} />
+              </Td>
+              <Td>{e.handled ? <Tag tone="success">Handled</Tag> : <Tag tone={e.tone ?? 'warning'}>{tr(e.why)}</Tag>}</Td>
+              <Td className="whitespace-nowrap">{tr(e.openFor)}</Td>
+              <Td className="whitespace-nowrap">{e.ownerName ?? '—'}</Td>
+            </Tr>
+          ))}
+        </TBody>
+      </Table>
+      {selected ? (
+        <Detail item={selected} />
+      ) : (
+        <Card className="flex w-85 shrink-0 flex-col">
+          <EmptyBlock icon={TriangleAlert} title="Select a request" />
+        </Card>
+      )}
+    </div>
   )
+}
+
+/** The former page: links from notifications and bookmarks open the Maintenance page's Overdue tab. */
+export default function Escalations() {
+  const [params] = useSearchParams()
+  const id = params.get('id')
+  return <Navigate replace to={`/manager/maintenance?tab=overdue${id ? `&id=${encodeURIComponent(id)}` : ''}`} />
 }

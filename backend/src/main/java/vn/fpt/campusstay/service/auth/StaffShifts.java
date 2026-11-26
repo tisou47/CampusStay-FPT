@@ -255,21 +255,53 @@ public class StaffShifts {
                 throw FieldErrors.single("shifts", "A shift must end at another time than it starts.");
             }
             Shift c = new Shift(s.weekday(), start.format(HH_MM), end.format(HH_MM));
-            if (clean.stream().noneMatch(x -> x.weekday() == c.weekday() && x.start().equals(c.start()))) {
+            if (!clean.contains(c)) {
                 clean.add(c);
             }
         }
         clean.sort(ORDER);
-        for (int i = 1; i < clean.size(); i++) {
-            Shift before = clean.get(i - 1);
-            Shift next = clean.get(i);
-            // HH:mm strings compare as times; a shift ending before it starts runs past midnight.
-            boolean overnight = before.end().compareTo(before.start()) < 0;
-            if (before.weekday() == next.weekday() && (overnight || next.start().compareTo(before.end()) < 0)) {
-                throw FieldErrors.single("shifts", "Shifts of the same day must not overlap.");
+        refuseOverlaps(clean);
+        return clean;
+    }
+
+    private static final int DAY = 24 * 60;
+    private static final int WEEK = 7 * DAY;
+
+    /** The shift as minutes from Monday 00:00; an overnight shift ends on the next day (Sunday's on the next Monday). */
+    private static int[] span(Shift s) {
+        int start = (s.weekday() - 1) * DAY + LocalTime.parse(s.start()).toSecondOfDay() / 60;
+        int end = (s.weekday() - 1) * DAY + LocalTime.parse(s.end()).toSecondOfDay() / 60;
+        return new int[] { start, end <= start ? end + DAY : end };
+    }
+
+    /**
+     * Refuses two shifts of the week that overlap ({@code 400 details.fields.shifts}): one person works one shift at a
+     * time. Shifts that meet (07:00–15:00 then 15:00–23:00) do not overlap; a Sunday night shift runs into Monday.
+     */
+    public static void refuseOverlaps(List<Shift> list) {
+        for (int i = 0; i < list.size(); i++) {
+            int[] a = span(list.get(i));
+            for (int j = i + 1; j < list.size(); j++) {
+                int[] b = span(list.get(j));
+                for (int wrap : new int[] { -WEEK, 0, WEEK }) {
+                    if (a[0] < b[1] + wrap && b[0] + wrap < a[1]) {
+                        throw FieldErrors.single("shifts", "Two shifts overlap. Each shift must start after the one before it ends.");
+                    }
+                }
             }
         }
-        return clean;
+    }
+
+    /**
+     * A week plan for the week holding {@code today}: the days before today keep the shifts {@code before} records (a
+     * past day cannot be changed), today and the days after take {@code wanted}.
+     */
+    public static List<Shift> keepPastDays(List<Shift> before, List<Shift> wanted, LocalDate today) {
+        int day = today.getDayOfWeek().getValue();
+        List<Shift> out = new ArrayList<>(before.stream().filter(s -> s.weekday() < day).toList());
+        wanted.stream().filter(s -> s.weekday() >= day).forEach(out::add);
+        out.sort(ORDER);
+        return out;
     }
 
     /** "Mon 07:00–15:00, …" for the Audit Log. */

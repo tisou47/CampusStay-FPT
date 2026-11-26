@@ -286,7 +286,7 @@ export default function Approvals({ tab: routeTab = 'late-check-in' }) {
 
   return (
     <>
-      <PageHeader title="Decisions" description="Late check-ins, cross-block swaps and refunds waiting for a manager." />
+      <PageHeader title="Decisions" />
       <Tabs
         className="shrink-0"
         value={tab}

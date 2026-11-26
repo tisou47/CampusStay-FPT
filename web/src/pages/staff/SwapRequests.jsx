@@ -7,7 +7,7 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, Divider, Note } from '@/components/ui/Display'
-import { Field, Select, Textarea } from '@/components/ui/Field'
+import { Field, FilterSelect, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, TableStatus } from '@/components/ui/States'
@@ -145,6 +145,7 @@ function Review({ swap: s }) {
 }
 
 export default function SwapRequests() {
+  const atManager = useRoleBase() === '/manager'
   const scope = useScopeQuery()
   const [kind, setKind] = useState('')
   const [status, setStatus] = useState('Waiting for Staff')
@@ -162,20 +163,24 @@ export default function SwapRequests() {
 
   return (
     <>
-      <PageHeader title="Next-term swaps" description={query.data?.window ? t('{term} · Same-block swaps are approved here; cross-block swaps go to a manager. No price difference is charged.', { term: query.data.window.termName }) : 'Same-block swaps are approved here; cross-block swaps go to a manager.'} actions={<RoomChangeModeSwitch mode="swaps" />} />
-      <div className="flex shrink-0 items-center gap-3">
-        <Select
-          wrapperClassName="w-60"
-          aria-label={t('Type')}
+      <PageHeader title="Next-term swaps" description={atManager ? undefined : query.data?.window ? t('{term} · Same-block swaps are approved here; cross-block swaps go to a manager. No price difference is charged.', { term: query.data.window.termName }) : 'Same-block swaps are approved here; cross-block swaps go to a manager.'} actions={<RoomChangeModeSwitch mode="swaps" />} />
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <FilterSelect
+          label="Type"
           value={kind}
-          onChange={filter(setKind)}
+          onChange={(v) => filter(setKind)({ target: { value: v } })}
           options={[
-            { value: '', label: 'Type: All' },
-            { value: 'Direct', label: 'Type: Direct' },
-            { value: 'Board match', label: 'Type: Board match' },
+            { value: '', label: 'All' },
+            { value: 'Direct', label: 'Direct' },
+            { value: 'Board match', label: 'Board match' },
           ]}
         />
-        <Select wrapperClassName="w-60" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={[{ value: '', label: 'Status: All' }, ...Object.keys(tone).map((v) => ({ value: v, label: t('Status: {s}', { s: t(v) }) }))]} />
+        <FilterSelect
+          label="Status"
+          value={status}
+          onChange={(v) => filter(setStatus)({ target: { value: v } })}
+          options={[{ value: '', label: 'All' }, ...Object.keys(tone).map((v) => ({ value: v, label: v }))]}
+        />
       </div>
 
       <div className="flex min-h-0 flex-1 items-stretch gap-4">

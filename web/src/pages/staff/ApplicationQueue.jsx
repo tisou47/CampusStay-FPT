@@ -8,7 +8,7 @@ import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
-import { SearchInput, Select } from '@/components/ui/Field'
+import { FilterSelect, SearchInput } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/Table'
@@ -25,9 +25,9 @@ import { t, tr } from '@/i18n'
 // POST /applications/bulk-review { ids, decision: 'Approved' }
 
 const statusFilters = [
-  { value: 'Submitted,Under Review', label: 'Status: Submitted, Under Review' },
-  { value: '', label: 'Status: All' },
-  ...['Submitted', 'Under Review', 'Approved', 'Allocated', 'Waitlisted', 'Rejected', 'Expired', 'Forfeited', 'Cancelled'].map((s) => ({ value: s, label: `Status: ${s}` })),
+  { value: 'Submitted,Under Review', label: 'Submitted or under review' },
+  { value: '', label: 'All' },
+  ...['Submitted', 'Under Review', 'Approved', 'Allocated', 'Waitlisted', 'Rejected', 'Expired', 'Forfeited', 'Cancelled'].map((s) => ({ value: s, label: s })),
 ]
 const countTones = { Submitted: 'info', 'Under Review': 'info', Approved: 'info', Allocated: 'success', Waitlisted: 'warning', Rejected: 'error', Expired: 'neutral', Forfeited: 'neutral' }
 const reviewable = (r) => ['Submitted', 'Under Review'].includes(r.status)
@@ -98,7 +98,6 @@ export default function ApplicationQueue() {
     <>
       <PageHeader
         title="Applications"
-        description="Applications reach this queue after the deposit is paid."
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
@@ -113,30 +112,32 @@ export default function ApplicationQueue() {
 
       <div className="flex shrink-0 flex-wrap items-center gap-3">
         <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Student name or code, application" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-64" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={statusFilters} />
-        <Select
-          wrapperClassName="w-48"
-          aria-label={t('Room type')}
+        <FilterSelect
+          label="Status"
+          value={status}
+          onChange={(v) => filter(setStatus)({ target: { value: v } })}
+          options={statusFilters}
+        />
+        <FilterSelect
+          label="Room type"
           value={roomTypeId}
-          onChange={filter(setRoomTypeId)}
-          options={[{ value: '', label: 'Room type: All' }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: t('Room type: {name}', { name: tr(type.name) }) }))]}
+          onChange={(v) => filter(setRoomTypeId)({ target: { value: v } })}
+          options={[{ value: '', label: 'All' }, ...(catalog.data?.roomTypes ?? []).map((type) => ({ value: type.id, label: tr(type.name) }))]}
         />
-        <Select
-          wrapperClassName="w-48"
-          aria-label={t('Room tier')}
+        <FilterSelect
+          label="Room tier"
           value={roomClassId}
-          onChange={filter(setRoomClassId)}
-          options={[{ value: '', label: 'Room tier: All' }, ...(catalog.data?.roomClasses ?? []).map((c) => ({ value: c.id, label: t('Room tier: {name}', { name: tr(c.name) }) }))]}
+          onChange={(v) => filter(setRoomClassId)({ target: { value: v } })}
+          options={[{ value: '', label: 'All' }, ...(catalog.data?.roomClasses ?? []).map((c) => ({ value: c.id, label: tr(c.name) }))]}
         />
-        <Select
-          wrapperClassName="w-44"
-          aria-label={t('Submitted')}
+        <FilterSelect
+          label="Submitted"
           value={submittedWithin}
-          onChange={filter(setSubmittedWithin)}
+          onChange={(v) => filter(setSubmittedWithin)({ target: { value: v } })}
           options={[
-            { value: '', label: 'Submitted: Any time' },
-            { value: '24h', label: 'Submitted: Last 24 hours' },
-            { value: '7d', label: 'Submitted: Last 7 days' },
+            { value: '', label: 'Any time' },
+            { value: '24h', label: 'Last 24 hours' },
+            { value: '7d', label: 'Last 7 days' },
           ]}
         />
       </div>

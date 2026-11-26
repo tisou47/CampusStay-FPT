@@ -142,6 +142,11 @@ const one = {
   "{n} rooms lack the furniture": "{n} room lacks the furniture",
   "View the {n} rooms of {name}": "View the {n} room of {name}",
   "{n} beds in service": "{n} bed in service",
+  "{n} tasks": "{n} task",
+  "{n} tasks · sorted by due time": "{n} task · sorted by due time",
+  "{n} students check out today": "{n} student checks out today",
+  "Check-in · {n} students": "Check-in · {n} student",
+  "Check-out deadline · {n} students left": "Check-out deadline · {n} student left",
   "Copy {n} people": "Copy {n} person",
   "Sent at {time} to {n} students. Change the form to send another.": "Sent at {time} to {n} student. Change the form to send another.",
 }

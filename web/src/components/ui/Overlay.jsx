@@ -89,8 +89,11 @@ export function Modal({ open, onClose, title, description, icon, children, foote
   )
 }
 
-/** Admin pages show their drawers as a centred dialog with more room to work in (user decision 22/11/2026). */
-const centredHere = () => typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+/**
+ * Admin and Manager pages show their drawers as a centred dialog with more room to work in (user decisions
+ * 22/11/2026 and 24/11/2026); Staff and students keep the side drawer.
+ */
+const centredHere = () => typeof window !== 'undefined' && /^\/(admin|manager)(\/|$)/.test(window.location.pathname)
 
 // Right-hand drawer (480 px), as in "Room Types – Edit drawer". On Admin pages (or with placement="center") the same
 // content opens in the middle of the screen, about 40% wider, so forms and lists have more space.

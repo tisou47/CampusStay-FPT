@@ -15,6 +15,7 @@ import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { formatDateTime, fromDateTimeInput } from '@/lib/format'
+import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 import { DateTimePicker } from '@/components/ui/date-time'
 
@@ -177,12 +178,13 @@ export default function Announcements() {
   )
   const change = useMutation((id, body) => api.announcements.change(id, body), { invalidates: ['announcements'], onSuccess: () => setEnding(null), onError: (e) => notifyError(e, 'Could not change the announcement') })
   const items = query.data?.items ?? []
+  const atManager = useRoleBase() === '/manager'
 
   return (
     <>
       <PageHeader
         title="Announcements"
-        description={user?.role === 'admin' ? null : "News on the students' board: written here, and by the system for every published term and every money or policy change."}
+        description={user?.role === 'admin' || atManager ? undefined : "News on the students' board: written here, and by the system for every published term and every money or policy change."}
         actions={
           <Button variant="primary" icon={Plus} disabled={!options.data} onClick={() => setWriting(true)}>
             New announcement

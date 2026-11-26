@@ -197,7 +197,7 @@ class ShiftGateIT {
         shifts(manager, p[0], "{\"shifts\":[{\"weekday\":1,\"start\":\"07:00\",\"end\":\"15:00\"},"
                 + "{\"weekday\":1,\"start\":\"08:00\",\"end\":\"12:00\"}]}")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.fields.shifts").value("Shifts of the same day must not overlap."));
+                .andExpect(jsonPath("$.details.fields.shifts").value("Two shifts overlap. Each shift must start after the one before it ends."));
         shifts(manager, p[0], "{\"shifts\":[{\"weekday\":1,\"start\":\"07:00\",\"end\":\"15:00\"},"
                 + "{\"weekday\":1,\"start\":\"15:00\",\"end\":\"23:00\"}]}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.shifts.length()").value(2));

@@ -1,22 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Bell, Check, Download } from 'lucide-react'
+import { Bell, Check, Download, Eye } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery, useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
-import { Button } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
-import { Alert } from '@/components/ui/Display'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
-import { Modal } from '@/components/ui/Overlay'
+import { Button, IconButton } from '@/components/ui/Button'
+import { StatStrip } from '@/components/ui/Charts'
+import { Alert, DescriptionList } from '@/components/ui/Display'
+import { Field, Input, SearchInput, Select, Textarea } from '@/components/ui/Field'
+import { Drawer, Modal } from '@/components/ui/Overlay'
+import { Truncate } from '@/components/ui/Tooltip'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tabs } from '@/components/ui/Tabs'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { formatDate, formatNumber, formatPercent, formatVnd } from '@/lib/format'
+import { formatCompactVnd, formatDate, formatDateTime, formatNumber, formatPercent, formatVnd } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
 // SCR-BIL-20 Block Finance (Figma 61:707)
@@ -159,6 +160,9 @@ function DecisionModal({ refund, decision, ruleOptions = [], onClose }) {
 function usePaged(key, fetcher) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
+  // A new search (or Block, Term) starts again on the first page.
+  const filters = JSON.stringify(key)
+  useEffect(() => setPage(1), [filters])
   const query = useQuery([...key, page, pageSize], ({ signal }) => fetcher({ page, pageSize }, signal))
   const pagination = (
     <div className="flex shrink-0 justify-end">
@@ -190,76 +194,149 @@ function RefundsTab({ scope }) {
   })
   const [deciding, setDeciding] = useState(null)
   const [paying, setPaying] = useState(null)
+  const [viewing, setViewing] = useState(null)
   const [query, pagination] = usePaged(['refunds', scope], (p, signal) => api.finance.refunds({ ...scope, ...p }, { signal }))
   const highlight = params.get('refund')
+  const items = query.data?.items ?? []
+  // The details show the row as the list has it now (after a reminder, a decision…).
+  const shown = viewing ? items.find((r) => r.id === viewing) ?? null : null
+  const canRemind = (r) => !r.account && (r.status === 'Pending' || r.status === 'Approved')
+  const reminderText = (r) => (r.accountRemindedAt ? t('Reminded {date}', { date: formatDate(r.accountRemindedAt) }) : t('Remind to enter it'))
+  // `compact` (the table): the reminder is a bell beside the warning, its words in the tooltip, so the cell keeps
+  // its width; the details show the whole button.
+  const payTo = (r, compact = false) =>
+    r.account ? (
+      <TwoLine primary={<span className="tabular">{r.account.number}</span>} secondary={`${r.account.holder} · ${r.account.bank}`} />
+    ) : compact ? (
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="min-w-0 text-sm text-warning-fg">{t('No bank account yet')}</span>
+        {canRemind(r) && (
+          <IconButton
+            size="sm"
+            variant="outline"
+            icon={Bell}
+            iconSize={14}
+            aria-label={reminderText(r)}
+            disabled={remindedToday(r.accountRemindedAt) || remind.pending}
+            onClick={() => remind.run(r)}
+          />
+        )}
+      </div>
+    ) : (
+      <div className="flex flex-col items-start gap-0.5">
+        <span className="text-sm text-warning-fg">{t('No bank account yet')}</span>
+        {canRemind(r) && (
+          <Button size="sm" variant="text" icon={Bell} iconSize={14} disabled={remindedToday(r.accountRemindedAt) || remind.pending} onClick={() => remind.run(r)}>
+            {reminderText(r)}
+          </Button>
+        )}
+      </div>
+    )
+  const actions = (r) =>
+    r.status === 'Pending' ? (
+      <>
+        <Button size="sm" variant="text" onClick={() => setDeciding({ refund: r, decision: 'Rejected' })}>
+          Reject
+        </Button>
+        <Button size="sm" variant="primary" icon={Check} onClick={() => setDeciding({ refund: r, decision: 'Approved' })}>
+          Approve
+        </Button>
+      </>
+    ) : r.status === 'Approved' ? (
+      <Button size="sm" variant="primary" icon={Check} onClick={() => setPaying(r)}>
+        Mark paid
+      </Button>
+    ) : null
+  const open = (fn) => (r) => {
+    setViewing(null)
+    fn(r)
+  }
   return (
     <>
-      <Table fill>
+      <Table fill tableClassName="table-fixed">
         <THead>
           <tr>
-            <Th className="w-34">Refund</Th>
+            <Th className="w-28">Refund</Th>
             <Th className="w-44">Student</Th>
             <Th>Reason</Th>
-            <Th className="w-40">Rule</Th>
-            <Th className="w-28">Paid</Th>
-            <Th className="w-20">Percent</Th>
-            <Th className="w-28">Total</Th>
-            <Th className="w-56">Pay to</Th>
-            <Th className="w-48">
+            <Th className="w-36" align="right">
+              Total
+            </Th>
+            <Th className="w-48">Pay to</Th>
+            <Th className="w-[300px]">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={9} emptyTitle="No refund requests" />
-          {(query.data?.items ?? []).map((r) => (
+          <TableStatus query={query} colSpan={6} emptyTitle={scope.q ? 'Nothing matches this search' : 'No refund requests'} />
+          {items.map((r) => (
             <Tr key={r.id} selected={r.id === highlight} className="[&>td]:h-15">
               <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
               <Td>
                 <TwoLine primary={r.name} secondary={r.studentCode} />
               </Td>
-              <Td>{tr(r.reason)}</Td>
-              <Td className="text-sm text-fg-secondary">{tr(r.rule)}</Td>
-              <Td className="tabular">{r.paid != null ? formatNumber(r.paid) : '—'}</Td>
-              <Td className="tabular">{r.percent != null ? `${formatNumber(r.percent)}%` : '—'}</Td>
-              <Td className="font-medium whitespace-nowrap tabular">{formatNumber(r.amount)}</Td>
               <Td>
-                {r.account ? (
-                  <TwoLine primary={<span className="tabular">{r.account.number}</span>} secondary={`${r.account.holder} · ${r.account.bank}`} />
-                ) : (
-                  <div className="flex flex-col items-start gap-0.5">
-                    <span className="text-sm text-warning-fg">{t('No bank account yet')}</span>
-                    {(r.status === 'Pending' || r.status === 'Approved') && (
-                      <Button size="sm" variant="text" icon={Bell} iconSize={14} disabled={remindedToday(r.accountRemindedAt) || remind.pending} onClick={() => remind.run(r)}>
-                        {r.accountRemindedAt ? t('Reminded {date}', { date: formatDate(r.accountRemindedAt) }) : t('Remind to enter it')}
-                      </Button>
-                    )}
-                  </div>
-                )}
+                <Truncate className="block">{tr(r.reason)}</Truncate>
               </Td>
+              <Td align="right" className="whitespace-nowrap">
+                <TwoLine primary={<span className="font-medium tabular">{formatVnd(r.amount)}</span>} secondary={r.percent != null ? t('{p}% of {paid}', { p: formatNumber(r.percent), paid: formatVnd(r.paid) }) : undefined} />
+              </Td>
+              <Td>{payTo(r, true)}</Td>
               <Td>
-                {r.status === 'Pending' ? (
-                  <div className="flex items-center gap-1">
-                    <Button variant="text" onClick={() => setDeciding({ refund: r, decision: 'Rejected' })}>
-                      Reject
-                    </Button>
-                    <Button icon={Check} onClick={() => setDeciding({ refund: r, decision: 'Approved' })}>
-                      Approve
-                    </Button>
-                  </div>
-                ) : r.status === 'Approved' ? (
-                  <Button icon={Check} onClick={() => setPaying(r)}>
-                    Mark paid
+                <div className="flex items-center justify-end gap-2">
+                  <Button size="sm" icon={Eye} onClick={() => setViewing(r.id)}>
+                    Details
                   </Button>
-                ) : (
-                  <StatusTag status={r.status} tone={r.status === 'Paid' ? 'success' : 'error'} />
-                )}
+                  {actions(r) ?? <StatusTag status={r.status} tone={r.status === 'Paid' ? 'success' : 'error'} />}
+                </div>
               </Td>
             </Tr>
           ))}
         </TBody>
       </Table>
       {pagination}
+      {shown && (
+        <Drawer
+          open
+          onClose={() => setViewing(null)}
+          width={520}
+          title={t('Refund {id}', { id: shown.id })}
+          description={`${shown.name} · ${shown.studentCode}`}
+          footer={
+            shown.status === 'Pending' ? (
+              <>
+                <Button variant="text" onClick={() => open(setDeciding)({ refund: shown, decision: 'Rejected' })}>
+                  Reject
+                </Button>
+                <Button variant="primary" icon={Check} onClick={() => open(setDeciding)({ refund: shown, decision: 'Approved' })}>
+                  Approve
+                </Button>
+              </>
+            ) : shown.status === 'Approved' ? (
+              <Button variant="primary" icon={Check} onClick={() => open(setPaying)(shown)}>
+                Mark paid
+              </Button>
+            ) : (
+              <Button onClick={() => setViewing(null)}>Close</Button>
+            )
+          }
+        >
+          {shown.exception && <Alert type="warning" title="This refund is above the rule">{tr(shown.rule)}</Alert>}
+          <DescriptionList labelWidth="w-32"
+            items={[
+              ['Status', <StatusTag key="s" status={shown.status} tone={shown.status === 'Paid' ? 'success' : shown.status === 'Rejected' ? 'error' : undefined} />],
+              ['Reason', tr(shown.reason)],
+              ['Rule', tr(shown.rule)],
+              ['Paid', shown.paid != null ? formatVnd(shown.paid) : '—'],
+              ['Percent', shown.percent != null ? `${formatNumber(shown.percent)}%` : '—'],
+              ['Total', <span key="a" className="font-semibold tabular">{formatVnd(shown.amount)}</span>],
+              ['Pay to', payTo(shown)],
+              shown.createdAt && ['Requested', formatDateTime(shown.createdAt)],
+            ].filter(Boolean)}
+          />
+        </Drawer>
+      )}
       {deciding && <DecisionModal {...deciding} ruleOptions={query.data?.ruleOptions ?? []} onClose={() => setDeciding(null)} />}
       {paying && <PaidModal refund={paying} onClose={() => setPaying(null)} />}
     </>
@@ -279,32 +356,37 @@ function OverdueTab({ scope }) {
       <Table fill>
         <THead>
           <tr>
-            <Th className="w-40">Invoice</Th>
+            <Th className="w-52">Invoice</Th>
             <Th>Student</Th>
-            <Th className="w-44">Type</Th>
-            <Th className="w-32">Amount</Th>
-            <Th className="w-32">Due</Th>
-            <Th className="w-28">Overdue</Th>
-            <Th className="w-44">
+            <Th className="w-36" align="right">
+              Amount
+            </Th>
+            <Th className="w-48">Due</Th>
+            <Th className="w-56">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyTitle="No overdue invoices" />
+          <TableStatus query={query} colSpan={5} emptyTitle={scope.q ? 'Nothing matches this search' : 'No overdue invoices'} />
           {(query.data?.items ?? []).map((o) => (
-            <Tr key={o.invoiceId}>
-              <Td className="font-medium text-fg-brand">{o.invoiceId}</Td>
+            <Tr key={o.invoiceId} className="[&>td]:h-14">
+              <Td>
+                <TwoLine primary={<span className="font-medium text-fg-brand">{o.invoiceId}</span>} secondary={tr(o.typeLabel)} />
+              </Td>
               <Td>
                 <TwoLine primary={o.name} secondary={o.studentCode} />
               </Td>
-              <Td>{tr(o.typeLabel)}</Td>
-              <Td className="tabular">{formatNumber(o.amount)}</Td>
-              <Td>{formatDate(o.dueAt)}</Td>
-              <Td>
-                <Tag tone="error">{t('{n} days', { n: o.daysOverdue })}</Tag>
+              <Td align="right" className="font-medium whitespace-nowrap tabular">
+                {formatVnd(o.amount)}
               </Td>
               <Td>
+                <span className="flex flex-wrap items-center gap-2">
+                  {formatDate(o.dueAt)}
+                  <Tag tone="error">{t('{n} days', { n: o.daysOverdue })}</Tag>
+                </span>
+              </Td>
+              <Td align="right">
                 <Button icon={Bell} disabled={remindedToday(o.remindedAt) || remind.pending} title={o.remindedAt ? t('Last reminder {date}', { date: formatDate(o.remindedAt) }) : undefined} onClick={() => remind.run(o)}>
                   {remindedToday(o.remindedAt) ? t('Reminded {date}', { date: formatDate(o.remindedAt) }) : t('Send reminder')}
                 </Button>
@@ -325,25 +407,29 @@ function AllInvoicesTab({ scope }) {
       <Table fill>
         <THead>
           <tr>
-            <Th className="w-40">Invoice</Th>
+            <Th className="w-52">Invoice</Th>
             <Th>Student</Th>
-            <Th className="w-48">Type</Th>
-            <Th className="w-32">Amount</Th>
-            <Th className="w-32">Due</Th>
-            <Th className="w-32">Status</Th>
+            <Th className="w-36" align="right">
+              Amount
+            </Th>
+            <Th className="w-36">Due</Th>
+            <Th className="w-40">Status</Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={6} emptyTitle="No invoices" />
+          <TableStatus query={query} colSpan={5} emptyTitle={scope.q ? 'Nothing matches this search' : 'No invoices'} />
           {(query.data?.items ?? []).map((i) => (
-            <Tr key={i.id}>
-              <Td className="font-medium text-fg-brand">{i.id}</Td>
+            <Tr key={i.id} className="[&>td]:h-14">
+              <Td>
+                <TwoLine primary={<span className="font-medium text-fg-brand">{i.id}</span>} secondary={tr(i.typeLabel)} />
+              </Td>
               <Td>
                 <TwoLine primary={i.name} secondary={i.studentCode} />
               </Td>
-              <Td>{tr(i.typeLabel)}</Td>
-              <Td className="tabular">{formatNumber(i.amount)}</Td>
-              <Td>{formatDate(i.dueAt)}</Td>
+              <Td align="right" className="font-medium whitespace-nowrap tabular">
+                {formatVnd(i.amount)}
+              </Td>
+              <Td className="whitespace-nowrap">{formatDate(i.dueAt)}</Td>
               <Td>
                 <StatusTag status={i.status} />
               </Td>
@@ -362,15 +448,22 @@ export default function BlockFinance() {
   const { notifyError } = useToast()
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') ?? 'refunds'
+  const [q, setQ] = useState('')
+  const [search, setSearch] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(q.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [q])
   const summary = useQuery(['finance', 'summary', scope], ({ signal }) => api.finance.summary(scope, { signal }))
   const s = summary.data
-  const exporting = useMutation(() => api.exports.download('block-finance', scope, 'block-finance.csv'), { onError: (e) => notifyError(e, 'Export failed') })
+  // The three lists (and the export) follow the search; the figures above stay the Term's.
+  const listScope = { ...scope, q: search || undefined }
+  const exporting = useMutation(() => api.exports.download('block-finance', listScope, 'block-finance.csv'), { onError: (e) => notifyError(e, 'Export failed') })
 
   return (
     <>
       <PageHeader
         title={block ? t('Finance · Block {code}', { code: block }) : 'Collections and refunds'}
-        description={`${term ? `${t('{term} invoices and refunds.', { term: term.name })} ` : ''}${t('Refunds follow admin rules; you approve exceptions and partial refunds.')}`}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export
@@ -378,12 +471,15 @@ export default function BlockFinance() {
         }
       />
 
-      <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" label="Invoiced" value={s ? formatVnd(s.invoiced) : '—'} note={s ? t('{n} invoices', { n: formatNumber(s.invoices) }) : null} />
-        <KpiTile size="md" label="Collected" value={s ? formatVnd(s.collected) : '—'} note={s?.invoiced ? formatPercent(s.collected / s.invoiced, 0) : null} />
-        <KpiTile size="md" label="Overdue" value={formatNumber(s?.overdueCount)} note={s ? formatVnd(s.overdueAmount) : null} />
-        <KpiTile size="md" label="Refunds pending" value={formatNumber(s?.refundsPendingCount)} note={s ? formatVnd(s.refundsPendingAmount) : null} />
-      </div>
+      <StatStrip
+        stats={[
+          // Amounts in short form ("16,11 tỷ ₫") so every label stays whole; the exact amount is in the "?".
+          { label: 'Invoiced', value: s ? formatCompactVnd(s.invoiced) : '—', note: s ? `${formatVnd(s.invoiced)} · ${t('{n} invoices', { n: formatNumber(s.invoices) })}` : null },
+          { label: 'Collected', value: s ? (s.invoiced ? `${formatCompactVnd(s.collected)} · ${formatPercent(s.collected / s.invoiced, 0)}` : formatCompactVnd(s.collected)) : '—', note: s ? formatVnd(s.collected) : null },
+          { label: 'Overdue', value: s ? formatCompactVnd(s.overdueAmount) : '—', tone: s?.overdueCount ? 'error' : undefined, note: s ? `${formatVnd(s.overdueAmount)} · ${t('{n} invoices', { n: formatNumber(s.overdueCount) })}` : null },
+          { label: 'Refunds pending', value: s ? formatCompactVnd(s.refundsPendingAmount) : '—', tone: s?.refundsPendingCount ? 'warning' : undefined, note: s ? `${formatVnd(s.refundsPendingAmount)} · ${t('{n} refunds', { n: formatNumber(s.refundsPendingCount) })}` : null },
+        ]}
+      />
 
       <Tabs
         className="shrink-0"
@@ -396,9 +492,19 @@ export default function BlockFinance() {
         ]}
       />
 
-      {tab === 'refunds' && <RefundsTab scope={scope} />}
-      {tab === 'overdue' && <OverdueTab scope={scope} />}
-      {tab === 'all' && <AllInvoicesTab scope={scope} />}
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <SearchInput
+          wrapperClassName="w-full max-w-xl"
+          aria-label={t('Search')}
+          placeholder={tab === 'refunds' ? 'Search student name or student code' : 'Search student, student code or invoice'}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+
+      {tab === 'refunds' && <RefundsTab scope={listScope} />}
+      {tab === 'overdue' && <OverdueTab scope={listScope} />}
+      {tab === 'all' && <AllInvoicesTab scope={listScope} />}
     </>
   )
 }
