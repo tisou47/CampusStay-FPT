@@ -15,7 +15,7 @@ import { attentionText } from '@/lib/attention'
 import { cx } from '@/lib/cx'
 import { t, tr } from '@/i18n'
 import { WorkInboxPanel } from '@/components/layout/WorkInbox'
-import { Block, FilterChip, FloorBars, Queue, Section, ShiftPill, Skeleton, TermLine, Tile, Timeline } from './today/TodayParts'
+import { Block, CARD, FilterChip, FloorBars, Queue, Section, ShiftPill, Skeleton, Stat, TermLine, Tile, Timeline } from './today/TodayParts'
 
 // SCR-HOME-02 Staff home "Today" (Change Spec v2 §11.2), built around the person's work: their shift, the Term on
 // one line, five tiles of what needs handling (they filter the queue), ONE queue of requests and Block tasks sorted
@@ -278,7 +278,7 @@ export default function StaffDashboard() {
         progress: { value: ms.entered, max: ms.roomsDue, label: t('Meter readings') },
         extra: { label: 'Download the Excel template', onClick: () => api.meters.template(period.id, period.label).catch((e) => notifyError(e, 'Could not download the template')) },
         chips: [
-          dueAt &&{ label: group === 'overdue' ? overdueShort(new Date(dueAt) - now) : formatTimeLeft(dueAt, now), tone: group === 'overdue' ? 'error' : group === 'today' ? 'brand' : 'neutral', title: formatDateTime(dueAt) },
+          dueAt && { label: group === 'overdue' ? overdueShort(new Date(dueAt) - now) : formatTimeLeft(dueAt, now), tone: group === 'overdue' ? 'error' : group === 'today' ? 'brand' : 'neutral', title: formatDateTime(dueAt) },
         ].filter(Boolean),
         action: { label: 'Enter readings', to: '/staff/meter-readings' },
       }
@@ -388,9 +388,9 @@ export default function StaffDashboard() {
     ? null
     : shift
       ? {
-          tone: 'success',
-          text: t('On duty · shift {span} · {time} left', { span: `${shift.start}–${shift.end}`, time: t('{h} h {m} min', { h: Math.floor(shift.left / 60), m: shift.left % 60 }) }),
-        }
+        tone: 'success',
+        text: t('On duty · shift {span} · {time} left', { span: `${shift.start}–${shift.end}`, time: t('{h} h {m} min', { h: Math.floor(shift.left / 60), m: shift.left % 60 }) }),
+      }
       : me.data.shiftToday
         ? { tone: 'neutral', text: t('Shift today {span}', { span: me.data.shiftToday }) }
         : { tone: 'neutral', text: t('No shift today') }
@@ -437,7 +437,7 @@ export default function StaffDashboard() {
   return (
     <>
       {/* 1. Greeting and shift (the page fills one screen: the queue and today's schedule scroll inside their cards) */}
-      <div className="flex shrink-0 flex-wrap items-end justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h1 className="text-h1 font-semibold text-fg">{greeting(user?.name)}</h1>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-fg-secondary">
@@ -455,6 +455,21 @@ export default function StaffDashboard() {
             )}
           </div>
         </div>
+
+        <section aria-labelledby="staff-stats" className={cx(CARD, 'flex flex-wrap items-center gap-x-5 gap-y-1.5 px-3.5 py-2')}>
+          <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+            <h2 id="staff-stats" className="text-sm font-semibold text-fg">
+              {t('Your performance')}
+            </h2>
+            <span className="text-xs text-fg-tertiary">· {t('last 7 days')}</span>
+          </div>
+          <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+            <Stat label="Handled" value={me.data ? formatNumber(me.data.resolved7d ?? 0) : '0'} />
+            <Stat label="On time" missing />
+            <Stat label="Average handling time" missing />
+            <Stat label="Top issue" missing />
+          </dl>
+        </section>
       </div>
 
       <StaleNotice query={dash} />

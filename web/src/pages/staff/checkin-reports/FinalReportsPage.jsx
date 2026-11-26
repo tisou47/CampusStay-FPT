@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { ChevronRight, FileText } from 'lucide-react'
+import { ArrowLeft, ChevronRight, FileText } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
+import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Display'
 import { FilterSelect, SearchInput } from '@/components/ui/Field'
 import { Pagination } from '@/components/ui/Pagination'
@@ -45,10 +46,10 @@ function useDebounced(value, delay = 300) {
   return out
 }
 
-function Count({ n }) {
+function Count({ n, label }) {
   return (
-    <span className="ml-auto rounded-full bg-subtle px-3 py-1 text-sm font-medium whitespace-nowrap text-fg-secondary tabular">
-      {t('{n} reports', { n: formatNumber(n) })}
+    <span className="rounded-full bg-subtle px-3 py-1 text-sm font-medium whitespace-nowrap text-fg-secondary tabular">
+      {label ?? t('{n} reports', { n: formatNumber(n) })}
     </span>
   )
 }
@@ -70,7 +71,11 @@ function StudentReports({ finalOnly = false, typeSelect }) {
   const query = useQuery(['handovers', 'list', scope, status, comparison, q, page, pageSize], ({ signal }) =>
     api.handover.list({ ...scope, status, comparison: comparison || undefined, q: q || undefined, page, pageSize }, { signal }),
   )
-  const rows = query.data?.items ?? []
+  const rows = [...(query.data?.items ?? [])].sort((a, b) => {
+    const timeA = Date.parse(a.finalizedAt ?? a.submittedAt ?? a.openedAt ?? '') || 0
+    const timeB = Date.parse(b.finalizedAt ?? b.submittedAt ?? b.openedAt ?? '') || 0
+    return timeB - timeA
+  })
 
   const openReport = (r) => {
     if (r.status === 'Final') {
@@ -83,24 +88,26 @@ function StudentReports({ finalOnly = false, typeSelect }) {
 
   return (
     <>
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        {typeSelect}
-        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Student code, name, room or report ID" value={text} onChange={(e) => setText(e.target.value)} />
-        {!finalOnly && (
-          <FilterSelect label="Status" value={chosenStatus} onChange={setStatus} options={STUDENT_STATUSES.map((s) => ({ value: s, label: s }))} />
-        )}
-        <FilterSelect
-          label="Comparison"
-          value={comparison}
-          onChange={setComparison}
-          options={[
-            { value: '', label: 'All' },
-            { value: 'Matched', label: 'Matched' },
-            { value: 'Minor', label: 'Minor difference' },
-            { value: 'Major', label: 'Major difference' },
-          ]}
-        />
-        <Count n={query.data?.total ?? 0} />
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <SearchInput wrapperClassName="w-80 max-w-full" aria-label={t('Search')} placeholder="Student code, name, room or report ID" value={text} onChange={(e) => setText(e.target.value)} />
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          {typeSelect}
+          {!finalOnly && (
+            <FilterSelect label="Status" value={chosenStatus} onChange={setStatus} options={STUDENT_STATUSES.map((s) => ({ value: s, label: s }))} />
+          )}
+          <FilterSelect
+            label="Comparison"
+            value={comparison}
+            onChange={setComparison}
+            options={[
+              { value: '', label: 'All' },
+              { value: 'Matched', label: 'Matched' },
+              { value: 'Minor', label: 'Minor difference' },
+              { value: 'Major', label: 'Major difference' },
+            ]}
+          />
+          <Count n={query.data?.total ?? 0} />
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -179,33 +186,248 @@ function StudentReports({ finalOnly = false, typeSelect }) {
   )
 }
 
-// The inspection reports: report 1 (kind Pre-arrival) or the reports of one published checklist. One row per inspected
-// Room, kept with that Room (Rooms and beds shows the same reports); it opens the Room's results.
+// The inspection reports: report 1 (kind Pre-arrival) or the reports of one published checklist.
+// Grouped by inspection run first so the user sees each Run clearly and clicks into a Run to view individual rooms.
 function InspectionReports({ kind, checklist, typeSelect }) {
   const navigate = useNavigate()
   const base = useRoleBase()
   const scope = useScopeQuery()
+  const [params, setParams] = useSearchParams()
+  const selectedRunId = params.get('run') || null
   const [text, setText] = useState('')
   const q = useDebounced(text)
+  const [runStatus, setRunStatus] = useState('')
+  const [roomFilter, setRoomFilter] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  useEffect(() => setPage(1), [q])
-  const query = useQuery(['inspection-reports', scope, kind, checklist, q, page, pageSize], ({ signal }) =>
-    api.inspections.reports({ ...scope, kind, checklist, q: q || undefined, page, pageSize }, { signal }),
+  useEffect(() => setPage(1), [q, runStatus, roomFilter, selectedRunId])
+
+  const query = useQuery(['inspection-reports', scope, kind, checklist, q], ({ signal }) =>
+    api.inspections.reports({ ...scope, kind, checklist, q: q || undefined, page: 1, pageSize: 100 }, { signal }),
   )
-  const items = query.data?.items ?? []
+  const allItems = query.data?.items ?? []
+
+  // Group room reports into runs, preserving newest-first order
+  const runsMap = new Map()
+  for (const r of allItems) {
+    let run = runsMap.get(r.runId)
+    const time = Date.parse(r.inspectedAt ?? r.submittedAt ?? '') || 0
+    if (!run) {
+      run = {
+        runId: r.runId,
+        name: r.name,
+        kind: r.kind,
+        checklistName: r.checklistName,
+        inspector: r.inspector,
+        submitted: r.submitted,
+        latestAt: r.inspectedAt ?? r.submittedAt,
+        latestTime: time,
+        totalFailed: 0,
+        damagedRooms: 0,
+        unreachableRooms: 0,
+        rooms: [],
+      }
+      runsMap.set(r.runId, run)
+    }
+    run.rooms.push(r)
+    run.totalFailed += Number(r.failed ?? 0)
+    if (r.failed > 0) run.damagedRooms += 1
+    if (r.status === 'Unreachable') run.unreachableRooms += 1
+    if (time > run.latestTime) {
+      run.latestTime = time
+      run.latestAt = r.inspectedAt ?? r.submittedAt
+    }
+    if (!run.inspector && r.inspector) run.inspector = r.inspector
+  }
+
+  const allRuns = [...runsMap.values()]
+    .filter((run) => {
+      if (runStatus === 'sent') return Boolean(run.submitted)
+      if (runStatus === 'open') return !run.submitted
+      return true
+    })
+    .sort((a, b) => b.latestTime - a.latestTime)
+
+  const setRunId = (id) => {
+    const next = new URLSearchParams(params)
+    if (id) next.set('run', id)
+    else next.delete('run')
+    setParams(next, { replace: true })
+  }
+
+  const activeRun = selectedRunId ? runsMap.get(selectedRunId) : null
+
+  if (selectedRunId && activeRun) {
+    const filteredRooms = activeRun.rooms.filter((r) => {
+      if (roomFilter === 'damaged') return r.failed > 0 || r.status === 'Unreachable'
+      if (roomFilter === 'clean') return r.failed === 0 && r.status !== 'Unreachable'
+      return true
+    })
+    const pagedRooms = filteredRooms.slice((page - 1) * pageSize, page * pageSize)
+
+    return (
+      <>
+        <PageHeader
+          breadcrumb={
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="secondary" size="sm" icon={ArrowLeft} onClick={() => setRunId(null)}>
+                {t('Back')}
+              </Button>
+              <nav aria-label={t('Breadcrumb')} className="flex flex-wrap items-center gap-1.5 text-sm text-fg-secondary">
+                <button type="button" onClick={() => setRunId(null)} className="cursor-pointer hover:text-fg-brand">
+                  {t('Final reports')}
+                </button>
+                <span aria-hidden="true">/</span>
+                <button type="button" onClick={() => setRunId(null)} className="cursor-pointer hover:text-fg-brand">
+                  {t('Dormitory reports')}
+                </button>
+                <span aria-hidden="true">/</span>
+                <span className="font-mono font-semibold text-fg">{activeRun.runId}</span>
+              </nav>
+            </div>
+          }
+          title={`${activeRun.runId} · ${tr(activeRun.name)}`}
+          description={activeRun.checklistName ? tr(activeRun.checklistName) : undefined}
+          badge={
+            <div className="flex flex-wrap items-center gap-2">
+              <Tag tone="info" dot={false}>
+                {t('{n} rooms', { n: activeRun.rooms.length })}
+              </Tag>
+              {activeRun.totalFailed > 0 ? (
+                <Tag tone="error">{t('{n} damaged items', { n: activeRun.totalFailed })}</Tag>
+              ) : (
+                <Tag tone="success">{t('{n} damaged items', { n: 0 })}</Tag>
+              )}
+              {activeRun.submitted ? <Tag tone="success">{t('Sent')}</Tag> : <Tag tone="neutral">{t('Run in progress')}</Tag>}
+            </div>
+          }
+        />
+
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+          <SearchInput wrapperClassName="w-80 max-w-full" aria-label={t('Search')} placeholder="Room or run code" value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            <FilterSelect
+              label="Result"
+              value={roomFilter}
+              onChange={setRoomFilter}
+              options={[
+                { value: '', label: 'All' },
+                { value: 'damaged', label: 'Có mục hư hỏng' },
+                { value: 'clean', label: '0 mục hư hỏng' },
+              ]}
+            />
+            <Count n={filteredRooms.length} label={t('{n} rooms', { n: formatNumber(filteredRooms.length) })} />
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <InspectionReportTable query={query} items={pagedRooms} onOpen={(r) => navigate(`${base}/inspections/${r.runId}/rooms/${r.room}?from=reports`)} />
+          <div className="flex shrink-0 justify-end">
+            <Pagination
+              total={filteredRooms.length}
+              page={page}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n)
+                setPage(1)
+              }}
+            />
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  const pagedRuns = allRuns.slice((page - 1) * pageSize, page * pageSize)
+
   return (
     <>
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        {typeSelect}
-        <SearchInput wrapperClassName="w-80" aria-label={t('Search')} placeholder="Room or run code" value={text} onChange={(e) => setText(e.target.value)} />
-        <Count n={query.data?.total ?? 0} />
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <SearchInput wrapperClassName="w-80 max-w-full" aria-label={t('Search')} placeholder="Room or run code" value={text} onChange={(e) => setText(e.target.value)} />
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          {typeSelect}
+          <FilterSelect
+            label="Status"
+            value={runStatus}
+            onChange={setRunStatus}
+            options={[
+              { value: '', label: 'All' },
+              { value: 'open', label: 'Run in progress' },
+              { value: 'sent', label: 'Sent' },
+            ]}
+          />
+          <Count n={allRuns.length} label={`${formatNumber(allRuns.length)} đợt · ${formatNumber(allItems.length)} phòng`} />
+        </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <InspectionReportTable query={query} items={items} onOpen={(r) => navigate(`${base}/inspections/${r.runId}/rooms/${r.room}?from=reports`)} />
+        <Table fill tableClassName="table-fixed min-w-[1000px]">
+          <THead>
+            <tr>
+              <Th className="w-28">{t('Run')}</Th>
+              <Th>{t('Inspection')}</Th>
+              <Th className="w-40">{t('Rooms')}</Th>
+              <Th className="w-48">{t('Result')}</Th>
+              <Th className="w-44">{t('Inspected by')}</Th>
+              <Th className="w-40">{t('Inspected')}</Th>
+              <Th className="w-36">{t('Sent to managers')}</Th>
+              <Th className="w-10">
+                <span className="sr-only">{t('Open')}</span>
+              </Th>
+            </tr>
+          </THead>
+          <TBody>
+            <TableStatus query={query} colSpan={8} rows={pagedRuns} emptyIcon={FileText} emptyTitle="No inspection reports yet" />
+            {pagedRuns.map((run) => {
+              const roomPreview = run.rooms
+                .slice(0, 3)
+                .map((r) => r.room)
+                .join(', ')
+              const moreRooms = run.rooms.length > 3 ? ` +${run.rooms.length - 3}` : ''
+              return (
+                <Tr key={run.runId} onClick={() => setRunId(run.runId)} className="cursor-pointer [&>td]:h-14">
+                  <Td className="font-mono text-sm font-bold whitespace-nowrap text-fg-brand">{run.runId}</Td>
+                  <Td>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate font-semibold text-fg" title={tr(run.name)}>
+                        {tr(run.name)}
+                      </span>
+                      <span className="truncate text-xs text-fg-secondary">{tr(run.checklistName ?? run.kind)}</span>
+                    </div>
+                  </Td>
+                  <Td>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="font-semibold text-fg tabular">{t('{n} rooms', { n: run.rooms.length })}</span>
+                      <span className="truncate text-xs text-fg-tertiary tabular">
+                        {roomPreview}
+                        {moreRooms}
+                      </span>
+                    </div>
+                  </Td>
+                  <Td>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {run.totalFailed > 0 ? (
+                        <Tag tone="error">{t('{n} damaged items', { n: run.totalFailed })}</Tag>
+                      ) : (
+                        <Tag tone="success">{t('{n} damaged items', { n: 0 })}</Tag>
+                      )}
+                      {run.unreachableRooms > 0 && <Tag tone="warning">{t('Unreachable')}</Tag>}
+                    </div>
+                  </Td>
+                  <Td className="truncate">{run.inspector ?? '—'}</Td>
+                  <Td className="text-sm text-fg-secondary tabular">{run.latestAt ? formatDateTime(run.latestAt) : '—'}</Td>
+                  <Td>{run.submitted ? <Tag tone="success">{t('Sent')}</Tag> : <Tag tone="neutral">{t('Run in progress')}</Tag>}</Td>
+                  <Td>
+                    <ChevronRight size={16} aria-hidden="true" className="text-fg-tertiary" />
+                  </Td>
+                </Tr>
+              )
+            })}
+          </TBody>
+        </Table>
         <div className="flex shrink-0 justify-end">
           <Pagination
-            total={query.data?.total ?? 0}
+            total={allRuns.length}
             page={page}
             pageSize={pageSize}
             onChange={setPage}
@@ -293,28 +515,30 @@ export default function FinalReportsPage() {
     {
       key: 'student',
       label: 'Student reports',
-      hint: 'What the students filed: their check-in inventories (report 2) and the rooms’ final reports.',
     },
     {
       key: 'dorm',
       label: 'Dormitory reports',
-      hint: 'What the dormitory filed: report 1 (Staff’s pre-arrival check) and every other inspection the Admin configured.',
     },
   ]
+  const inRunDetail = group === 'dorm' && Boolean(params.get('run'))
   return (
     <>
-      <PageHeader
-        title="Final reports"
-        tip="Every report kept for the rooms, updated as soon as one is filed: the students' check-in inventories, the rooms' final reports, report 1 and each inspection the Admin configured. Students see only their own inventory and their room's final report."
-      />
-      <Tabs
-        label={t('Report group')}
-        value={group}
-        onChange={(g) => g !== group && setType(g === 'student' ? 'student' : 'report1')}
-        items={groups.map((g) => ({ key: g.key, label: g.label }))}
-      />
-      <p className="shrink-0 text-sm text-fg-secondary">{t(groups.find((g) => g.key === group).hint)}</p>
-      {type === 'student'&& <StudentReports key="student" typeSelect={typeSelect} />}
+      {!inRunDetail && (
+        <>
+          <PageHeader
+            title="Final reports"
+            tip="Every report kept for the rooms, updated as soon as one is filed: the students' check-in inventories, the rooms' final reports, report 1 and each inspection the Admin configured. Students see only their own inventory and their room's final report."
+          />
+          <Tabs
+            label={t('Report group')}
+            value={group}
+            onChange={(g) => g !== group && setType(g === 'student' ? 'student' : 'report1')}
+            items={groups.map((g) => ({ key: g.key, label: g.label }))}
+          />
+        </>
+      )}
+      {type === 'student' && <StudentReports key="student" typeSelect={typeSelect} />}
       {type === 'final' && <StudentReports key="final" finalOnly typeSelect={typeSelect} />}
       {type === 'report1' && <InspectionReports key="report1" kind="Pre-arrival" typeSelect={typeSelect} />}
       {type.startsWith('cl:') && <InspectionReports key={type} checklist={type.slice(3)} typeSelect={typeSelect} />}

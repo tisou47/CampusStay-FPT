@@ -39,6 +39,13 @@ export function readSession() {
 
 /** @param remember true/false at sign-in ("Remember me"); left out, the session stays in the store it is in */
 export function writeSession(session, remember) {
+  if (!session) {
+    try {
+      sessionStorage.removeItem(SHIFT_ACK_KEY)
+    } catch {
+      /* ignore */
+    }
+  }
   store.write(session, remember)
   window.dispatchEvent(new Event('campusstay:session'))
 }

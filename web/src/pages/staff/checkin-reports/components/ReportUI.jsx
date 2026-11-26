@@ -231,9 +231,9 @@ export function FocusTopBar({ back, detail, current, reportTo, compareTo, childr
   const row = detail.row
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2">
-      <Link to={back} aria-label={t('Back to the student')} className="inline-flex size-8 items-center justify-center rounded-md text-fg-secondary hover:bg-subtle hover:text-fg focus-visible:outline-2 focus-visible:outline-focus">
-        <ArrowLeft size={18} aria-hidden="true" />
-      </Link>
+      <Button variant="secondary" size="sm" icon={ArrowLeft} to={back} aria-label={t('Back to the student')}>
+        {t('Back')}
+      </Button>
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-base font-semibold text-fg">{row.studentName}</span>
         <span className="text-xs text-fg-secondary tabular-nums">{`${row.studentCode} · ${row.room} · ${t('Bed {bed}', { bed: row.bed })}`}</span>

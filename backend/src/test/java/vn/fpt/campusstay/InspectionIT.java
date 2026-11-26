@@ -181,9 +181,9 @@ class InspectionIT {
         getAs("/inspection-runs?block=A", otherStaff)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[?(@.id == '" + run + "')]", hasSize(0)));
+        // Another Staff of the Block reads it (a Room's reports link to it), read only; changes stay the inspector's.
         getAs("/inspection-runs/" + run + "/rooms?pageSize=100", otherStaff)
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("INSPECTION_NOT_ASSIGNED"));
+                .andExpect(status().isOk());
         putAs("/inspection-runs/" + run + "/rooms/A-401", otherStaff, "{\"results\":[]}")
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("INSPECTION_NOT_ASSIGNED"));
@@ -373,8 +373,20 @@ class InspectionIT {
         for (int i = 0; i < itemIds.size(); i++) {
             items.append(i == 0 ? "" : ",").append("{\"itemId\":\"").append(itemIds.get(i)).append("\",\"result\":\"Pass\"}");
         }
-        putAs("/inspection-runs/" + run + "/rooms/A-404", staff, "{\"results\":[" + items + "]}")
-                .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(0)));
+        // A Worn ("partly damaged") item opens a repair too (user decision 27/11/2026); the item still passes.
+        List<String> checks404 = JsonPath.read(rooms, "$.items[?(@.room == 'A-404')].checks[*].id");
+        String worn = checks404.stream().filter(c -> c.startsWith("furniture-")).findFirst().orElseThrow();
+        StringBuilder all404 = new StringBuilder(items);
+        for (String check : checks404) {
+            all404.append(",{\"itemId\":\"").append(check).append(check.equals(worn)
+                    ? "\",\"condition\":\"Worn\",\"note\":\"Scratched\"}" : "\",\"result\":\"Pass\"}");
+        }
+        String wornSaved = putAs("/inspection-runs/" + run + "/rooms/A-404", staff, "{\"results\":[" + all404 + "]}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.createdRequests", hasSize(1)))
+                .andReturn().getResponse().getContentAsString();
+        String wornRequest = JsonPath.read(wornSaved, "$.createdRequests[0]");
+        assertThat(jdbc.sql("SELECT furniture_item_id::text FROM mnt_request WHERE code = :c").param("c", wornRequest)
+                .query(String.class).single()).isEqualTo(worn.substring("furniture-".length()));
         getAs("/inspection-runs/" + run + "/rooms?pageSize=100", staff)
                 .andExpect(jsonPath("$.items[?(@.room == 'A-404')].status").value(hasItem("Done")));
 
@@ -513,6 +525,43 @@ class InspectionIT {
 
         // The other tests of this class read the first open run of staff.a2: this run goes.
         long scheduleId = Long.parseLong(id.replaceAll("[^0-9]", ""));
+        jdbc.sql("DELETE FROM mnt_inspection_run WHERE schedule_id = :id").param("id", scheduleId).update();
+        jdbc.sql("DELETE FROM mnt_inspection_schedule WHERE id = :id").param("id", scheduleId).update();
+    }
+
+    /**
+     * TC-MNT-020: a Manager starts a run of an active schedule now (user decision 26/11/2026): refused while one is
+     * open or the schedule is paused, and for Staff; the schedule keeps its next run time.
+     */
+    @Test
+    void managersStartARunNow() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        String id = read(stay.postJson("/inspection-schedules", manager, """
+                {"block":"A","name":"Floor 3 now","checklistId":"CL-ROOM","scope":"FLOOR_3","repeat":"MONTHLY",
+                 "assignee":"%d","dueWithinDays":3,"createRequests":true,"notifyResidents":false}"""
+                .formatted(stay.userId(STAFF_A2))).andExpect(status().isOk()), "$.id");
+        long scheduleId = Long.parseLong(id.replaceAll("[^0-9]", ""));
+        String nextSql = "SELECT next_run_at::text FROM mnt_inspection_schedule WHERE id = :id";
+        String next = jdbc.sql(nextSql).param("id", scheduleId).query(String.class).single();
+
+        stay.postJson("/inspection-schedules/" + id + "/run", manager, "{}")
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("RUN_IN_PROGRESS"));
+        jdbc.sql("UPDATE mnt_inspection_run SET status = 'SUBMITTED' WHERE schedule_id = :id").param("id", scheduleId).update();
+        stay.postJson("/inspection-schedules/" + id + "/run", bearer(mvc, STAFF_A), "{}").andExpect(status().isForbidden());
+        String started = stay.postJson("/inspection-schedules/" + id + "/run", manager, "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.runId", startsWith("INS-")))
+                .andReturn().getResponse().getContentAsString();
+        assertThat((Integer) JsonPath.read(started, "$.rooms")).isPositive();
+        assertThat(jdbc.sql(nextSql).param("id", scheduleId).query(String.class).single()).isEqualTo(next);
+        assertThat(jdbc.sql("SELECT count(*) FROM mnt_inspection_run WHERE schedule_id = :id").param("id", scheduleId)
+                .query(Long.class).single()).isEqualTo(2);
+
+        jdbc.sql("UPDATE mnt_inspection_run SET status = 'SUBMITTED' WHERE schedule_id = :id").param("id", scheduleId).update();
+        putAs("/inspection-schedules/" + id, manager, "{\"status\":\"Paused\"}").andExpect(status().isNoContent());
+        stay.postJson("/inspection-schedules/" + id + "/run", manager, "{}")
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("SCHEDULE_NOT_ACTIVE"));
+
         jdbc.sql("DELETE FROM mnt_inspection_run WHERE schedule_id = :id").param("id", scheduleId).update();
         jdbc.sql("DELETE FROM mnt_inspection_schedule WHERE id = :id").param("id", scheduleId).update();
     }

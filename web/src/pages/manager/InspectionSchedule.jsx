@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { CalendarDays, ClipboardCheck, Plus } from 'lucide-react'
+import { CalendarDays, ClipboardCheck, Play, Plus } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -131,6 +131,14 @@ function ScheduleCard({ item, options, linkedRunId, onEdit, onViewRun }) {
     onSuccess: () => notify({ title: 'Inspection schedule ended', message: tr(item.name) }),
     onError: (e) => notifyError(e, 'Could not end the inspection schedule'),
   })
+  // Run now (user decision 26/11/2026): a run of an active schedule today, without waiting for its next date; the
+  // schedule keeps that date. Not while a run of it is still open.
+  const runNow = useMutation(() => api.inspections.runScheduleNow(item.id), {
+    invalidates: ['inspection-schedules', 'inspections', 'inspection-reports'],
+    onSuccess: (r) => notify({ title: t('Run {run} started', { run: r.runId }), message: t('{n} rooms to inspect, assigned to Staff now.', { n: r.rooms }) }),
+    onError: (e) => notifyError(e, 'Could not start the run'),
+  })
+  const runOpen = Boolean(item.latestRunId) && !item.latestRunSubmitted
   const assigneeName = options?.assignees?.find((a) => a.value === item.assignee)?.label
   const isCompleted = item.status === 'Completed'
   const displayStatus = scheduleDisplayStatus(item)
@@ -171,6 +179,11 @@ function ScheduleCard({ item, options, linkedRunId, onEdit, onViewRun }) {
                 {t('View stats & details')}
               </Button>
             )}
+            {item.status === 'Active' && (
+              <Button icon={Play} tip="Start a run today; the next scheduled date stays." onClick={() => runNow.run()} disabled={runNow.pending}>
+                Run now
+              </Button>
+            )}
             <Button variant="primary" onClick={() => completeSchedule.run()} disabled={completeSchedule.pending}>
               {t('Complete schedule')}
             </Button>
@@ -183,6 +196,17 @@ function ScheduleCard({ item, options, linkedRunId, onEdit, onViewRun }) {
             <Button onClick={() => pause.run()} disabled={pause.pending}>
               {item.status === 'Paused' ? t('Resume') : t('Pause')}
             </Button>
+            {item.status === 'Active' && (
+              <Button
+                variant="primary"
+                icon={Play}
+                tip={runOpen ? 'A run of this schedule is still open: it must be submitted first.' : 'Start a run today; the next scheduled date stays.'}
+                onClick={() => runNow.run()}
+                disabled={runNow.pending || runOpen}
+              >
+                Run now
+              </Button>
+            )}
           </div>
         )
       ) : targetRunId ? (

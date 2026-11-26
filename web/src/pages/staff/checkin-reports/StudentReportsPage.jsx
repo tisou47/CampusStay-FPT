@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowRight, CalendarClock, ChevronLeft, ChevronRight, CircleCheck, Columns3, Eye, FileText, ImageOff, Images, Lock } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, CircleCheck, Columns3, Eye, FileText, ImageOff, Images, Lock } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert, Avatar } from '@/components/ui/Display'
 import { ErrorState } from '@/components/ui/States'
@@ -257,18 +257,24 @@ export default function StudentReportsPage() {
   })
 
   const tabLabel = tabOf(position.from).label
+  const backUrl = `${base}?tab=${position.from}`
   const breadcrumb = (
-    <nav aria-label={t('Breadcrumb')} className="flex flex-wrap items-center gap-1.5 text-sm text-fg-secondary">
-      <Link to={base} className="hover:text-fg-brand">
-        {t('Check-in inventories')}
-      </Link>
-      <span aria-hidden="true">/</span>
-      <Link to={`${base}?tab=${position.from}`} className="hover:text-fg-brand">
-        {t(tabLabel)}
-      </Link>
-      <span aria-hidden="true">/</span>
-      <span className="text-fg">{detail?.row?.studentName ?? '…'}</span>
-    </nav>
+    <div className="flex flex-wrap items-center gap-3">
+      <Button variant="secondary" size="sm" icon={ArrowLeft} to={backUrl}>
+        {t('Back')}
+      </Button>
+      <nav aria-label={t('Breadcrumb')} className="flex flex-wrap items-center gap-1.5 text-sm text-fg-secondary">
+        <Link to={base} className="hover:text-fg-brand">
+          {t('Check-in inventories')}
+        </Link>
+        <span aria-hidden="true">/</span>
+        <Link to={backUrl} className="hover:text-fg-brand">
+          {t(tabLabel)}
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span className="text-fg">{detail?.row?.studentName ?? '…'}</span>
+      </nav>
+    </div>
   )
 
   return (

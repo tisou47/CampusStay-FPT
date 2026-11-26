@@ -446,14 +446,66 @@ public class InspectionScheduleService {
          * moves the next run time.
          */
         private boolean start(Schedule s, Instant now) {
-            Optional<ChecklistService.Version> checklist = checklists.published(s.family());
-            if (checklist.isEmpty()) {
+            if (checklists.published(s.family()).isEmpty()) {
                 return false;
             }
             // One run at a time: the next waits until the previous one is submitted (BE-3RD-12).
             if (jdbc.sql("SELECT count(*) FROM mnt_inspection_run WHERE schedule_id = :s AND status <> 'SUBMITTED'")
                     .param("s", s.id()).query(Long.class).single() > 0) {
                 return false;
+            }
+            LocalDate today = LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE);
+            boolean started = createRun(s, now).isPresent();
+            // A one-off schedule is done after its run (BE-3RD-12).
+            jdbc.sql("""
+                    UPDATE mnt_inspection_schedule SET next_run_at = :next,
+                           status = CASE WHEN repeat = 'ONCE' THEN 'COMPLETED' ELSE status END
+                    WHERE id = :id
+                    """)
+                    .param("next", next(s, today).map(Timestamp::from).orElse(null)).param("id", s.id()).update();
+            return started;
+        }
+
+        public record RunStarted(String runId, int rooms) {
+        }
+
+        /**
+         * A Manager starts a run of an active schedule now (user decision 26/11/2026), for example to inspect before
+         * its next date: the schedule keeps its next run time. Refused while the schedule has a run not submitted, or
+         * when no Room is in its scope today.
+         */
+        @Transactional
+        public RunStarted runNow(String id) {
+            currentUser.require(Permission.MANAGE_BLOCK);
+            Schedule s = parse(id).map(n -> find(n, true)).orElseThrow(InspectionScheduleService::notFound);
+            blockScope.check(s.buildingId());
+            if (!s.status().equals("ACTIVE")) {
+                throw ApiException.conflict("SCHEDULE_NOT_ACTIVE", "Only an active schedule can start a run.");
+            }
+            if (checklists.published(s.family()).isEmpty()) {
+                throw ApiException.conflict("CHECKLIST_NOT_PUBLISHED", "The checklist of this schedule is not published.");
+            }
+            boolean open = jdbc.sql("""
+                    SELECT EXISTS (SELECT 1 FROM mnt_inspection_run WHERE schedule_id = :id AND status <> 'SUBMITTED')
+                    """).param("id", s.id()).query(Boolean.class).single();
+            if (open) {
+                throw ApiException.conflict("RUN_IN_PROGRESS",
+                        "This schedule already has a run in progress: it must be submitted before another starts.");
+            }
+            long run = createRun(s, Instant.now(clock)).orElseThrow(() -> ApiException.conflict("NO_ROOMS_IN_SCOPE",
+                    "No Room is in the scope of this schedule today."));
+            int rooms = jdbc.sql("SELECT count(*) FROM mnt_inspection_room WHERE run_id = :run").param("run", run)
+                    .query(Integer.class).single();
+            audit.record("INSPECTION_RUN_STARTED", AuditLog.Tone.INFO, "Inspection schedule", s.id(), s.name(),
+                    Map.of("run", code(run), "rooms", rooms));
+            return new RunStarted(code(run), rooms);
+        }
+
+        /** One run of the schedule today with the Rooms in scope; empty without a published checklist or Rooms. */
+        private Optional<Long> createRun(Schedule s, Instant now) {
+            Optional<ChecklistService.Version> checklist = checklists.published(s.family());
+            if (checklist.isEmpty()) {
+                return Optional.empty();
             }
             LocalDate today = LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE);
             List<Inventory.BedSlot> beds = inventory.bedsOfBuilding(s.buildingId());
@@ -480,8 +532,10 @@ public class InspectionScheduleService {
                     students.addAll(residents);
                 }
             });
-            boolean started = false;
-            if (!inScope.isEmpty()) {
+            if (inScope.isEmpty()) {
+                return Optional.empty();
+            }
+            {
                 Instant dueAt = today.plusDays(s.dueWithinDays() + 1L).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
                 long run = jdbc
                         .sql("""
@@ -503,15 +557,8 @@ public class InspectionScheduleService {
                 if (s.notifyResidents() && !students.isEmpty()) {
                     events.publishEvent(new InspectionScheduled(run, code(run), List.copyOf(students), today, dueAt));
                 }
-                started = true;
+                return Optional.of(run);
             }
-            // A one-off schedule is done after its run (BE-3RD-12).
-            jdbc.sql("""
-                    UPDATE mnt_inspection_schedule SET next_run_at = :next,
-                           status = CASE WHEN repeat = 'ONCE' THEN 'COMPLETED' ELSE status END
-                    WHERE id = :id
-                    """).param("next", next(s, today).map(Timestamp::from).orElse(null)).param("id", s.id()).update();
-            return started;
         }
 
         /**

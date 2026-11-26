@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router'
-import { Check, Clock, MessageSquare, RotateCcw, SearchX, UserCheck, Wrench } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router'
+import { ArrowLeft, Check, Clock, MessageSquare, RotateCcw, SearchX, UserCheck, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
@@ -87,6 +87,9 @@ function FurnitureItem({ r }) {
         {r.furnitureItem.assetCode ? `${typeName(r.furnitureItem)} · ${r.furnitureItem.assetCode}` : typeName(r.furnitureItem) || '—'}
       </Fact>
     )
+  }
+  if (!r.furnitureItem && (r.furnitureItemFixed || r.inspectionFinding || r.reporter?.role === 'Inspection' || !(r.furnitureOptions?.length > 0))) {
+    return <Fact label="Furniture item">{t('Not about a furniture item')}</Fact>
   }
   return (
     <Fact label="Furniture item" tip="The item's history lists this request when it is reported and resolved.">
@@ -191,11 +194,19 @@ function RequestDetail({ r, staff, priorities }) {
   // Where the problem is, always naming the room: "Room A-801 · Bed A", or "Balcony · Room A-801".
   const place = r.bed ? t('{room} · Bed {bed}', { room: r.room, bed: r.bed }) : r.room
   const where = !r.location || r.location === 'Room' ? t('Room {code}', { code: place }) : `${tr(r.location)} · ${t('Room {code}', { code: place })}`
+  const navigate = useNavigate()
 
   return (
     <>
       <PageHeader
-        breadcrumb={<Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: r.id }]} />}
+        breadcrumb={
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="secondary" size="sm" icon={ArrowLeft} onClick={() => navigate(-1)}>
+              {t('Back')}
+            </Button>
+            <Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: r.id }]} />
+          </div>
+        }
         title={
           <span className="block max-w-[34vw] truncate" title={tr(r.title)}>
             {tr(r.title)}
@@ -435,13 +446,92 @@ function nextDay(isoDay) {
 export default function MaintenanceDetail() {
   const { id } = useParams()
   const base = useRoleBase()
-  const query = useQuery(['maintenance', id], ({ signal }) => api.maintenance.get(id, { signal }))
+  const navigate = useNavigate()
+  const query = useQuery(
+    ['maintenance', id],
+    async ({ signal }) => {
+      try {
+        return await api.maintenance.get(id, { signal })
+      } catch (err) {
+        if (err?.status === 404) throw err
+        // Fallback when an older backend instance throws 500 on non-furniture inspection findings (null condition in Map.of)
+        const page = await api.maintenance.list({ q: id, pageSize: 20 }, { signal }).catch(() => null)
+        const item = (page?.items ?? []).find((x) => String(x.id).toUpperCase() === String(id).toUpperCase())
+        if (!item) throw err
+        return {
+          id: item.id,
+          title: item.title,
+          status: item.status,
+          room: item.room,
+          bed: null,
+          category: item.category,
+          location: 'Room',
+          reportedAt: item.reportedAt,
+          reporter: { name: t('Inspection'), role: 'Inspection' },
+          urgency: item.priority === 'High' ? 'Urgent' : 'Normal',
+          priority: item.priority,
+          staffMayEnter: true,
+          description: item.title,
+          photos: [],
+          assignee: item.assignee,
+          suggestedAssigneeId: null,
+          visitWindow: null,
+          events: [
+            {
+              who: 'CampusStay',
+              role: 'System',
+              at: item.reportedAt,
+              text: t('Found in the inspection'),
+              message: tr(item.title),
+              internal: false,
+            },
+            ...(item.assignee
+              ? [
+                  {
+                    who: 'CampusStay',
+                    role: 'System',
+                    at: item.reportedAt,
+                    text: t('Assigned to {name}', { name: item.assignee.name }),
+                    message: null,
+                    internal: false,
+                  },
+                ]
+              : []),
+          ],
+          roomSummary: null,
+          slaDueAt: item.slaDueAt,
+          furnitureItem: null,
+          furnitureOptions: [],
+          inspectionFinding: {
+            condition: null,
+            result: 'Fail',
+            note: tr(item.title),
+            runId: null,
+            inspectedAt: item.reportedAt,
+          },
+          staff: [],
+          furnitureItemFixed: true,
+          visitHours: null,
+        }
+      }
+    },
+  )
   const options = useQuery(['maintenance-options', 'staff'], ({ signal }) => api.maintenance.options({ for: 'staff' }, { signal }))
 
   if (query.data) return <RequestDetail r={query.data} staff={query.data.staff ?? options.data?.staff ?? []} priorities={options.data?.priorities ?? [query.data.priority].filter(Boolean)} />
   return (
     <>
-      <PageHeader breadcrumb={<Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: id }]} />} title={id} />
+      <PageHeader
+        breadcrumb={
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="secondary" size="sm" icon={ArrowLeft} onClick={() => navigate(-1)}>
+              {t('Back')}
+            </Button>
+            <Breadcrumb items={[{ label: 'Maintenance', to: `${base}/maintenance` }, { label: id }]} />
+          </div>
+        }
+        title={id}
+      />
       {query.loading ? (
         <LoadingState />
       ) : query.error?.status === 404 ? (

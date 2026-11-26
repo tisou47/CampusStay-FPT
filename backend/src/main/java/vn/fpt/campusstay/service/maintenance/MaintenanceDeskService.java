@@ -130,10 +130,16 @@ public class MaintenanceDeskService {
                 WHERE x.created_request_id = :id
                 LIMIT 1
                 """).param("id", requestId)
-                .query((rs, i) -> new InspectionFinding(FINDING_CONDITIONS.get(rs.getString("condition")),
-                        FINDING_RESULTS.get(rs.getString("result")), rs.getString("note"),
-                        InspectionScheduleService.code(rs.getLong("run_id")),
-                        rs.getTimestamp("inspected_at") == null ? null : rs.getTimestamp("inspected_at").toInstant()))
+                .query((rs, i) -> {
+                    String cond = rs.getString("condition");
+                    String res = rs.getString("result");
+                    return new InspectionFinding(
+                            cond == null ? null : FINDING_CONDITIONS.get(cond),
+                            res == null ? null : FINDING_RESULTS.get(res),
+                            rs.getString("note"),
+                            InspectionScheduleService.code(rs.getLong("run_id")),
+                            rs.getTimestamp("inspected_at") == null ? null : rs.getTimestamp("inspected_at").toInstant());
+                })
                 .optional().orElse(null);
     }
 

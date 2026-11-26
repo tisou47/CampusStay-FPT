@@ -353,7 +353,8 @@ Student accounts, the student list and Staff accounts: A-19…A-21, C-39.
 - `GET /dashboards/term?termId` → `{ term, terms, requestCode, stayStart, stayEnd, milestones, applications, applicationsTotal, places: [{ roomType, roomClass, gender, beds, allocated, price }], money, checkedIn, residents }` (A-32, A-39)
 - `GET /announcements?q&category&page&pageSize` · `GET /announcements/options` · `POST /announcements { category, audience, blocks?, termId?, title, body, pinned?, shownFrom?, shownUntil? }` → `201 { id }` · `PUT /announcements/{id} { pinned?, shownUntil?, end? }` → `204`; Staff write only to the residents of their Blocks (A-30) Since v2 phase 1 Managers work for every Block and review Applications, run and commit the assignment and confirm payments (C-38).
 - `GET /inspection-schedules?block` → `{ items: [{ id, name, checklistId, scope, scopeLabel, repeat, repeatLabel, assignee, dueWithinDays, createRequests, notifyResidents, nextRunAt, status, createdAt }], runs: [{ id, assigneeName, inspected, rooms, failed, status }], options: { checklists, scopes, repeats, assignees } }` (options are `{ value, label }` lists)
-- `POST /inspection-schedules` · `PUT /inspection-schedules/{id}` (also `{ status: 'Active'|'Paused' }`)
+- `POST /inspection-schedules` · `PUT /inspection-schedules/{id}` (also `{ status: 'Active'|'Paused' }`; a pause holds the schedule's open run: Staff read it as `status: 'Paused'` and saving or submitting it answers `409 INSPECTION_PAUSED`; its inspector is told of the pause and the resume; turning `notifyResidents` on while a run is open tells the residents of its Rooms not inspected yet, A-83)
+- `POST /inspection-schedules/{id}/run` → `{ runId, rooms }`: a Manager starts a run of an active schedule now; its `nextRunAt` stays. `409 SCHEDULE_NOT_ACTIVE`, `409 RUN_IN_PROGRESS` (a run not submitted yet), `409 NO_ROOMS_IN_SCOPE`, `409 CHECKLIST_NOT_PUBLISHED` (A-84)
 
 ---
 

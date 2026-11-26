@@ -138,9 +138,19 @@ export function QueueTable({ query, rows, base, from, empty, selection, waitingL
                   <span className="text-xs text-fg-secondary">{t('Bed {bed}', { bed: r.bed })}</span>
                 </span>
               </Td>
-              <Td wrap>{summaries && index < SUMMARY_ROWS ? <DiffSummary id={r.id} /> : <span className="text-fg-tertiary">—</span>}</Td>
+              <Td wrap>
+                {r.status !== 'Draft' && r.comparison && summaries && index < SUMMARY_ROWS ? (
+                  <DiffSummary id={r.id} />
+                ) : (
+                  <span className="text-fg-tertiary">—</span>
+                )}
+              </Td>
               <Td>
-                <SeverityBadge severity={severity} fallback={r.lateReport ? t('Late report') : r.status} />
+                {r.status === 'Draft' || (!severity && !r.lateReport && r.comparison !== 'Match') ? (
+                  <span className="text-fg-tertiary">—</span>
+                ) : (
+                  <SeverityBadge severity={severity} fallback={r.lateReport ? t('Late report') : r.comparison === 'Match' ? t('Matched') : null} />
+                )}
               </Td>
               <Td className="text-sm text-fg-secondary">
                 <Waiting row={r} />

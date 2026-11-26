@@ -377,7 +377,7 @@ export function Stat({ label, value, tone, missing, children }) {
       <dt className="text-sm text-fg-secondary">{tx(label)}</dt>
       <dd className="flex items-baseline gap-2">
         {missing ? (
-          <span className="text-sm text-fg-tertiary">{t('No data yet')}</span>
+          <span className="text-sm font-medium text-fg-tertiary">—</span>
         ) : (
           <span className={cx('text-h3 font-semibold tabular', tone === 'success' ? 'text-success-fg' : 'text-fg')}>{value}</span>
         )}

@@ -7,10 +7,9 @@ import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert, Note } from '@/components/ui/Display'
-import { Field, FilterSelect, SearchInput, Select, Textarea } from '@/components/ui/Field'
+import { Field, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, QueryState } from '@/components/ui/States'
-import { Segmented } from '@/components/ui/Tabs'
 import { Tag } from '@/components/ui/Tag'
 import { InfoTip } from '@/components/ui/Tooltip'
 import { cx } from '@/lib/cx'
@@ -65,19 +64,6 @@ const bedLabel = {
   oos: 'Out of service',
 }
 const HELD = ['unpaid', 'paid', 'resident', 'leaving', 'next_term']
-
-/**
- * Room filters of the room list (user decision 26/11/2026), on top of the bed states: what a room is as a whole.
- * Out-of-service rooms are only in "Out of service".
- */
-const ROOM_FILTERS = [
-  { value: '', label: 'All rooms' },
-  { value: 'free', label: 'With free beds', test: (r) => !r.outOfService && r.beds.some((b) => b.state === 'available') },
-  { value: 'empty', label: 'Empty (nobody allocated)', test: (r) => !r.outOfService && !r.beds.some((b) => HELD.includes(b.state)) },
-  { value: 'allocated', label: 'With allocated beds', test: (r) => r.beds.some((b) => HELD.includes(b.state)) },
-  { value: 'full', label: 'Full', test: (r) => !r.outOfService && !r.beds.some((b) => b.state === 'available') },
-  { value: 'oos', label: 'Out of service', test: (r) => Boolean(r.outOfService) },
-]
 
 /** "A-101-B" → "B": the letter printed on the bed square. */
 const bedLetter = (id) => String(id).split('-').pop()
@@ -301,26 +287,12 @@ function FloorTabs({ floors, floor, onPick }) {
   )
 }
 
-/** A count above its small label; with onClick it filters the room list (pressed while that filter is on). */
-function Metric({ label, value, className, onClick, pressed }) {
-  const body = (
-    <>
+/** A count above its small label. */
+function Metric({ label, value, className }) {
+  return (
+    <div className="flex flex-col-reverse whitespace-nowrap">
       <dt className="text-sm text-fg-tertiary">{t(label)}</dt>
       <dd className={cx('text-h2 font-semibold tabular', className)}>{formatNumber(value)}</dd>
-    </>
-  )
-  if (!onClick) return <div className="flex flex-col-reverse whitespace-nowrap">{body}</div>
-  return (
-    <div className="flex">
-      <button
-        type="button"
-        aria-pressed={pressed}
-        title={t('Show these rooms')}
-        onClick={onClick}
-        className={cx('-mx-2 -my-1 flex cursor-pointer flex-col-reverse rounded-md px-2 py-1 text-left whitespace-nowrap', ease, ring, pressed ? 'bg-primary-subtle ring-1 ring-primary' : 'hover:bg-subtle')}
-      >
-        {body}
-      </button>
     </div>
   )
 }
@@ -330,8 +302,7 @@ function Metric({ label, value, className, onClick, pressed }) {
  * states below, each with how many beds of the floor are in it and a checkbox that shows or hides the rooms holding
  * such beds. The button says how many states are shown and turns orange while some are hidden.
  */
-function FloorOverview({ floors, floor, onPick, title, floorClass, rooms, summary, counts, shown, onToggle, roomFilter, onRoomFilter }) {
-  const pick = (v) => () => onRoomFilter(roomFilter === v ? '' : v)
+function FloorOverview({ floors, floor, onPick, title, floorClass, rooms, summary, counts, shown, onToggle }) {
   const beds = summary?.beds ?? 0
   const pct = (n) => (beds > 0 ? (n / beds) * 100 : 0)
   const count = (states) => rooms.reduce((a, r) => a + r.beds.filter((b) => states.includes(b.state)).length, 0)
@@ -393,15 +364,9 @@ function FloorOverview({ floors, floor, onPick, title, floorClass, rooms, summar
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-x-6 gap-y-3">
           <dl className="flex gap-6">
-            <Metric label="Allocated" value={summary?.allocated ?? 0} className="text-fg" onClick={pick('allocated')} pressed={roomFilter === 'allocated'} />
-            <Metric label="Available" value={summary?.available ?? 0} className="text-success-fg" onClick={pick('free')} pressed={roomFilter === 'free'} />
-            <Metric
-              label="Out of service"
-              value={summary?.outOfService ?? 0}
-              className={summary?.outOfService ? 'text-error-fg' : 'text-fg-tertiary'}
-              onClick={pick('oos')}
-              pressed={roomFilter === 'oos'}
-            />
+            <Metric label="Allocated" value={summary?.allocated ?? 0} className="text-fg" />
+            <Metric label="Available" value={summary?.available ?? 0} className="text-success-fg" />
+            <Metric label="Out of service" value={summary?.outOfService ?? 0} className={summary?.outOfService ? 'text-error-fg' : 'text-fg-tertiary'} />
           </dl>
           <button
             type="button"
@@ -741,11 +706,6 @@ export default function Inventory() {
     const hidden = (params.get('hide') ?? '').split(',')
     return new Set(STATES.filter((s) => !hidden.includes(s)))
   })
-  // Room filters (?rs&type&cls) and the whole Block instead of one floor (?all=1).
-  const [roomFilter, setRoomFilter] = useState(() => (ROOM_FILTERS.some((f) => f.value === params.get('rs')) ? params.get('rs') : ''))
-  const [roomType, setRoomType] = useState(() => params.get('type') ?? '')
-  const [roomClass, setRoomClass] = useState(() => params.get('cls') ?? '')
-  const [wholeBlock, setWholeBlock] = useState(() => params.get('all') === '1')
   const rowRefs = useRef({})
 
   // Deep link (?room=A-0712) opens that Room's Block and floor; otherwise the first Block and floor. A Block that left
@@ -786,8 +746,7 @@ export default function Inventory() {
 
   // Search looks through every floor of the Block (the same floor view, once per floor): room code, student name or code.
   const q = search.trim().toLowerCase()
-  // A search, or "Whole block", lists every floor of the Block, grouped by floor.
-  const grouped = Boolean(q) || wholeBlock
+  const grouped = Boolean(q)
   const blockFloors = useQuery(
     ['inventory', 'block-floors', term?.id, block, floors.join()],
     async ({ signal }) => {
@@ -798,20 +757,8 @@ export default function Inventory() {
   )
   const matches = (r) =>
     !q || r.code.toLowerCase().includes(q) || r.beds.some((b) => b.occupant && (b.occupant.name.toLowerCase().includes(q) || String(b.occupant.studentCode).toLowerCase().includes(q)))
-  const roomTest = ROOM_FILTERS.find((f) => f.value === roomFilter)?.test
-  const fits = (r) => passes(r) && (!roomTest || roomTest(r)) && (!roomType || r.roomTypeName === roomType) && (!roomClass || r.roomClassName === roomClass)
-  const found = grouped ? (blockFloors.data ?? []).map((f) => ({ floor: f.floor, rooms: (f.data.rooms ?? []).filter((r) => matches(r) && fits(r)) })).filter((f) => f.rooms.length) : []
-  const visible = grouped ? found.flatMap((f) => f.rooms) : rooms.filter(fits)
-  // The type and class choices: those of the rooms loaded (the whole Block once it is read).
-  const known = blockFloors.data ? blockFloors.data.flatMap((f) => f.data.rooms ?? []) : rooms
-  const typeOptions = [...new Set(known.map((r) => r.roomTypeName).filter(Boolean))].sort()
-  const classOptions = [...new Set(known.map((r) => r.roomClassName).filter(Boolean))].sort((a, b) => classRank(a) - classRank(b))
-  const filtering = Boolean(roomFilter || roomType || roomClass)
-  const clearFilters = () => {
-    setRoomFilter('')
-    setRoomType('')
-    setRoomClass('')
-  }
+  const found = grouped ? (blockFloors.data ?? []).map((f) => ({ floor: f.floor, rooms: (f.data.rooms ?? []).filter((r) => matches(r) && passes(r)) })).filter((f) => f.rooms.length) : []
+  const visible = grouped ? found.flatMap((f) => f.rooms) : rooms.filter(passes)
   const room = visible.find((r) => r.code === selected) ?? visible.find((r) => r.outOfService) ?? visible[0]
   const at = room ? visible.indexOf(room) : -1
 
@@ -823,10 +770,6 @@ export default function Inventory() {
   if (room) wanted.set('room', room.code)
   if (shown.size < STATES.length) wanted.set('hide', STATES.filter((s) => !shown.has(s)).join(','))
   if (search.trim()) wanted.set('q', search.trim())
-  if (roomFilter) wanted.set('rs', roomFilter)
-  if (roomType) wanted.set('type', roomType)
-  if (roomClass) wanted.set('cls', roomClass)
-  if (wholeBlock) wanted.set('all', '1')
   if (view === 'list') wanted.set('view', 'list')
   const wantedText = wanted.toString()
   // Only while this page is the one on screen: during a move to another (lazy) page the URL already is that page's.
@@ -887,8 +830,7 @@ export default function Inventory() {
         onSelect={() => {
           if (fromSearch) {
             setFloor(r.floor)
-            // A search ends on the picked room; the whole-Block list stays.
-            if (!wholeBlock) setSearch('')
+            setSearch('')
           }
           setSelected(r.code)
         }}
@@ -900,35 +842,7 @@ export default function Inventory() {
   const noMatch = (
     <EmptyBlock icon={SearchX} title="No rooms match">
       {t('Tick more statuses or change the search.')}
-      {filtering && (
-        <span className="mt-2 block">
-          <Button size="sm" onClick={clearFilters}>
-            Clear filters
-          </Button>
-        </span>
-      )}
     </EmptyBlock>
-  )
-  const filterBar = (
-    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-4 py-2.5">
-      <Segmented
-        value={wholeBlock ? 'block' : 'floor'}
-        onChange={(v) => setWholeBlock(v === 'block')}
-        options={[
-          { value: 'floor', label: 'This floor' },
-          { value: 'block', label: 'Whole block' },
-        ]}
-      />
-      <FilterSelect label="Room state" value={roomFilter} onChange={setRoomFilter} options={ROOM_FILTERS.map((f) => ({ value: f.value, label: t(f.label) }))} />
-      <FilterSelect label="Room type" value={roomType} onChange={setRoomType} options={[{ value: '', label: t('All') }, ...typeOptions.map((v) => ({ value: v, label: tr(v) }))]} />
-      <FilterSelect label="Room tier" value={roomClass} onChange={setRoomClass} options={[{ value: '', label: t('All') }, ...classOptions.map((v) => ({ value: v, label: tr(v) }))]} />
-      {filtering && (
-        <Button size="sm" variant="text" onClick={clearFilters}>
-          Clear filters
-        </Button>
-      )}
-      <span className="ml-auto text-sm whitespace-nowrap text-fg-tertiary tabular">{t(visible.length === 1 ? '{n} room' : '{n} rooms', { n: visible.length })}</span>
-    </div>
   )
   const title = block ? [t('Block {code}', { code: block }), floor != null && t('Floor {n}', { n: floor }), floorClasses(floorQuery.data)].filter(Boolean).join(' · ') : t('Rooms and beds')
 
@@ -966,8 +880,6 @@ export default function Inventory() {
         counts={counts}
         shown={shown}
         onToggle={toggle}
-        roomFilter={roomFilter}
-        onRoomFilter={setRoomFilter}
       />
 
       <div className="flex shrink-0 flex-col gap-4 xl:min-h-0 xl:flex-1 xl:shrink xl:flex-row xl:items-start">
@@ -975,7 +887,6 @@ export default function Inventory() {
           aria-label={t('Rooms and beds')}
           className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface xl:max-h-full xl:flex-[3_1_600px]"
         >
-          {filterBar}
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 py-2">
             <span className="text-sm font-semibold text-fg-secondary">{q ? t('Search results') : title}</span>
             <div role="group" aria-label={t('View')} className="flex rounded-md border border-line-strong p-0.5">

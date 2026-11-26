@@ -45,7 +45,12 @@ export default function MaintenanceQueue() {
   const base = useRoleBase()
   const [params, setParams] = useSearchParams()
   // Opened from a room of Rooms and beds (?from=inventory&back=…): a way back to that floor, room, filters and search.
-  const back = params.get('from') === 'inventory' && params.get('back')?.startsWith('/') ? params.get('back') : null
+  const back =
+    params.get('from') === 'inventory' && params.get('back')?.startsWith('/')
+      ? params.get('back')
+      : params.get('room')
+        ? `${base}/inventory?room=${encodeURIComponent(params.get('room'))}`
+        : null
   const scope = useScopeQuery()
   const { notifyError } = useToast()
   const options = useQuery(['maintenance-options', 'staff'], ({ signal }) => api.maintenance.options({ for: 'staff' }, { signal }))

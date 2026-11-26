@@ -58,6 +58,9 @@ class DeskIT {
     @Autowired
     JdbcClient jdbc;
 
+    @Autowired
+    vn.fpt.campusstay.service.assignment.DoorCodeRelease release;
+
     ApplyFlow flow;
     long termId;
 
@@ -436,8 +439,9 @@ class DeskIT {
     }
 
     /**
-     * TC-ASG-078: the desk reminds students to file the check-in inventory (user decision 26/11/2026): only paid
-     * students not checked in are reminded, with the standard text (the check-in period) or the Staff's own; other
+     * TC-ASG-078: the desk reminds students to file the check-in inventory (user decision 26/11/2026): only students whose check-in
+     * inventory is open and not submitted are reminded (paid, door code released; not a resident staying on the same
+     * Bed), with the standard text (the check-in period) or the Staff's own; other
      * Blocks' Staff find nobody, students have no desk, and nothing is sent once the period is over.
      */
     @Test
@@ -450,6 +454,26 @@ class DeskIT {
                 .andExpect(jsonPath("$.code").value("CHECK_IN_NOTHING_TO_REMIND"));
 
         flow.pay(p.auth(), p.balanceInvoiceId());
+        // Paid but the Room has no door code yet: no inventory is open, so there is nothing to file.
+        postJson("/check-in/reminders", staff, one)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHECK_IN_NOTHING_TO_REMIND"));
+        jdbc.sql("""
+                INSERT INTO inv_door_code (room_id, code_cipher, status, source, proposed_by, proposed_at, confirmed_by,
+                                           confirmed_at)
+                SELECT r.id, 'test', 'ACTIVE', 'RANDOM', u.id, now(), u.id, now()
+                FROM inv_room r, auth_user u WHERE r.code = :room AND u.email = :staff
+                ON CONFLICT DO NOTHING
+                """).param("room", p.room()).param("staff", STAFF_A).update();
+        jdbc.sql("UPDATE cfg_parameter SET value = 'true' WHERE key = 'handover.required'").update();
+        try {
+            release.releaseDue();
+        } finally {
+            jdbc.sql("UPDATE cfg_parameter SET value = 'false' WHERE key = 'handover.required'").update();
+        }
+        assertThat(jdbc.sql("SELECT count(*) FROM asg_handover h JOIN asg_allocation a ON a.id = h.allocation_id "
+                + "JOIN auth_user u ON u.id = a.student_id WHERE u.email = :e AND h.status = 'DRAFT'")
+                .param("e", student(19)).query(Long.class).single()).isEqualTo(1L);
         postJson("/check-in/reminders", staff, one)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sent").value(1))

@@ -266,7 +266,13 @@ export function DoorCodeButton({ room, door, loading }) {
                 {step === 'view' && (
                   <div className="flex flex-wrap gap-2">
                     {codes ? (
-                      <Button icon={EyeOff} onClick={() => setCodes(null)}>
+                      <Button
+                        icon={EyeOff}
+                        onClick={() => {
+                          shownCodes.delete(cacheKey)
+                          setCodes(null)
+                        }}
+                      >
                         Hide code
                       </Button>
                     ) : (

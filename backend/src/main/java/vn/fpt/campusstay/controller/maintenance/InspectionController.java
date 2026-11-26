@@ -117,6 +117,12 @@ class InspectionController {
         schedules.update(id, body);
     }
 
+    /** Starts a run of an active schedule now; its next run time stays. */
+    @PostMapping("/inspection-schedules/{id}/run")
+    InspectionScheduleService.RunStarted runNow(@PathVariable String id) {
+        return schedules.runNow(id);
+    }
+
     // ---------------------------------------------------------------- runs
 
     /** {@code termId} is accepted for the screen's filters; runs belong to a Block, not a Term. */

@@ -334,6 +334,8 @@ export const api = {
     current: g('/inspection-runs/current'),
     /** ?block → { items: [run view + status Open | Submitted, block, mine, overdue] }: open runs, then the ones sent lately. */
     runs: g('/inspection-runs'),
+    /** One run by its code → { run: run view } (the Block's Staff may read another's run, read only). */
+    run: (runId, opts) => http.get(`/inspection-runs/${runId}`, undefined, opts),
     /** multipart: photo, itemId ("furniture-<id>"; none = the meters) → { id, itemId, url }. */
     addPhoto: (runId, room, formData) => http.post(`/inspection-runs/${runId}/rooms/${room}/photos`, formData),
     upcoming: g('/inspection-runs/upcoming'),
@@ -346,6 +348,8 @@ export const api = {
     schedules: g('/inspection-schedules'),
     createSchedule: (body) => http.post('/inspection-schedules', body),
     updateSchedule: (id, body) => http.put(`/inspection-schedules/${id}`, body),
+    // A run of an active schedule now (its next date stays) → { runId, rooms }.
+    runScheduleNow: (id) => http.post(`/inspection-schedules/${id}/run`, {}),
     // Admin checklists
     checklists: g('/inspection-checklists'),
     createChecklist: (body) => http.post('/inspection-checklists', body),

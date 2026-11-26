@@ -78,7 +78,7 @@ export function BalanceCard({ balance }) {
 }
 
 /** The Room's door code (ADR-23): shown on request for a short time; every view is written to the Audit Log. */
-export function DoorCodeCard() {
+export function DoorCodeCard({ compact = false } = {}) {
   const query = useQuery(['door-code'], ({ signal }) => api.me.doorCode(undefined, { signal }))
   const [code, setCode] = useState(null)
   const reveal = useMutation(() => api.me.revealDoorCode(), { onSuccess: (res) => setCode(res.code), onError: () => {} })
@@ -89,6 +89,54 @@ export function DoorCodeCard() {
   }, [code])
   const d = query.data
   if (!d) return null
+
+  if (compact) {
+    return (
+      <Card padding="sm" className="flex shrink-0 flex-col gap-2 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
+              <KeyRound size={17} aria-hidden="true" className="text-fg-brand" />
+              {t('Door code')}
+            </h2>
+            <StatusTag status={d.status} />
+            {d.status === 'Ready' ? (
+              <span className="text-xs text-fg-tertiary">
+                {t('Changed {date}. It changes whenever someone leaves the room; never share it.', { date: formatDateTime(d.changedAt) })}
+              </span>
+            ) : (
+              <span className="text-sm text-fg-secondary">{tr(d.note)}</span>
+            )}
+          </div>
+          {d.status === 'Ready' && (
+            <div className="flex shrink-0 items-center gap-2">
+              {code ? (
+                <div className="flex items-center gap-2.5 rounded-lg bg-subtle px-3 py-1.5">
+                  <span className="font-mono text-lg font-semibold tracking-[0.25em] text-fg tabular">{code}</span>
+                  <Button size="sm" variant="text" icon={EyeOff} onClick={() => setCode(null)}>
+                    Hide
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  tip="Keep it to yourself: never share the code with people who do not live in your room."
+                  variant="primary"
+                  icon={Eye}
+                  onClick={() => reveal.run()}
+                  disabled={reveal.pending}
+                >
+                  Show door code
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+        {reveal.error && <Alert type="error" title="Could not show the code">{reveal.error.message}</Alert>}
+      </Card>
+    )
+  }
+
   return (
     <Card className="flex shrink-0 flex-col gap-2.5">
       <div className="flex items-center justify-between gap-3">
@@ -108,9 +156,11 @@ export function DoorCodeCard() {
               </Button>
             </div>
           ) : (
-            <Button tip="Keep it to yourself: never share the code with people who do not live in your room." variant="primary" block icon={Eye} onClick={() => reveal.run()} disabled={reveal.pending}>
-              Show door code
-            </Button>
+            <div>
+              <Button tip="Keep it to yourself: never share the code with people who do not live in your room." variant="primary" size="sm" icon={Eye} onClick={() => reveal.run()} disabled={reveal.pending}>
+                Show door code
+              </Button>
+            </div>
           )}
           {reveal.error && <Alert type="error" title="Could not show the code">{reveal.error.message}</Alert>}
           <p className="text-xs text-fg-tertiary">

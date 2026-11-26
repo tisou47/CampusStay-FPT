@@ -391,7 +391,10 @@ public class InspectionRunService {
                     handled = true;
                 }
             }
-            if (result.equals("FAIL") && requestId == null && !handled && createRequests && info != null
+            // Worn ("partly damaged") opens a repair too (user decision 27/11/2026): the item stays a pass, and once the
+            // request is done the report shows it Good like a repaired Damaged item (ReportOneRepairs).
+            boolean needsRepair = result.equals("FAIL") || "WORN".equals(choice.condition());
+            if (needsRepair && requestId == null && !handled && createRequests && info != null
                     && check.kind().equals("furniture")) {
                 NewRequest request = furnitureRequest(run, info, check, note, me.userId(), inspector(me), now);
                 requestId = request.id();
@@ -888,8 +891,10 @@ public class InspectionRunService {
                 + (lock ? " FOR UPDATE" : "")).param("id", n).query((rs, i) -> run(rs)).optional())
                 .orElseThrow(() -> ApiException.notFound("This inspection run does not exist."));
         blockScope.check(run.buildingId());
-        if (lock || currentUser.require(Permission.PROCESS_MAINTENANCE).role() == Role.STAFF) {
-            requireAssigned(run, lock);
+        // The Block's Staff may read any run (a Room's reports link to it, shown read only when not theirs);
+        // only its inspector changes it.
+        if (lock) {
+            requireAssigned(run, true);
         }
         return run;
     }

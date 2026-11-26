@@ -266,7 +266,7 @@ public class DeskService {
         Comparator<Placed> byBed = Comparator.comparing((Placed p) -> p.bed().code());
         List<Placed> inProgressAll = placed.stream()
                 .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id())
-                        && (handoverMap.containsKey(p.alloc().id()) || p.alloc().codeReleasedAt() != null))
+                        && handoverMap.containsKey(p.alloc().id()))
                 .sorted(byBed).toList();
         List<Placed> inProgressList = inProgressAll.stream().limit(SIDE_LIST).toList();
         List<Placed> waitingAll = placed.stream()
@@ -374,7 +374,9 @@ public class DeskService {
                 .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id()))
                 .filter(p -> {
                     HandoverSummary h = handoverMap.get(p.alloc().id());
-                    return h == null || "Draft".equals(h.status());
+                    // Only an inventory open and not submitted: a resident staying on the same Bed has none to file,
+                    // and one without the door code has none open yet.
+                    return h != null && "Draft".equals(h.status());
                 }).toList();
         Map<Long, UserDirectory.Student> students = users.students(
                 toFile.stream().map(p -> p.alloc().studentId()).distinct().toList());
@@ -387,7 +389,7 @@ public class DeskService {
         }).toList();
         if (chosen.isEmpty()) {
             throw ApiException.conflict("CHECK_IN_NOTHING_TO_REMIND",
-                    "Nobody to remind: the students chosen have filed their check-in inventory, checked in or not paid yet.");
+                    "Nobody to remind: the students chosen have no check-in inventory open to file (filed, staying on the same Bed or no door code yet).");
         }
         for (Placed p : chosen) {
             events.publishEvent(new CheckInReportReminded(p.alloc().studentId(), p.bed().roomCode(), term.name(),

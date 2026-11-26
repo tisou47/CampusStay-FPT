@@ -153,7 +153,7 @@ function standardReminder(period, room) {
  * Staff do not confirm a check-in: the student's inventory does (report 1 once the period is over). The desk reminds
  * students who have not filed it: one (students = [person]) or every one of the Blocks still to file (students = null).
  */
-function ReminderModal({ students, period, scope, onClose }) {
+function ReminderModal({ students, period, scope, onReminded, onClose }) {
   const { notify, notifyError } = useToast()
   const [mode, setMode] = useState('standard')
   const one = students?.length === 1 ? students[0] : null
@@ -170,6 +170,7 @@ function ReminderModal({ students, period, scope, onClose }) {
     {
       invalidates: ['check-in'],
       onSuccess: (r) => {
+        onReminded?.(students ? students.map((s) => s.studentCode).filter(Boolean) : null)
         notify({
           title: t('Reminder sent'),
           message: r.skipped
@@ -190,7 +191,7 @@ function ReminderModal({ students, period, scope, onClose }) {
       description={
         one
           ? `${one.name} · ${one.studentCode}${one.room ? ` · ${one.room}` : ''}`
-          : t('Every student of the Block who has paid, has not checked in and has not submitted the inventory yet.')
+          : t('Every student of the Block whose check-in inventory is open and not submitted yet.')
       }
       footer={
         <>
@@ -273,7 +274,7 @@ function CheckInPeriod({ period, filed, onRemind }) {
   )
 }
 
-function StudentPanel({ person, period, scope }) {
+function StudentPanel({ person, period, scope, onReminded }) {
   const { term } = useSession()
   const [late, setLate] = useState(false)
   const [remind, setRemind] = useState(false)
@@ -281,10 +282,9 @@ function StudentPanel({ person, period, scope }) {
 
   const owing = [person.owes?.balance, person.owes?.utilityDeposit].filter((v) => v > 0).length
   const hStatus = person.handoverStatus
-  const inRoomWithReport =
-    person.status !== 'checked-in' &&
-    owing === 0 &&
-    (Boolean(person.doorCodeReleased) || hStatus === 'Draft' || hStatus === 'Submitted' || hStatus === 'Verifying')
+  const hasActiveHandover = Boolean(person.handoverId) || hStatus === 'Draft' || hStatus === 'Submitted' || hStatus === 'Verifying'
+  const inRoomWithReport = person.status !== 'checked-in' && owing === 0 && hasActiveHandover
+  const continuingResident = person.status !== 'checked-in' && owing === 0 && !hasActiveHandover && Boolean(person.doorCodeReleased)
   const awaitingStartInventory =
     person.status === 'blocked' && owing === 0 && !inRoomWithReport && (person.checks ?? []).some((c) => !c.passed && /inventory/i.test(c.label))
   // C-23: the checks are Bed allocated, Balance paid, Utility Deposit paid and the check-in window (passed while
@@ -299,7 +299,7 @@ function StudentPanel({ person, period, scope }) {
     toDateInput(new Date()) > term.checkInEnd
 
   const headerBadge =
-    person.status === 'checked-in' ? (
+    person.status === 'checked-in' || hStatus === 'Final' ? (
       <Tag tone="success">{t('Checked in · Utility counting')}</Tag>
     ) : inRoomWithReport ? (
       hStatus === 'Submitted' ? (
@@ -309,6 +309,8 @@ function StudentPanel({ person, period, scope }) {
       ) : (
         <Tag tone="warning">{t('In room · Filing inventory')}</Tag>
       )
+    ) : continuingResident ? (
+      <Tag tone="success">{t('Continuing resident · Door code active')}</Tag>
     ) : awaitingStartInventory ? (
       <Tag tone="warning">{t('Awaiting room inventory')}</Tag>
     ) : (
@@ -317,7 +319,7 @@ function StudentPanel({ person, period, scope }) {
   // Filed = submitted, being checked in the Room or final: nothing left for the student to do.
   const filed = person.status === 'checked-in' || ['Submitted', 'Verifying', 'Final'].includes(hStatus)
   const canRemind =
-    person.status !== 'not-allocated' && !filed && owing === 0 && period.checkInEnd != null && daysUntil(period.checkInEnd) >= 0
+    hStatus === 'Draft' && !filed && owing === 0 && period.checkInEnd != null && daysUntil(period.checkInEnd) >= 0
 
   return (
     <Card padding="none" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -458,6 +460,12 @@ function StudentPanel({ person, period, scope }) {
           </Alert>
         )}
 
+        {continuingResident && (
+          <Alert type="success" title="Sinh viên ở tiếp giường từ học kỳ trước · Đã có mã cửa">
+            Sinh viên gia hạn ở tiếp trên cùng giường của học kỳ trước nên không cần lập lại biên bản kiểm kê nhận phòng. Mã cửa phòng đã được cấp{person.doorCodeReleasedAt ? ` (${formatDateTime(person.doorCodeReleasedAt)})` : ''}.
+          </Alert>
+        )}
+
         {person.status === 'checked-in' && (
           <Alert
             type="success"
@@ -493,7 +501,7 @@ function StudentPanel({ person, period, scope }) {
         {person.status !== 'not-allocated' && (
           <CheckInPeriod period={period} filed={filed} onRemind={canRemind ? () => setRemind(true) : null} />
         )}
-        {remind && <ReminderModal students={[person]} period={period} scope={scope} onClose={() => setRemind(false)} />}
+        {remind && <ReminderModal students={[person]} period={period} scope={scope} onReminded={onReminded} onClose={() => setRemind(false)} />}
       </div>
     </Card>
   )
@@ -502,17 +510,26 @@ function StudentPanel({ person, period, scope }) {
 const sideTitles = {
   recent: 'Checked in (finalized)',
   inProgress: 'In room · Inventory in progress',
+  draft: 'Chưa nộp biên bản (được nhắc nhở)',
   waiting: 'Awaiting room inventory',
   blocked: 'Blocked (unpaid)',
 }
 const sideEmpty = {
   recent: 'No check-ins yet today.',
   inProgress: 'No student is currently filing or awaiting inventory review.',
+  draft: 'Không còn sinh viên nào chưa nộp biên bản kiểm kê.',
   waiting: 'No student is waiting to start the inventory.',
   blocked: 'Nobody is blocked.',
 }
 
 function sideStudentBadge(r, side) {
+  if (side === 'draft') {
+    return (
+      <Tag tone={r.reminded ? 'info' : 'warning'}>
+        {r.reminded ? 'Đã nhắc · Chưa nộp' : t('Filing draft')}
+      </Tag>
+    )
+  }
   if (r.handoverStatus === 'Draft') return <Tag tone="warning">{t('Filing draft')}</Tag>
   if (r.handoverStatus === 'Submitted') return <Tag tone="info">{t('Awaiting review')}</Tag>
   if (r.handoverStatus === 'Verifying') return <Tag tone="warning">{t('Room visit')}</Tag>
@@ -536,7 +553,9 @@ function SideStudentRow({ r, side, active, onSelect }) {
           active ? 'bg-brand-subtle' : 'bg-subtle/40 hover:bg-subtle',
         )}
       >
-        {side === 'inProgress' ? (
+        {side === 'draft' ? (
+          <BellRing size={15} aria-hidden="true" className={cx('shrink-0', r.reminded ? 'text-fg-brand' : 'text-warning-fg')} />
+        ) : side === 'inProgress' ? (
           <KeyRound size={15} aria-hidden="true" className="shrink-0 text-warning-fg" />
         ) : (
           <Clock size={15} aria-hidden="true" className={cx('shrink-0', side === 'blocked' ? 'text-error-fg' : 'text-fg-brand')} />
@@ -555,7 +574,7 @@ function SideStudentRow({ r, side, active, onSelect }) {
 }
 
 /** A count of the desk's side panel; a click lists its students below. */
-function SideTile({ label, value, tone, active, onClick }) {
+function SideTile({ label, value, tone, active, onClick, className }) {
   return (
     <button
       type="button"
@@ -567,14 +586,17 @@ function SideTile({ label, value, tone, active, onClick }) {
           ? 'bg-error-bg/60 hover:bg-error-bg'
           : tone === 'warning'
             ? 'bg-warning-bg/60 hover:bg-warning-bg'
-            : 'bg-subtle/60 hover:bg-subtle',
+            : tone === 'info'
+              ? 'bg-brand-subtle/70 hover:bg-brand-subtle'
+              : 'bg-subtle/60 hover:bg-subtle',
         active && 'ring-2',
+        className,
       )}
     >
       <span
         className={cx(
           'text-sm font-semibold tabular',
-          tone === 'error' ? 'text-error-fg' : tone === 'warning' ? 'text-warning-fg' : 'text-fg',
+          tone === 'error' ? 'text-error-fg' : tone === 'warning' ? 'text-warning-fg' : tone === 'info' ? 'text-fg-brand' : 'text-fg',
         )}
       >
         {value}
@@ -609,8 +631,84 @@ export default function CheckInDesk() {
   }, [q])
 
   const today = useQuery(['check-in', 'today', scope], ({ signal }) => api.desk.checkInToday(scope, { signal }))
+  const handovers = useQuery(['handovers', 'desk-sync', scope], ({ signal }) =>
+    api.handover.list({ ...scope, status: 'All', page: 1, pageSize: 100 }, { signal }),
+  )
   const lookup = useQuery(['check-in', 'lookup', scope.termId, search], ({ signal }) => api.desk.checkInLookup({ termId: scope.termId, q: search }, { signal }), { enabled: Boolean(search), keepPrevious: false })
   const d0 = today.data
+  const handoverItems = handovers.data?.items ?? []
+
+  // Map real handover records (from Check-in Inventories) so the desk tiles & lists always show real students with actual inventory reports.
+  const statusOrder = { Submitted: 0, Verifying: 1, Draft: 2, Final: 3 }
+  const realInProgressList = handoverItems
+    .filter((h) => h.status === 'Draft' || h.status === 'Submitted' || h.status === 'Verifying')
+    .sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9))
+    .map((h) => ({
+      name: h.studentName,
+      studentCode: h.studentCode,
+      bed: h.room && h.bed ? `${h.room}-${h.bed}` : h.room ?? h.bed,
+      at: h.submittedAt ?? h.openedAt,
+      handoverId: h.id,
+      handoverStatus: h.status,
+      handoverComparison: h.comparison,
+      doorCodeReleased: true,
+    }))
+
+  const realFinalList = handoverItems
+    .filter((h) => h.status === 'Final')
+    .map((h) => ({
+      name: h.studentName,
+      studentCode: h.studentCode,
+      bed: h.room && h.bed ? `${h.room}-${h.bed}` : h.room ?? h.bed,
+      at: h.finalizedAt ?? h.submittedAt ?? h.openedAt,
+      handoverId: h.id,
+      handoverStatus: 'Final',
+      handoverComparison: h.comparison,
+      doorCodeReleased: true,
+    }))
+
+  const checkedInMerged = (() => {
+    const baseList = d0?.checkedInList ?? d0?.recent ?? []
+    const seen = new Set(baseList.map((r) => r.studentCode).filter(Boolean))
+    const extras = realFinalList.filter((r) => r.studentCode && !seen.has(r.studentCode))
+    return [...baseList, ...extras]
+  })()
+
+  const inProgressMerged = handovers.data
+    ? realInProgressList
+    : (d0?.inProgressList ?? []).filter((r) => Boolean(r.handoverId || r.handoverStatus))
+
+  const REMINDED_STORAGE_KEY = `cstay_reminded_codes_${scope.termId ?? 'cur'}_${scope.block ?? 'all'}`
+  const [remindedCodes, setRemindedCodes] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(REMINDED_STORAGE_KEY)
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+
+  const draftList = inProgressMerged
+    .filter((r) => r.handoverStatus === 'Draft')
+    .map((r) => ({
+      ...r,
+      reminded: remindedCodes.includes(r.studentCode),
+    }))
+
+  const handleReminded = (codes) => {
+    const nextCodes =
+      codes && codes.length > 0
+        ? Array.from(new Set([...remindedCodes, ...codes]))
+        : Array.from(new Set([...remindedCodes, ...draftList.map((r) => r.studentCode).filter(Boolean)]))
+    setRemindedCodes(nextCodes)
+    try {
+      sessionStorage.setItem(REMINDED_STORAGE_KEY, JSON.stringify(nextCodes))
+    } catch {
+      // ignore storage errors
+    }
+    if (!codes) setSide('draft')
+  }
+
   const { term } = useSession()
   // The check-in period of the Term (Admin › Term), from the desk's numbers, else the session's Term.
   const period = {
@@ -620,19 +718,31 @@ export default function CheckInDesk() {
   }
   const [remindAll, setRemindAll] = useState(false)
   const periodOpen = period.checkInEnd != null && daysUntil(period.checkInEnd) >= 0
-  const person = search ? lookup.data?.student : null
-  // The side list: checked-in students, in-room inventory in progress, waiting to start or blocked; a click opens the student here.
-  const [side, setSide] = useState('recent')
+  const rawPerson = search ? lookup.data?.student : null
+  const matchedHandover = rawPerson ? handoverItems.find((h) => h.studentCode === rawPerson.studentCode) : null
+  const person =
+    rawPerson && matchedHandover && !rawPerson.handoverId
+      ? {
+          ...rawPerson,
+          handoverId: matchedHandover.id,
+          handoverStatus: matchedHandover.status,
+          handoverComparison: matchedHandover.comparison,
+        }
+      : rawPerson
+  // The side list: checked-in students, in-room inventory in progress, draft/reminded, waiting to start or blocked; a click opens the student here.
+  const [side, setSide] = useState('inProgress')
   const [listOpen, setListOpen] = useState(false)
   const [listQuery, setListQuery] = useState('')
   const sideRows =
     (side === 'inProgress'
-      ? d0?.inProgressList
-      : side === 'waiting'
-        ? d0?.waitingList
-        : side === 'blocked'
-          ? d0?.blockedList
-          : d0?.checkedInList ?? d0?.recent) ?? []
+      ? inProgressMerged
+      : side === 'draft'
+        ? draftList
+        : side === 'waiting'
+          ? d0?.waitingList
+          : side === 'blocked'
+            ? d0?.blockedList
+            : checkedInMerged) ?? []
   const needle = listQuery.trim().toLowerCase()
   const modalRows = needle
     ? sideRows.filter((r) =>
@@ -645,12 +755,39 @@ export default function CheckInDesk() {
     setListOpen(false)
   }
 
+  const left = daysUntil(period.checkInEnd)
+  const toStart = daysUntil(period.checkInStart)
+  const periodState =
+    period.checkInEnd == null
+      ? null
+      : left < 0
+        ? { tone: 'neutral', label: t('Period over') }
+        : toStart > 0
+          ? { tone: 'info', label: t('Opens in {n} days', { n: toStart }) }
+          : left === 0
+            ? { tone: 'error', label: t('Last day today') }
+            : { tone: left <= 2 ? 'warning' : 'success', label: t('{n} days left', { n: left }) }
+
   return (
     <>
       <PageHeader
         title="Check-in"
         tip="Search by student code or name to open a check-in record."
-        badge={d0?.date && <Tag tone="neutral">{formatDate(d0.date)}</Tag>}
+        badge={
+          period.checkInStart && period.checkInEnd ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Tag tone="info" dot={false}>
+                <CalendarClock size={13} aria-hidden="true" className="shrink-0" />
+                <span>
+                  {formatDate(period.checkInStart)} – {formatDate(period.checkInEnd)}
+                </span>
+              </Tag>
+              {periodState && <Tag tone={periodState.tone}>{periodState.label}</Tag>}
+            </div>
+          ) : (
+            d0?.date && <Tag tone="neutral">{formatDate(d0.date)}</Tag>
+          )
+        }
       />
 
       <div className="flex shrink-0 items-center gap-3">
@@ -683,7 +820,7 @@ export default function CheckInDesk() {
             <ErrorState error={lookup.error} onRetry={lookup.reload} />
           </Card>
         ) : person ? (
-          <StudentPanel key={`${person.studentCode}-${person.status}`} person={person} period={period} scope={scope} />
+          <StudentPanel key={`${person.studentCode}-${person.status}`} person={person} period={period} scope={scope} onReminded={handleReminded} />
         ) : (
           <Card padding="none" className="flex min-w-0 flex-1 flex-col">
             <EmptyBlock icon={UserX} title={t('No student matches “{q}”', { q: search })}>
@@ -696,30 +833,47 @@ export default function CheckInDesk() {
           <Card className="flex shrink-0 flex-col gap-2.5 p-4">
             <h2 className="text-h3 font-semibold text-fg">{t('Today')}{d0?.block ? ` · ${t('Block {code}', { code: d0.block })}` : ''}</h2>
             <QueryState query={today} compact>
-              {(d) => (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <SideTile label="Checked in" value={t('{n} of {total}', { n: formatNumber(d.checkedIn), total: formatNumber(d.expected) })} active={side === 'recent'} onClick={() => setSide('recent')} />
-                    <SideTile label="In room · Inventory in progress" value={formatNumber(d.inProgress ?? 0)} tone="warning" active={side === 'inProgress'} onClick={() => setSide('inProgress')} />
-                    <SideTile label="Awaiting room inventory" value={formatNumber(d.waiting)} active={side === 'waiting'} onClick={() => setSide('waiting')} />
-                    <SideTile label="Blocked (unpaid)" value={formatNumber(d.blocked)} tone="error" active={side === 'blocked'} onClick={() => setSide('blocked')} />
-                  </div>
-                  <ProgressBar value={d.checkedIn} max={d.expected || 1} tone="success" />
-                  {periodOpen && (d.inProgress ?? 0) + (d.waiting ?? 0) > 0 && (
-                    <Button
-                      size="sm"
-                      icon={BellRing}
-                      tip="Remind every paid student of the Block who has not submitted the check-in inventory yet."
-                      onClick={() => setRemindAll(true)}
-                    >
-                      Remind everyone who has not filed
-                    </Button>
-                  )}
-                </>
-              )}
+              {(d) => {
+                const inProgressCount = handovers.data ? inProgressMerged.length : d.inProgress ?? 0
+                const draftCount = draftList.length
+                const remindedInDraft = draftList.filter((r) => r.reminded).length
+                const checkedInCount = handovers.data ? checkedInMerged.length : d.checkedIn ?? 0
+                const expectedCount = handovers.data
+                  ? checkedInCount + inProgressCount + (d.waiting ?? 0) + (d.blocked ?? 0)
+                  : d.expected
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <SideTile label="Checked in" value={t('{n} of {total}', { n: formatNumber(checkedInCount), total: formatNumber(expectedCount) })} active={side === 'recent'} onClick={() => setSide('recent')} />
+                      <SideTile label="In room · Inventory in progress" value={formatNumber(inProgressCount)} tone="warning" active={side === 'inProgress'} onClick={() => setSide('inProgress')} />
+                      <SideTile label="Awaiting room inventory" value={formatNumber(d.waiting)} active={side === 'waiting'} onClick={() => setSide('waiting')} />
+                      <SideTile label="Blocked (unpaid)" value={formatNumber(d.blocked)} tone="error" active={side === 'blocked'} onClick={() => setSide('blocked')} />
+                      <SideTile
+                        className="col-span-2"
+                        tone="info"
+                        label={remindedInDraft > 0 ? `Chưa nộp biên bản · Đã nhắc nhở (${remindedInDraft}/${draftCount})` : 'Chưa nộp biên bản (đối tượng nhắc nhở)'}
+                        value={formatNumber(draftCount)}
+                        active={side === 'draft'}
+                        onClick={() => setSide('draft')}
+                      />
+                    </div>
+                    <ProgressBar value={checkedInCount} max={expectedCount || 1} tone="success" />
+                    {periodOpen && draftCount > 0 && (
+                      <Button
+                        size="sm"
+                        icon={BellRing}
+                        tip="Remind every student of the Block whose check-in inventory is open and not submitted yet."
+                        onClick={() => setRemindAll(true)}
+                      >
+                        {`${t('Remind everyone who has not filed')} (${formatNumber(draftCount)})`}
+                      </Button>
+                    )}
+                  </>
+                )
+              }}
             </QueryState>
           </Card>
-          {remindAll && <ReminderModal students={null} period={period} scope={scope} onClose={() => setRemindAll(false)} />}
+          {remindAll && <ReminderModal students={null} period={period} scope={scope} onReminded={handleReminded} onClose={() => setRemindAll(false)} />}
 
           <Card className="flex min-h-0 flex-1 flex-col gap-2.5 p-4">
             <div className="flex shrink-0 items-center justify-between gap-2">

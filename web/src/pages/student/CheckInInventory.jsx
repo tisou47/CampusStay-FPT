@@ -913,12 +913,12 @@ export default function CheckInInventory() {
             ) : d.status === 'Waiting' || d.status === 'Ready' ? (
               <>
                 {/* Owner decision 25/11/2026: the code is released when check-in opens, before any inventory. */}
-                <DoorCodeCard />
+                <DoorCodeCard compact />
                 <Start data={d} />
               </>
             ) : d.status === 'Draft' ? (
               <>
-                <DoorCodeCard />
+                <DoorCodeCard compact />
                 <Form key={d.id} data={d} />
               </>
             ) : (

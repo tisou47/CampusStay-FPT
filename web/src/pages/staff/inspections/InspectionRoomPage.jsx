@@ -166,7 +166,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
     <div className="flex flex-col gap-5 pb-8">
       {held && <PausedRunNote />}
       {/* Sticky Header Segment Bar */}
-      <div className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface/95 px-3 py-2 backdrop-blur-xs">
+      <div className="sticky -top-6 z-20 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-b-lg border border-line bg-surface px-3 py-2.5 shadow-xs">
         <Button size="sm" icon={ArrowLeft} onClick={() => (new URLSearchParams(window.location.search).get('from') ? navigate(-1) : navigate('/staff/inspections'))}>
           {t('Back to rooms')}
         </Button>
@@ -473,8 +473,8 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
           </TBody>
         </Table>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-          <div className="text-xs text-fg-secondary">
+        {(sent || !mine || saveHint) && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 text-xs text-fg-secondary">
             {sent ? (
               <span className="font-medium text-fg">{t('This run was sent: read the Rooms, print a Room’s report or export the run.')}</span>
             ) : !mine ? (
@@ -487,20 +487,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
               saveHint && <span className="font-medium text-warning-fg">{saveHint}</span>
             )}
           </div>
-          {!done && (
-            <Button
-              variant="primary"
-              icon={Save}
-              onClick={() => {
-                setTouched({ electricity: true, water: true })
-                if (canSave) save.run()
-              }}
-              disabled={!canSave || save.pending}
-            >
-              {metersMissing ? t('Save (meters still needed)') : t('Save room')}
-            </Button>
-          )}
-        </div>
+        )}
       </section>
     </div>
   )
@@ -514,14 +501,18 @@ export default function InspectionRoomPage() {
     api.inspections.rooms(runId, { page: 1, pageSize: 100 }, { signal }),
     { enabled: Boolean(runId) },
   )
+  // A run of another Staff (opened from a Room's reports) is not in my list: read it by its code, read only.
+  const runQuery = useQuery(['inspections', 'run', runId], ({ signal }) => api.inspections.run(runId, { signal }), {
+    enabled: Boolean(runId),
+  })
 
-  if ((runsQuery.loading && !runsQuery.data) || (roomsQuery.loading && !roomsQuery.data)) {
+  if ((runsQuery.loading && !runsQuery.data) || (roomsQuery.loading && !roomsQuery.data) || (runQuery.loading && !runQuery.data)) {
     return <LoadingState className="min-h-80" />
   }
   if (runsQuery.error && !runsQuery.data) return <ErrorState error={runsQuery.error} onRetry={runsQuery.reload} />
   if (roomsQuery.error && !roomsQuery.data) return <ErrorState error={roomsQuery.error} onRetry={roomsQuery.reload} />
 
-  const run = (runsQuery.data?.items ?? []).find((r) => String(r.id) === String(runId))
+  const run = (runsQuery.data?.items ?? []).find((r) => String(r.id) === String(runId)) ?? runQuery.data?.run
   const rooms = roomsQuery.data?.items ?? []
   const room = rooms.find((r) => String(r.room) === String(roomCode))
   if (!run || !room) {

@@ -261,7 +261,7 @@ SELECT 'MR-DEMO-I' || row_number() OVER (ORDER BY ir.room_id, i.item_id), t.x_id
        t.now + interval '2 days', ir.inspected_at, i.item_id
 FROM mnt_inspection_room ir JOIN mnt_inspection_run ru ON ru.id = ir.run_id
 JOIN mnt_inspection_schedule s ON s.id = ru.schedule_id AND s.name LIKE 'Kiểm tra phòng trước nhận phòng · Tòa %'
-JOIN demo_checkin_item i ON i.room_id = ir.room_id AND i.condition = 'DAMAGED'
+JOIN demo_checkin_item i ON i.room_id = ir.room_id AND i.condition IN ('DAMAGED', 'WORN') -- Worn opens a repair too (user decision 27/11/2026)
 JOIN inv_furniture_item f ON f.id = i.item_id JOIN inv_furniture_type ft ON ft.id = f.furniture_type_id
 JOIN inv_room ro ON ro.id = ir.room_id JOIN inv_building bl ON bl.id = ro.building_id
 CROSS JOIN demo_t t

@@ -943,6 +943,12 @@ public class FurnitureService {
                         .param("to", STATUSES.get(targetStatus))
                         .param("reason", "Maintenance request " + repair.requestCode() + " resolved")
                         .param("by", repair.byUserId()).param("now", Timestamp.from(now)).update();
+            } else {
+                // A Worn item stays In use while its repair runs (user decision 27/11/2026): once repaired it is Good.
+                jdbc.sql("""
+                        UPDATE inv_furniture_item SET condition = 'GOOD', updated_at = :now, version = version + 1
+                        WHERE id = :id AND condition = 'WORN'
+                        """).param("now", Timestamp.from(now)).param("id", repair.itemId()).update();
             }
         }
     }
