@@ -114,7 +114,7 @@ export function LockedFinalCard({ title = 'Report 3 · Final', text, actions, la
         className,
       )}
     >
-      <span className="text-xs font-semibold tracking-wide text-fg-tertiary uppercase">{t(title)}</span>
+      <span className="text-xs font-semibold text-fg-tertiary">{t(title)}</span>
       <Lock size={large ? 28 : 22} aria-hidden="true" className="text-fg-tertiary" />
       <p className="text-base font-medium text-fg">{t('Not checked in the Room')}</p>
       <p className="max-w-72 text-sm text-fg-secondary">{text}</p>

@@ -1,55 +1,61 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-30T00:00:00Z",
+  "generatedAt": "2026-11-26T00:00:00Z",
   "title": "Design System: CampusStay FPT",
   "extensions": {
     "colorMeta": {
       "band": { "role": "primary", "displayName": "FPT Orange", "canonical": "#f37021", "tonalRamp": ["#662d12", "#7e3412", "#9e3f0f", "#c64f0e", "#f37021", "#fdaa74", "#fecdaa", "#fff5ed"] },
+      "band-line": { "role": "primary", "displayName": "Band Edge", "canonical": "#d9600f", "tonalRamp": ["#662d12", "#7e3412", "#9e3f0f", "#d9600f", "#f98a45", "#fdaa74", "#ffe8d5", "#fff5ed"] },
+      "band-hover": { "role": "primary", "displayName": "Band Hover", "canonical": "#fb9a5c", "tonalRamp": ["#662d12", "#9e3f0f", "#f37021", "#fb9a5c", "#fdaa74", "#fecdaa", "#ffe8d5", "#fff5ed"] },
       "primary": { "role": "primary", "displayName": "Deep Orange", "canonical": "#c64f0e", "tonalRamp": ["#662d12", "#7e3412", "#9e3f0f", "#c64f0e", "#f98a45", "#fdaa74", "#ffe8d5", "#fff5ed"] },
-      "primary-hover": { "role": "primary", "displayName": "Deep Orange Hover", "canonical": "#9e3f0f" },
-      "primary-subtle": { "role": "primary", "displayName": "Orange Wash", "canonical": "#fff1e6" },
-      "fg-brand": { "role": "primary", "displayName": "Brand Ink", "canonical": "#b8490d" },
-      "band-fg": { "role": "neutral", "displayName": "Band Ink", "canonical": "#1d1714" },
-      "band-line": { "role": "primary", "displayName": "Band Edge", "canonical": "#d9600f" },
-      "band-hover": { "role": "primary", "displayName": "Band Hover", "canonical": "#fb9a5c" },
-      "secondary": { "role": "secondary", "displayName": "FPT Blue", "canonical": "#0a5da8", "tonalRamp": ["#05305a", "#084a86", "#0a5da8", "#1a73c8", "#5b9ad8", "#a3c6ea", "#d6e8f8", "#eef5fc"] },
-      "fpt-green": { "role": "tertiary", "displayName": "FPT Green", "canonical": "#3fa34d", "tonalRamp": ["#14421b", "#226b2d", "#2e8a3c", "#3fa34d", "#76c07f", "#aedcb4", "#d5efd8", "#eef8ef"] },
-      "success": { "role": "tertiary", "displayName": "Done Green", "canonical": "#2e8a3c" },
+      "primary-hover": { "role": "primary", "displayName": "Deep Orange Hover", "canonical": "#9e3f0f", "tonalRamp": ["#662d12", "#7e3412", "#9e3f0f", "#c64f0e", "#f98a45", "#fdaa74", "#ffe8d5", "#fff5ed"] },
+      "primary-subtle": { "role": "primary", "displayName": "Orange Wash", "canonical": "#fff1e6", "tonalRamp": ["#662d12", "#9e3f0f", "#c64f0e", "#f98a45", "#fdaa74", "#fecdaa", "#ffe8d5", "#fff1e6"] },
+      "fg-brand": { "role": "primary", "displayName": "Brand Ink", "canonical": "#b8490d", "tonalRamp": ["#662d12", "#7e3412", "#9e3f0f", "#b8490d", "#f98a45", "#fdaa74", "#ffe8d5", "#fff5ed"] },
+      "progress": { "role": "primary", "displayName": "In Progress", "canonical": "#c64f0e", "tonalRamp": ["#662d12", "#7e3412", "#9e3f0f", "#c64f0e", "#f98a45", "#fdaa74", "#ffe8d5", "#fff1e6"] },
+      "secondary": { "role": "secondary", "displayName": "FPT Blue", "canonical": "#0a5da8", "tonalRamp": ["#062f55", "#084a86", "#0a5da8", "#1a73c8", "#5a9bd8", "#a9cbec", "#d6e8f8", "#eef5fc"] },
+      "success": { "role": "tertiary", "displayName": "FPT Green", "canonical": "#2e8a3c", "tonalRamp": ["#123a18", "#226b2d", "#2e8a3c", "#3fa34d", "#7cc487", "#b3dfb9", "#d5efd8", "#eef8ef"] },
+      "fpt-green": { "role": "tertiary", "displayName": "FPT Green (brand)", "canonical": "#3fa34d", "tonalRamp": ["#123a18", "#226b2d", "#2e8a3c", "#3fa34d", "#7cc487", "#b3dfb9", "#d5efd8", "#eef8ef"] },
+      "canvas": { "role": "neutral", "displayName": "Warm Canvas", "canonical": "#f7f4f0", "tonalRamp": ["#1d1714", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#ebe3db", "#f7f4f0"] },
+      "surface": { "role": "neutral", "displayName": "Surface", "canonical": "#ffffff", "tonalRamp": ["#1d1714", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#f3ede6", "#ffffff"] },
+      "subtle": { "role": "neutral", "displayName": "Sand", "canonical": "#f3ede6", "tonalRamp": ["#1d1714", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#ebe3db", "#f3ede6"] },
       "fg": { "role": "neutral", "displayName": "Ink", "canonical": "#1d1714", "tonalRamp": ["#1d1714", "#2a221d", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#f5f0eb"] },
-      "fg-secondary": { "role": "neutral", "displayName": "Walnut", "canonical": "#5c4f46" },
-      "fg-tertiary": { "role": "neutral", "displayName": "Taupe", "canonical": "#75665b" },
-      "fg-disabled": { "role": "neutral", "displayName": "Stone", "canonical": "#a8998d" },
-      "canvas": { "role": "neutral", "displayName": "Warm Canvas", "canonical": "#fbf8f5" },
-      "surface": { "role": "neutral", "displayName": "Surface", "canonical": "#ffffff" },
-      "subtle": { "role": "neutral", "displayName": "Sand", "canonical": "#f5f0eb" },
-      "line": { "role": "neutral", "displayName": "Hairline", "canonical": "#ebe3db" },
-      "line-strong": { "role": "neutral", "displayName": "Strong Hairline", "canonical": "#d9cec4" }
+      "fg-secondary": { "role": "neutral", "displayName": "Walnut", "canonical": "#5c4f46", "tonalRamp": ["#1d1714", "#2a221d", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#f5f0eb"] },
+      "fg-tertiary": { "role": "neutral", "displayName": "Taupe", "canonical": "#75665b", "tonalRamp": ["#1d1714", "#2a221d", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#f5f0eb"] },
+      "line": { "role": "neutral", "displayName": "Hairline", "canonical": "#ebe3db", "tonalRamp": ["#1d1714", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#ebe3db", "#f9f8f7"] },
+      "line-strong": { "role": "neutral", "displayName": "Strong Hairline", "canonical": "#d9cec4", "tonalRamp": ["#1d1714", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#ebe3db", "#f9f8f7"] },
+      "wall": { "role": "neutral", "displayName": "Wall", "canonical": "#3f352e", "tonalRamp": ["#1d1714", "#2a221d", "#3f352e", "#5c4f46", "#75665b", "#a8998d", "#d9cec4", "#f5f0eb"] }
     },
     "typographyMeta": {
-      "kpi": { "displayName": "Display/KPI", "purpose": "Stat tile values only, tabular figures." },
-      "h1": { "displayName": "Heading/H1", "purpose": "Page titles." },
-      "h2": { "displayName": "Heading/H2", "purpose": "Modal titles, phone bar title." },
-      "h3": { "displayName": "Heading/H3", "purpose": "Card and empty-state titles." },
-      "body-lg": { "displayName": "Body/Large", "purpose": "Student web default, lg controls." },
-      "body": { "displayName": "Body/Base", "purpose": "Back-office default." },
-      "label": { "displayName": "Label/Base", "purpose": "Buttons, field labels, menu items." },
-      "small": { "displayName": "Body/Small, Label/Small", "purpose": "Helpers, errors, table headers, Tags." },
-      "axis": { "displayName": "Chart axis", "purpose": "Chart axis labels only." }
+      "kpi": { "displayName": "KPI", "purpose": "Stat tile values and the room title in the Rooms detail." },
+      "h1": { "displayName": "H1", "purpose": "Page titles in the back-office header." },
+      "h2": { "displayName": "H2", "purpose": "Modal titles, metric values, the phone bar title." },
+      "h3": { "displayName": "H3", "purpose": "Panel titles, empty-state titles, detail values." },
+      "body-lg": { "displayName": "Body Large", "purpose": "Student web default." },
+      "body": { "displayName": "Body", "purpose": "Back-office default text." },
+      "label": { "displayName": "Label", "purpose": "Buttons, field labels, menu items." },
+      "small": { "displayName": "Small", "purpose": "Helpers, table headers, Tags, work counts, menu section titles." },
+      "axis": { "displayName": "Axis", "purpose": "Chart axis labels and bed-square letters." },
+      "android-body": { "displayName": "Android Body", "purpose": "Roboto, the platform face, for all Android text." },
+      "android-title": { "displayName": "Android App Bar Title", "purpose": "Ink title on the orange app bar." }
     },
     "shadows": [
-      { "name": "card", "value": "0 1px 2px 0 #3f1d0a0d", "purpose": "Primary button, white pills on the band, band logo tile. Never on cards." },
-      { "name": "dropdown", "value": "0 6px 16px -4px #3f1d0a1f, 0 2px 4px -2px #3f1d0a0f", "purpose": "Popovers, menus, search results." },
-      { "name": "modal", "value": "0 16px 32px -8px #3f1d0a29, 0 4px 8px -2px #3f1d0a0f", "purpose": "Dialogs and drawers over a gray-900 scrim at 45%." },
+      { "name": "card", "value": "0 1px 2px 0 #3f1d0a0d", "purpose": "Primary button, band pills, language switch, logo tile." },
+      { "name": "dropdown", "value": "0 6px 16px -4px #3f1d0a1f, 0 2px 4px -2px #3f1d0a0f", "purpose": "Popovers, menus, search results, tooltips." },
+      { "name": "modal", "value": "0 16px 32px -8px #3f1d0a29, 0 4px 8px -2px #3f1d0a0f", "purpose": "Dialogs and side drawers." },
       { "name": "focus", "value": "0 0 0 3px #0a5da833", "purpose": "Input focus halo with a blue border." }
     ],
     "motion": [
-      { "name": "fade-in", "value": "150ms ease-out", "purpose": "Scrims." },
-      { "name": "pop-in", "value": "160ms ease-out, translateY(8px) scale(0.98) to rest", "purpose": "Modals and popovers." },
+      { "name": "fade-in", "value": "150ms ease-out", "purpose": "Overlays and scrims appearing." },
+      { "name": "pop-in", "value": "160ms ease-out", "purpose": "Dialogs and popovers: 8px rise and 0.98 scale." },
       { "name": "slide-in-right", "value": "200ms ease-out", "purpose": "Side drawers." },
-      { "name": "toast-in", "value": "200ms ease-out, translateY(-8px) to rest", "purpose": "Toasts." },
-      { "name": "reduced-motion", "value": "1ms", "purpose": "All animation and transition durations under prefers-reduced-motion." }
+      { "name": "toast-in", "value": "200ms ease-out", "purpose": "Toasts dropping in 8px." },
+      { "name": "row-in", "value": "1200ms ease-out", "purpose": "A row that just moved into a list: slides in, its orange wash fades." },
+      { "name": "halo", "value": "2.4s ease-in-out infinite", "purpose": "The current semester stage's breathing halo; off with reduced motion." },
+      { "name": "language-switch", "value": "180ms ease-out; marker 220ms cubic-bezier(0.2, 0, 0, 1)", "purpose": "VI/EN view transition cross-fade." }
     ],
     "breakpoints": [
+      { "name": "narrow", "value": "560px" },
+      { "name": "detail-stack", "value": "720px" },
       { "name": "lg", "value": "1024px" },
       { "name": "xl", "value": "1280px" }
     ]
@@ -59,99 +65,120 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one action of a view; deep orange, label states count and amount.",
-      "html": "<button class=\"ds-btn-primary\">Confirm 3 payments · 4.500.000 ₫</button>",
-      "css": ".ds-btn-primary { display:inline-flex; align-items:center; height:32px; padding:0 16px; border:none; border-radius:6px; background:#c64f0e; color:#fff; font:600 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; box-shadow:0 1px 2px 0 #3f1d0a0d; transition:background-color .15s; } .ds-btn-primary:hover { background:#9e3f0f; } .ds-btn-primary:focus-visible { outline:2px solid #0a5da8; outline-offset:2px; }"
+      "description": "The one action of a view, at the foot of the detail panel.",
+      "html": "<button class=\"ds-btn-primary\">Confirm 3 payments · 4,500,000 ₫</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; height: 32px; padding: 0 16px; border: none; border-radius: 6px; background: var(--color-primary, #c64f0e); color: #fff; font: 600 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; box-shadow: 0 1px 2px 0 #3f1d0a0d; transition: background-color .15s; } .ds-btn-primary:hover { background: var(--color-primary-hover, #9e3f0f); } .ds-btn-primary:focus-visible { outline: 2px solid #0a5da8; outline-offset: 2px; }"
     },
     {
       "name": "Default Button",
       "kind": "button",
       "refersTo": "button-default",
-      "description": "Secondary actions; white with a strong hairline, orange on hover.",
+      "description": "Secondary actions: white with a strong hairline.",
       "html": "<button class=\"ds-btn-default\">Export</button>",
-      "css": ".ds-btn-default { display:inline-flex; align-items:center; height:32px; padding:0 16px; border:1px solid #d9cec4; border-radius:6px; background:#fff; color:#1d1714; font:500 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; transition:color .15s, border-color .15s; } .ds-btn-default:hover { border-color:#c64f0e; color:#b8490d; } .ds-btn-default:focus-visible { outline:2px solid #0a5da8; outline-offset:2px; }"
+      "css": ".ds-btn-default { display: inline-flex; align-items: center; height: 32px; padding: 0 16px; border: 1px solid #d9cec4; border-radius: 6px; background: #fff; color: #1d1714; font: 500 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; transition: border-color .15s, color .15s; } .ds-btn-default:hover { border-color: #c64f0e; color: #b8490d; } .ds-btn-default:focus-visible { outline: 2px solid #0a5da8; outline-offset: 2px; }"
     },
     {
-      "name": "Text Button",
-      "kind": "button",
-      "refersTo": "button-text",
-      "description": "Low-emphasis actions in brand ink.",
-      "html": "<button class=\"ds-btn-text\">View details</button>",
-      "css": ".ds-btn-text { display:inline-flex; align-items:center; height:32px; padding:0 16px; border:none; border-radius:6px; background:transparent; color:#b8490d; font:500 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; } .ds-btn-text:hover { background:#fff1e6; } .ds-btn-text:focus-visible { outline:2px solid #0a5da8; outline-offset:2px; }"
-    },
-    {
-      "name": "Input",
+      "name": "Text Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "Text field with label above; blue border and halo on focus.",
-      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Student code</span><input class=\"ds-input\" placeholder=\"SE180001\"></label>",
-      "css": ".ds-field { display:flex; flex-direction:column; gap:4px; font-family:'Be Vietnam Pro', system-ui, sans-serif; } .ds-field-label { font-size:14px; line-height:22px; font-weight:500; color:#1d1714; } .ds-input { height:32px; padding:0 12px; border:1px solid #d9cec4; border-radius:6px; background:#fff; color:#1d1714; font:400 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; outline:none; transition:border-color .15s, box-shadow .15s; } .ds-input::placeholder { color:#75665b; } .ds-input:focus { border-color:#0a5da8; box-shadow:0 0 0 3px #0a5da833; }"
-    },
-    {
-      "name": "Status Tag",
-      "kind": "chip",
-      "refersTo": "tag-success",
-      "description": "Status as pill, dot and word; never colour alone.",
-      "html": "<span class=\"ds-tag ds-tag-success\"><i></i>Paid</span> <span class=\"ds-tag ds-tag-warning\"><i></i>Awaiting Deposit</span> <span class=\"ds-tag ds-tag-error\"><i></i>Overdue</span>",
-      "css": ".ds-tag { display:inline-flex; align-items:center; gap:6px; padding:2px 10px 2px 8px; border-radius:9999px; font:500 12px/20px 'Be Vietnam Pro', system-ui, sans-serif; } .ds-tag i { width:6px; height:6px; border-radius:9999px; } .ds-tag-success { background:#eef8ef; color:#226b2d; } .ds-tag-success i { background:#2e8a3c; } .ds-tag-warning { background:#fffbeb; color:#92400e; } .ds-tag-warning i { background:#f59e0b; } .ds-tag-error { background:#fef2f2; color:#a61b1b; } .ds-tag-error i { background:#c81e1e; }"
-    },
-    {
-      "name": "Card",
-      "kind": "card",
-      "refersTo": "card",
-      "description": "Flat white card with a hairline; stat tile shown.",
-      "html": "<section class=\"ds-card\"><p class=\"ds-card-label\">Unpaid invoices</p><p class=\"ds-card-kpi\">128</p><p class=\"ds-card-note\">12 overdue</p></section>",
-      "css": ".ds-card { display:flex; flex-direction:column; gap:8px; padding:20px; border:1px solid #ebe3db; border-radius:8px; background:#fff; font-family:'Be Vietnam Pro', system-ui, sans-serif; } .ds-card-label { margin:0; font-size:12px; line-height:20px; font-weight:500; color:#75665b; } .ds-card-kpi { margin:0; font-size:28px; line-height:36px; font-weight:600; color:#1d1714; font-variant-numeric:tabular-nums; } .ds-card-note { margin:0; font-size:12px; line-height:20px; color:#5c4f46; }"
+      "description": "White field, strong hairline, blue focus with halo.",
+      "html": "<label class=\"ds-field\"><span>Student code</span><input class=\"ds-input\" placeholder=\"SE123456\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 4px; font: 500 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; color: #1d1714; } .ds-input { height: 32px; padding: 0 12px; border: 1px solid #d9cec4; border-radius: 6px; background: #fff; color: #1d1714; font: 400 14px 'Be Vietnam Pro', system-ui, sans-serif; outline: none; transition: border-color .15s, box-shadow .15s; } .ds-input::placeholder { color: #a8998d; } .ds-input:focus { border-color: #0a5da8; box-shadow: 0 0 0 3px #0a5da833; }"
     },
     {
       "name": "Band",
       "kind": "nav",
       "refersTo": "band",
-      "description": "Signature: full-width FPT-orange header; only ink or white controls on it.",
-      "html": "<header class=\"ds-band\"><span class=\"ds-band-logo\"><b>CS</b><span>CampusStay</span></span><button class=\"ds-band-pill\">Fall 2026</button><button class=\"ds-band-pill\">Block A</button><span class=\"ds-band-spacer\"></span><button class=\"ds-band-pill ds-band-search\">Search…</button></header>",
-      "css": ".ds-band { display:flex; align-items:center; gap:16px; height:56px; padding:0 24px 0 16px; background:#f37021; border-bottom:1px solid #d9600f; color:#1d1714; font-family:'Be Vietnam Pro', system-ui, sans-serif; } .ds-band-logo { display:flex; align-items:center; gap:10px; font-size:16px; line-height:24px; font-weight:700; } .ds-band-logo b { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:#fff; color:#b8490d; box-shadow:0 1px 2px 0 #3f1d0a0d; font-size:14px; } .ds-band-pill { height:32px; padding:0 12px; border:none; border-radius:6px; background:#fff; color:#1d1714; font:500 14px/22px 'Be Vietnam Pro', system-ui, sans-serif; box-shadow:0 1px 2px 0 #3f1d0a0d; } .ds-band-pill:hover { background:#fff1e6; } .ds-band-pill:focus-visible { outline:2px solid #1d1714; outline-offset:2px; } .ds-band-spacer { flex:1; } .ds-band-search { width:220px; text-align:left; color:#75665b; font-weight:400; }"
+      "description": "Solid FPT-orange header with ink text and white pills.",
+      "html": "<header class=\"ds-band\"><strong>CampusStay</strong><button class=\"ds-band-pill\">Term Fall 2026</button><button class=\"ds-band-pill\">Block A</button></header>",
+      "css": ".ds-band { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 20px; background: #f37021; border-bottom: 1px solid #d9600f; color: #1d1714; font: 700 16px 'Be Vietnam Pro', system-ui, sans-serif; } .ds-band-pill { height: 36px; padding: 0 14px; border: 1px solid transparent; border-radius: 10px; background: #fff; color: #1d1714; font: 500 14px 'Be Vietnam Pro', system-ui, sans-serif; box-shadow: 0 1px 2px 0 #3f1d0a0d; transition: background-color .15s; } .ds-band-pill:hover { background: #fff1e6; } .ds-band-pill:focus-visible { outline: 2px solid #1d1714; outline-offset: 2px; }"
     },
     {
-      "name": "Menu Item",
+      "name": "Menu with work counts",
       "kind": "nav",
       "refersTo": "nav-item-active",
-      "description": "Back-office side menu; active item in orange wash.",
-      "html": "<nav class=\"ds-menu\"><a class=\"ds-menu-item is-active\" href=\"#\">Payments</a><a class=\"ds-menu-item\" href=\"#\">Rooms</a></nav>",
-      "css": ".ds-menu { display:flex; flex-direction:column; gap:1px; width:224px; padding:12px; background:#fff; font-family:'Be Vietnam Pro', system-ui, sans-serif; } .ds-menu-item { display:flex; align-items:center; min-height:32px; padding:4px 12px; border-radius:6px; color:#5c4f46; font-size:14px; line-height:1.375; text-decoration:none; } .ds-menu-item:hover { background:#f5f0eb; color:#1d1714; } .ds-menu-item.is-active { background:#fff1e6; color:#b8490d; font-weight:600; } .ds-menu-item:focus-visible { outline:2px solid #0a5da8; outline-offset:2px; }"
+      "description": "White grouped menu; each item ends with its work count.",
+      "html": "<nav class=\"ds-menu\"><p class=\"ds-menu-title\">Payments</p><a class=\"ds-menu-item is-active\" href=\"#\">Claims <span class=\"ds-count ds-count-error\">3</span></a><a class=\"ds-menu-item\" href=\"#\">Refunds <span class=\"ds-count\">2</span></a></nav>",
+      "css": ".ds-menu { display: flex; flex-direction: column; gap: 1px; width: 248px; padding: 16px 12px; background: #fff; border-right: 1px solid #ebe3db; font-family: 'Be Vietnam Pro', system-ui, sans-serif; } .ds-menu-title { margin: 0; padding: 0 12px 4px; font: 600 12px/20px inherit; color: #75665b; } .ds-menu-item { display: flex; align-items: center; gap: 10px; min-height: 32px; padding: 4px 12px; border-radius: 6px; color: #5c4f46; font-size: 14px; text-decoration: none; transition: background-color .15s; } .ds-menu-item:hover { background: #f3ede6; color: #1d1714; } .ds-menu-item.is-active { background: #fff1e6; color: #b8490d; font-weight: 600; } .ds-menu-item:focus-visible { outline: 2px solid #0a5da8; outline-offset: 2px; } .ds-count { margin-left: auto; min-width: 20px; padding: 0 6px; border-radius: 9999px; background: #f3ede6; color: #5c4f46; font: 600 12px/20px inherit; text-align: center; font-variant-numeric: tabular-nums; } .ds-count-error { background: #c81e1e; color: #fff; }"
+    },
+    {
+      "name": "Status Tag",
+      "kind": "chip",
+      "refersTo": "tag-success",
+      "description": "Pill with a 6px dot and the status word.",
+      "html": "<span class=\"ds-tag ds-tag-success\"><i></i>Paid</span> <span class=\"ds-tag ds-tag-progress\"><i></i>In progress</span>",
+      "css": ".ds-tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 8px; border-radius: 9999px; border: 1px solid color-mix(in srgb, currentColor 15%, transparent); font: 500 12px/20px 'Be Vietnam Pro', system-ui, sans-serif; } .ds-tag i { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; } .ds-tag-success { background: #eef8ef; color: #226b2d; } .ds-tag-success i { background: #2e8a3c; } .ds-tag-progress { background: #fff1e6; color: #9e3f0f; } .ds-tag-progress i { background: #c64f0e; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat white panel, 10px radius, hairline, no shadow.",
+      "html": "<section class=\"ds-card\"><h3>Room A-0712</h3><p>Block A · Floor 7 · 3/4 beds</p></section>",
+      "css": ".ds-card { padding: 20px; border: 1px solid #ebe3db; border-radius: 10px; background: #fff; font-family: 'Be Vietnam Pro', system-ui, sans-serif; } .ds-card h3 { margin: 0 0 4px; font: 600 16px/24px inherit; color: #1d1714; } .ds-card p { margin: 0; font-size: 14px; color: #5c4f46; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Floor Plan",
+      "kind": "custom",
+      "refersTo": "bed-square",
+      "description": "Rooms in two wings along a corridor; bed squares with letter, state by fill and border style, legend always shown.",
+      "html": "<div class=\"ds-plan\"><div class=\"ds-wing\"><div class=\"ds-room\"><b>A-0701</b><span class=\"ds-beds\"><i class=\"ds-bed res\">A</i><i class=\"ds-bed unpaid\">B</i></span></div><div class=\"ds-room\"><b>A-0702</b><span class=\"ds-beds\"><i class=\"ds-bed free\">A</i><i class=\"ds-bed leaving\">B</i></span></div></div><div class=\"ds-corridor\">Corridor</div><div class=\"ds-wing\"><div class=\"ds-room\"><b>A-0703</b><span class=\"ds-beds\"><i class=\"ds-bed oos\">A</i><i class=\"ds-bed next\">B</i></span></div></div></div>",
+      "css": ".ds-plan { display: inline-block; border: 2px solid #3f352e; border-radius: 6px; overflow: hidden; font-family: 'Be Vietnam Pro', system-ui, sans-serif; } .ds-wing { display: flex; background: #fff; } .ds-room { display: flex; flex-direction: column; gap: 6px; min-width: 88px; padding: 8px; box-shadow: 1px 0 0 0 #3f352e; cursor: pointer; transition: background-color .15s; } .ds-room:hover { background: #fff1e6; } .ds-room b { font: 700 14px 'Be Vietnam Pro', sans-serif; font-variant-numeric: tabular-nums; color: #1d1714; } .ds-beds { display: flex; gap: 4px; } .ds-bed { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid; border-radius: 4px; font: 600 11px/1 sans-serif; font-style: normal; } .ds-bed.res { border-color: #f98a45; background: #ffe8d5; color: #7e3412; } .ds-bed.unpaid { border: 2px dotted #92400e; background: #fffbeb; color: #92400e; } .ds-bed.free { border-color: #2e8a3c; background: #fff; color: #226b2d; } .ds-bed.leaving { border-style: dashed; border-color: #f98a45; background: #fff5ed; color: #7e3412; } .ds-bed.next { border-style: dashed; border-color: #0a5da8; background: #fff; color: #084a86; } .ds-bed.oos { border-color: #d9cec4; background: #f3ede6; color: #75665b; } .ds-corridor { height: 36px; display: flex; align-items: center; padding: 0 16px; background: #f3ede6; border-block: 2px solid #3f352e; font-size: 12px; color: #75665b; }"
+    },
+    {
+      "name": "Timetable",
+      "kind": "custom",
+      "refersTo": "timetable-shift",
+      "description": "FAP-style week: shift rows, day columns, today washed orange.",
+      "html": "<table class=\"ds-tt\"><tr><th>Shift</th><th>Mon</th><th class=\"today\">Tue</th></tr><tr><th>Morning<br><small>06:00–14:00</small></th><td></td><td class=\"today\"><span class=\"ds-shift\">On shift</span></td></tr></table>",
+      "css": ".ds-tt { border-collapse: collapse; font: 400 14px 'Be Vietnam Pro', system-ui, sans-serif; } .ds-tt th, .ds-tt td { border: 1px solid #ebe3db; padding: 6px 10px; text-align: left; vertical-align: top; } .ds-tt th { background: #f3ede6; color: #1d1714; font-weight: 600; } .ds-tt th small { color: #5c4f46; font-weight: 400; font-variant-numeric: tabular-nums; } .ds-tt th.today { background: #fff1e6; color: #b8490d; } .ds-tt td { height: 64px; min-width: 96px; } .ds-tt td.today { background: color-mix(in srgb, #fff1e6 40%, transparent); } .ds-shift { display: block; padding: 4px 8px; border-radius: 6px; background: #ffe8d5; color: #662d12; font-size: 12px; font-weight: 600; }"
+    },
+    {
+      "name": "Android Bottom Bar",
+      "kind": "nav",
+      "refersTo": "android-bottom-bar",
+      "description": "White bar, icon plus label, current item on an orange-wash pill.",
+      "html": "<nav class=\"ds-bbar\"><a class=\"is-active\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/></svg>Home</a><a href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"M3 10h18\"/></svg>Payments</a></nav>",
+      "css": ".ds-bbar { display: flex; height: 68px; background: #fff; border-radius: 24px 24px 0 0; box-shadow: 0 -2px 12px #1d17141a; font-family: Roboto, system-ui, sans-serif; } .ds-bbar a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 8px; border-radius: 14px; color: #75665b; font: 500 12px Roboto, sans-serif; text-decoration: none; transition: background-color .2s; } .ds-bbar a.is-active { background: #fff1e6; color: #b8490d; font-weight: 600; } .ds-bbar a.is-active svg { color: #c64f0e; } .ds-bbar a:focus-visible { outline: 2px solid #0a5da8; }"
     }
   ],
   "narrative": {
-    "northStar": "FPT Orange Campus",
-    "overview": "The app signs itself the way an FPT University building does: a solid FPT-orange band runs the full width of every shell, and the work happens below it on warm white. Back office (Staff, Manager, Admin) is dense and desktop-first at 1366 px and up; the student portal is phone-first and shows the same orange frame.\n\nEverything else is quiet so the band and one action can speak: white side menu, warm-white canvas, warm hairlines, flat cards. Colour carries a single job each.",
+    "northStar": "FPT desk",
+    "overview": "A disciplined back office framed by solid FPT orange. A flat #f37021 band runs the full width of every shell, with nothing on it but ink and white controls; below it a white grouped menu shows how much work waits in each place, and the work area reads list on the left, detail on the right, with one deep-orange button at the foot of the detail. Back office (Staff, Manager, Admin) is dense and desktop-first at 1366 px and up; the student portal is phone-first and keeps the same orange frame; the Android app wears it as an orange app bar.\n\nEverything below the band is quiet: warm canvas, white panels with 10 px corners and warm hairlines, colour given one job each. Where a domain has its own drawing convention, the screen borrows it: Rooms are drawn as a floor plan, a person's week as an FAP-style timetable. The system refuses soft-gradient decoration and the grey SaaS admin where the brand shrinks to a logo tile.",
     "keyCharacteristics": [
-      "Full-width FPT-orange band (56 px back office, 64 px phone bar) on every shell.",
-      "One action colour, deep orange; blue and green have narrow, fixed jobs.",
-      "Warm neutrals tinted from the orange, never cool grey.",
-      "Be Vietnam Pro throughout (Vietnamese and Latin subsets, 400 to 700), tabular figures for numbers.",
-      "Flat surfaces with hairline borders; shadows only for floating layers and band controls."
+      "Solid FPT-orange band (56 px back office, 64 px student web and phone bar; the Android app bar) on every shell, no gradient.",
+      "One action colour, deep orange; FPT blue and FPT green have narrow, fixed jobs; \"in progress\" stays in the brand family.",
+      "Warm neutrals tinted from the orange (canvas #f7f4f0, sand #f3ede6), never cool grey.",
+      "Be Vietnam Pro on the web, Roboto on Android; tabular figures for every number.",
+      "Flat white panels with hairlines; shadows only for controls on the band, the primary button and floating layers.",
+      "Work counts travel with navigation: menu items and section tabs carry their own count."
     ],
     "rules": [
-      { "name": "The Band Rule", "body": "Everything on the orange band is ink (#1d1714) or a white control (Term, Block, search, language, user as white pills with the card shadow). White text on FPT orange fails contrast, and so does a blue focus ring: band controls take an ink focus ring (`[data-band]`). Band hover is the lighter orange (band-hover); the band's bottom edge is band-line.", "section": "colors" },
-      { "name": "The One Action Rule", "body": "Deep orange (#C64F0E) is the only action colour. No blue, green or FPT-orange buttons. Destructive actions use the error red, never orange.", "section": "colors" },
-      { "name": "The Narrow Blue, Narrow Green Rule", "body": "FPT blue means \"go somewhere\" (links) or focus; FPT green means done or paid. Neither decorates.", "section": "colors" },
-      { "name": "The Not-By-Colour-Alone Rule", "body": "Status always carries its word: Tag is a pill with a 6 px dot plus the status label from one shared vocabulary (`toneForStatus`). A coloured dot or fill never stands alone.", "section": "colors" },
-      { "name": "The Tabular Numbers Rule", "body": "Amounts, counts, codes and dates in tables and tiles use `tabular` (tabular-nums).", "section": "typography" },
-      { "name": "The Flat Card Rule", "body": "Cards never take a shadow; a hairline does the work.", "section": "elevation" }
+      { "name": "The Band Rule", "body": "The band is one solid colour (#f37021); `band-to` equals `band`, so the gradient utility renders flat. Everything on it is ink (#1d1714) or a white control: Term, Block and search are 36 px white pills with a 10 px radius and the card shadow. White text on FPT orange fails contrast (ink reaches 6.6:1), and so does a blue focus ring, so band controls take an ink ring (`[data-band]`). On Android the app bar is the same orange with ink title and icons.", "section": "colors" },
+      { "name": "The One Action Rule", "body": "Deep orange (#c64f0e) is the only action colour. No blue, green or FPT-orange buttons. Destructive actions use the error red, never orange. Off the band, white text sits only on deep orange (4.9:1), never on FPT orange.", "section": "colors" },
+      { "name": "The Narrow Blue, Narrow Green Rule", "body": "FPT blue means \"go somewhere\" (links), focus or info; FPT green means done or paid. Neither decorates.", "section": "colors" },
+      { "name": "The Not-By-Colour-Alone Rule", "body": "Status always carries its word or a second cue. Tags are a pill with a 6 px dot plus the status label from one shared vocabulary; bed squares differ by border style (solid, dashed, dotted) and fill as well as colour, and their legend is always on screen; today's timetable column also carries a screen-reader \"Today\".", "section": "colors" },
+      { "name": "The Tabular Numbers Rule", "body": "Amounts, counts, codes, dates and room codes use `tabular` (tabular-nums).", "section": "typography" },
+      { "name": "The Sentence-Case Heading Rule", "body": "Headings stand on their own. There is no small uppercase tracked label above a heading; menu section titles and Android feature-group headings are sentence case, 12–15 px semibold.", "section": "typography" },
+      { "name": "The Flat Card Rule", "body": "Panels never take a shadow; a hairline does the work.", "section": "elevation" }
     ],
     "dos": [
-      "**Do** use only the semantic tokens from `web/src/index.css`; prefer `primary`, `fg-brand`, `line` over raw `orange-600` or `gray-200`.",
-      "**Do** put only ink or white controls on the band, and mark the band with `data-band` so its focus ring turns ink.",
-      "**Do** keep deep orange (#C64F0E) as the one action colour and give each view one primary button.",
-      "**Do** show every status as a Tag with its word; colour reinforces, never replaces.",
-      "**Do** use tabular figures for amounts, counts and codes."
+      "**Do** use only the semantic tokens from `web/src/index.css` (and `Tokens` in `mobile/lib/ui.dart`); prefer `primary`, `fg-brand`, `line` over raw `orange-600` or `gray-200`.",
+      "**Do** keep the band a single solid #f37021 with only ink or white controls, and mark it `data-band` so its focus ring turns ink.",
+      "**Do** keep deep orange (#c64f0e) as the one action colour and give each view one primary button, stating the count and amount.",
+      "**Do** show every status with its word, and every bed state with its fill, border style and legend.",
+      "**Do** carry the work count on the menu item and on the section tab that opens the work.",
+      "**Do** use tabular figures for amounts, counts, codes and dates.",
+      "**Do** label every Android bottom-bar icon."
     ],
     "donts": [
-      "**Don't** set white text on FPT orange (#F37021), or use FPT orange as a text colour anywhere.",
-      "**Don't** use FPT blue for buttons or decoration; it is links, focus and Info only.",
-      "**Don't** use FPT green for anything except done and paid.",
-      "**Don't** give cards a shadow; hairlines and the canvas carry depth.",
-      "**Don't** introduce cool greys, a second font family, or Tailwind default colours (they are reset).",
-      "**Don't** add small uppercase tracked labels above headings; menu section titles are sentence case."
+      "**Don't** put a gradient on the band or on panels.",
+      "**Don't** set white text on FPT orange (#f37021), or use FPT orange as a text colour.",
+      "**Don't** use FPT blue for buttons or decoration; it is links, focus and info only.",
+      "**Don't** use FPT green for anything except done and paid, or an off-palette colour (violet) for \"in progress\".",
+      "**Don't** give panels a shadow; hairlines and the canvas carry depth.",
+      "**Don't** introduce cool greys, a second font family on the web, or Tailwind default colours (they are reset).",
+      "**Don't** add small uppercase tracked labels above headings."
     ]
   }
 }

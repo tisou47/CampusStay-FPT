@@ -59,6 +59,67 @@ function whenText(inDays) {
   return t('In {n} days', { n: inDays })
 }
 
+/**
+ * The week as a FAP-style timetable ("FPT desk" redesign): shift slots down the side, days across, today's column
+ * washed in orange. The three standard shifts always have a row; any other span gets its own row.
+ */
+function Timetable({ shifts, start, todayWeekday, current }) {
+  const spans = [...new Set([...Object.keys(NAMED), ...shifts.map((s) => `${s.start}-${s.end}`)])].sort((a, b) => a.localeCompare(b))
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[760px] table-fixed border-collapse text-base">
+        <thead>
+          <tr>
+            <th scope="col" className="w-32 border border-line bg-subtle px-3 py-2 text-left text-sm font-medium text-fg-secondary">
+              {t('Shift')}
+            </th>
+            {DAYS.map((name, i) => {
+              const today = i + 1 === todayWeekday
+              return (
+                <th key={name} scope="col" className={cx('border border-line px-2 py-2 text-left font-semibold', today ? 'bg-primary-subtle text-fg-brand' : 'bg-subtle text-fg')}>
+                  {t(name)} <span className="font-normal text-fg-secondary tabular">{start ? dayMonth(addDays(start, i)) : ''}</span>
+                  {today && <span className="sr-only"> ({t('Today')})</span>}
+                </th>
+              )
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {spans.map((span) => {
+            const [from, to] = span.split('-')
+            return (
+              <tr key={span}>
+                <th scope="row" className="border border-line bg-subtle/60 px-3 py-2 text-left align-top font-normal">
+                  <span className="block font-semibold text-fg">{NAMED[span] ? t(NAMED[span]) : t('Shift')}</span>
+                  <span className="text-sm text-fg-secondary tabular">
+                    {from}–{to}
+                  </span>
+                </th>
+                {DAYS.map((name, i) => {
+                  const weekday = i + 1
+                  const s = shifts.find((x) => x.weekday === weekday && `${x.start}-${x.end}` === span)
+                  const live = s && current && current.weekday === s.weekday && current.start === s.start
+                  const overnight = s && s.end < s.start
+                  return (
+                    <td key={name} className={cx('h-16 border border-line p-1.5 align-top', weekday === todayWeekday && 'bg-primary-subtle/40')}>
+                      {s && (
+                        <div className={cx('flex h-full flex-col rounded-md px-2 py-1', live ? 'bg-success-bg text-success-fg ring-1 ring-success' : 'bg-orange-100 text-orange-900')}>
+                          <span className="text-sm font-semibold">{live ? t('Now') : t('On shift')}</span>
+                          {overnight && <span className="text-xs">{t('until {day} morning', { day: t(DAYS[s.weekday % 7]) })}</span>}
+                        </div>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function MySchedule() {
   const me = useQuery(['me-duty'], ({ signal }) => api.blockStaff.me(undefined, { signal }))
   const weeks = useQuery(['week-schedule', 'me'], ({ signal }) => api.weekSchedule.mine(undefined, { signal }))
@@ -118,39 +179,7 @@ export default function MySchedule() {
         {tab === 'next' && w && !w.nextWeek.sent ? (
           <p className="py-8 text-center text-base text-fg-secondary">{t('Your Manager has not sent next week’s schedule yet. You get a notification when they do.')}</p>
         ) : (
-          <div className="grid grid-cols-7 gap-2 max-lg:grid-cols-4 max-sm:grid-cols-2">
-            {DAYS.map((name, i) => {
-              const weekday = i + 1
-              const mine = shifts.filter((s) => s.weekday === weekday).sort((a, b) => a.start.localeCompare(b.start))
-              const isToday = tab === 'this' && weekday === c.dow + 1
-              return (
-                <div key={name} className={cx('flex min-h-32 flex-col gap-2 rounded-lg border p-2.5', isToday ? 'border-primary bg-primary-subtle/40' : 'border-line')}>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className={cx('font-semibold', isToday ? 'text-fg-brand' : 'text-fg')}>
-                      {t(name)} <span className="font-normal text-fg-secondary tabular">{shown ? dayMonth(addDays(shown.start, i)) : ''}</span>
-                    </span>
-                    {isToday && <Tag tone="brand">Today</Tag>}
-                  </div>
-                  {mine.length === 0 && <span className="text-sm text-fg-tertiary">{t('Day off')}</span>}
-                  {mine.map((s) => {
-                    const overnight = s.end < s.start
-                    const live = tab === 'this' && current && current.weekday === s.weekday && current.start === s.start
-                    const named = NAMED[`${s.start}-${s.end}`]
-                    return (
-                      <div key={s.start} className={cx('flex flex-col rounded-md px-2 py-1.5', live ? 'bg-success-bg ring-1 ring-success' : 'bg-subtle')}>
-                        <span className="text-base font-medium text-fg tabular">
-                          {s.start}–{s.end}
-                        </span>
-                        <span className="text-xs text-fg-secondary">
-                          {[named && t(named), overnight && t('until {day} morning', { day: t(DAYS[s.weekday % 7]) }), live && t('Now')].filter(Boolean).join(' · ')}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })}
-          </div>
+          <Timetable shifts={shifts} start={shown?.start} todayWeekday={tab === 'this' ? c.dow + 1 : null} current={tab === 'this' ? current : null} />
         )}
       </section>
 

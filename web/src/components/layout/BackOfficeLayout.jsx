@@ -162,7 +162,7 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
           aria-label={label}
           disabled={disabled}
           className={cx(
-            'flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 py-1.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-60',
+            'flex h-9 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 py-1.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-primary-subtle disabled:pointer-events-none disabled:opacity-60',
             open && 'bg-surface ring-2 ring-white/60',
           )}
           {...props}
@@ -292,7 +292,7 @@ function QuickSearch({ role }) {
           onClick={toggle}
           aria-keyshortcuts="/"
           title={t('Search pages, students, rooms, codes…')}
-          className="flex h-9 w-72 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base whitespace-nowrap text-fg-tertiary shadow-card transition-colors hover:bg-surface hover:text-fg-secondary"
+          className="flex h-9 w-72 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 text-base whitespace-nowrap text-fg-tertiary shadow-card transition-colors hover:bg-primary-subtle hover:text-fg-secondary"
           {...props}
         >
           <Search size={16} aria-hidden="true" className="shrink-0" />
@@ -403,7 +403,7 @@ function BackOfficeTopBar({ role }) {
   ]
   const fixedBlock = role === 'staff' && blocks.length === 1
   return (
-    <header data-band className="z-30 flex h-16 shrink-0 items-center gap-4 border-b border-band-line bg-band-gradient pr-6">
+    <header data-band className="z-30 flex h-14 shrink-0 items-center gap-4 border-b border-band-line bg-band pr-5">
       <Link to={`/${role}`} aria-label={t('Home')} className="flex h-full w-62 shrink-0 items-center px-4">
         <Logo tone="band" subtitle={t(backOffice[role].portal)} />
       </Link>
@@ -412,7 +412,7 @@ function BackOfficeTopBar({ role }) {
         {fixedBlock ? (
           <span
             title={t('Your block. A manager sets the blocks of your account.')}
-            className="flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-surface/95 px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card"
+            className="flex h-9 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card"
           >
             <Building size={16} aria-hidden="true" className="text-fg-brand" />
             {t('Block {code}', { code: blocks[0] })}

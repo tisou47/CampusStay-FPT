@@ -44,7 +44,7 @@ const STATUS_OPEN_KEY = 'inventory.roomStatusOpen'
 // Fill, border and ink of a bed square. Held beds orange, free beds green outlined, waiting for the door code light
 // blue, out of service sand; the others keep their own mark (unpaid amber, leaving and next term dashed).
 const bedLook = {
-  unpaid: 'border-warning bg-warning-bg text-warning-fg',
+  unpaid: 'border-2 border-dotted border-warning-fg bg-warning-bg text-warning-fg',
   paid: 'border-info/60 bg-info-bg text-info-fg',
   resident: 'border-orange-400 bg-orange-100 text-orange-800',
   leaving: 'border-dashed border-orange-400 bg-orange-50 text-orange-800',
@@ -161,6 +161,82 @@ function RoomRow({ room, selected, onSelect, onKeyDown, buttonRef }) {
         </span>
       </span>
     </button>
+  )
+}
+
+/**
+ * The floor drawn as its plan ("FPT desk" redesign): the floor's rooms in two wings either side of the corridor, walls in
+ * ink, every Bed a square with its letter and state; a room is a button that opens its profile, like a table row.
+ */
+function FloorPlan({ rooms, selectedCode, onSelect, onKeyDown, refs }) {
+  const half = Math.ceil(rooms.length / 2)
+  const wing = (list) => (
+    <ul className="grid bg-surface" style={{ gridTemplateColumns: `repeat(${Math.max(list.length, 1)}, minmax(88px, 1fr))` }}>
+      {list.map((r) => {
+        const selected = r.code === selectedCode
+        const allocated = allocatedOf(r)
+        const caption = r.outOfService ? t('Out of service') : t('{n} / {total} allocated', { n: allocated, total: r.capacity })
+        return (
+          <li key={r.code} className="flex shadow-[1px_0_0_0_var(--color-gray-700),0_1px_0_0_var(--color-gray-700)]">
+            <button
+              ref={(el) => (refs.current[r.code] = el)}
+              type="button"
+              onClick={() => onSelect(r.code)}
+              onKeyDown={onKeyDown}
+              aria-pressed={selected}
+              aria-label={t('Room {code}, {type}, {caption}', { code: r.code, type: tr(r.roomTypeName), caption })}
+              className={cx(
+                'flex min-h-28 w-full flex-col gap-2 p-2 text-left focus-visible:-outline-offset-4',
+                ease,
+                ring,
+                selected
+                  ? 'bg-primary-subtle shadow-[inset_0_0_0_2px_var(--color-primary)]'
+                  : r.outOfService
+                    ? 'bg-[repeating-linear-gradient(135deg,var(--color-subtle)_0_6px,var(--color-surface)_6px_12px)]'
+                    : 'bg-surface hover:bg-orange-50',
+              )}
+            >
+              <span className="flex items-baseline justify-between gap-2">
+                <span className={cx('text-base font-bold tabular', selected ? 'text-fg-brand' : 'text-fg')}>{r.code}</span>
+                <span className={cx('text-sm tabular', r.outOfService ? 'text-error-fg' : 'text-fg-tertiary')}>{r.outOfService ? '—' : `${allocated}/${r.capacity}`}</span>
+              </span>
+              <span aria-hidden="true" className="grid grid-flow-col auto-cols-[20px] grid-rows-[repeat(2,20px)] gap-1">
+                {r.beds.map((b) => (
+                  <span key={b.id} className={cx('flex size-5 items-center justify-center rounded-sm border text-xs leading-none font-semibold', bedLook[b.state])}>
+                    {bedLetter(b.id)}
+                  </span>
+                ))}
+              </span>
+              <span className="mt-auto truncate text-sm text-fg-secondary">{tr(r.roomTypeName)}</span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+  return (
+    <div className="flex flex-col gap-3 p-4">
+      {/* Each wing stays one row along the corridor, as on the floor; a long floor scrolls sideways. */}
+      <div className="overflow-x-auto [scrollbar-width:thin]">
+      <div className="min-w-max overflow-hidden rounded-md border-2 border-gray-700">
+        {wing(rooms.slice(0, half))}
+        <div aria-hidden="true" className="flex h-9 items-center gap-3 border-y-2 border-gray-700 bg-subtle px-4 text-sm text-fg-tertiary">
+          <span className="whitespace-nowrap">{t('Corridor')}</span>
+          <span className="h-0 flex-1 border-t border-dashed border-line-strong" />
+        </div>
+        {half < rooms.length && wing(rooms.slice(half))}
+      </div>
+      </div>
+      {/* The legend stays in view: states differ by border style and fill as well as colour, and are named here. */}
+      <ul aria-label={t('Bed states')} className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-fg-secondary">
+        {STATES.map((s) => (
+          <li key={s} className="flex items-center gap-1.5">
+            <span aria-hidden="true" className={cx('size-4 rounded-sm border', bedLook[s])} />
+            {t(bedLabel[s])}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -569,6 +645,8 @@ export default function Inventory() {
   // The page's state lives in the URL too (?block&floor&room&hide&q), so Back, a reload or a shared link (and the
   // way back from a room's Furniture) open the same floor, room, statuses and search.
   const [search, setSearch] = useState(() => params.get('q') ?? '')
+  // The floor shows as its plan by default; ?view=list keeps the table (sorting by eye, narrow screens).
+  const [view, setView] = useState(() => (params.get('view') === 'list' ? 'list' : 'plan'))
   const [shown, setShown] = useState(() => {
     const hidden = (params.get('hide') ?? '').split(',')
     return new Set(STATES.filter((s) => !hidden.includes(s)))
@@ -636,6 +714,7 @@ export default function Inventory() {
   if (room) wanted.set('room', room.code)
   if (shown.size < STATES.length) wanted.set('hide', STATES.filter((s) => !shown.has(s)).join(','))
   if (search.trim()) wanted.set('q', search.trim())
+  if (view === 'list') wanted.set('view', 'list')
   const wantedText = wanted.toString()
   // Only while this page is the one on screen: during a move to another (lazy) page the URL already is that page's.
   const ownPath = useRef(location.pathname)
@@ -644,6 +723,8 @@ export default function Inventory() {
     if (here && ready && wantedText !== params.toString()) setParams(new URLSearchParams(wantedText), { replace: true })
   }, [here, ready, wantedText, params, setParams])
   const backTo = `${location.pathname}?${wantedText}`
+  // Search results span floors, so they stay a list.
+  const plan = view === 'plan' && !q
 
   // Coming back (Back, or the Furniture page's way back): the selected room is scrolled into view once.
   const scrolled = useRef(false)
@@ -664,7 +745,7 @@ export default function Inventory() {
     rowRefs.current[r.code]?.focus()
   }
   const onRowKey = (e) => {
-    const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: visible.length - 1 }[e.key]
+    const to = { ArrowDown: at + 1, ArrowUp: at - 1, ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: visible.length - 1 }[e.key]
     if (to == null || !visible[to]) return
     e.preventDefault()
     step(visible[to])
@@ -759,9 +840,28 @@ export default function Inventory() {
       <div className="flex shrink-0 flex-col gap-4 xl:min-h-0 xl:flex-1 xl:shrink xl:flex-row xl:items-start">
         <section
           aria-label={t('Rooms and beds')}
-          className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface xl:max-h-full xl:flex-[1_1_440px]"
+          className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface xl:max-h-full xl:flex-[3_1_600px]"
         >
-          <div aria-hidden="true" className={cx('grid shrink-0 items-center gap-3 border-b border-line bg-subtle px-4 py-2 text-sm font-medium whitespace-nowrap text-fg-secondary max-[560px]:hidden', COLUMNS)}>
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 py-2">
+            <span className="text-sm font-semibold text-fg-secondary">{q ? t('Search results') : title}</span>
+            <div role="group" aria-label={t('View')} className="flex rounded-md border border-line-strong p-0.5">
+              {[
+                ['plan', 'Floor plan'],
+                ['list', 'List'],
+              ].map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={plan === (v === 'plan')}
+                  onClick={() => setView(v)}
+                  className={cx('h-7 rounded-sm px-3 text-sm font-medium', ease, ring, plan === (v === 'plan') ? 'bg-primary-subtle text-fg-brand' : 'text-fg-secondary hover:bg-subtle')}
+                >
+                  {t(label)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div aria-hidden="true" className={cx('grid shrink-0 items-center gap-3 border-b border-line bg-subtle px-4 py-2 text-sm font-medium whitespace-nowrap text-fg-secondary max-[560px]:hidden', COLUMNS, plan && 'hidden')}>
             <span>{t('Room')}</span>
             <span>{t('Beds')}</span>
             <span>{t('Room type')}</span>
@@ -788,14 +888,14 @@ export default function Inventory() {
                 isEmpty={(d) => (block ? !d.rooms?.length : !d.blocks?.length)}
                 empty={<EmptyBlock icon={Building} title={block ? 'No rooms on this floor' : 'No blocks in your scope'} />}
               >
-                {() => (visible.length ? rowList(visible) : noMatch)}
+                {() => (!visible.length ? noMatch : plan ? <FloorPlan rooms={visible} selectedCode={room?.code} onSelect={setSelected} onKeyDown={onRowKey} refs={rowRefs} /> : rowList(visible))}
               </QueryState>
             )}
           </div>
         </section>
 
         {room && (
-          <div className="min-w-0 xl:max-h-full xl:max-w-[600px] xl:flex-[1_1_480px] xl:overflow-y-auto xl:rounded-lg xl:[scrollbar-width:none] xl:[&::-webkit-scrollbar]:hidden">
+          <div className="min-w-0 xl:max-h-full xl:max-w-[600px] xl:flex-[2_1_440px] xl:overflow-y-auto xl:rounded-lg xl:[scrollbar-width:none] xl:[&::-webkit-scrollbar]:hidden">
             <RoomProfile
               key={room.code}
               room={room}

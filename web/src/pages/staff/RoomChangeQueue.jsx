@@ -286,7 +286,7 @@ function Review({ request: r, onReject, onClose }) {
         {/* Horizontal From -> To Comparison */}
         <div className="grid grid-cols-1 items-center gap-3 rounded-xl border border-line bg-subtle/40 p-3.5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
           <div className="flex flex-col gap-1 rounded-lg border border-line bg-surface px-4 py-3">
-            <span className="text-xs font-medium tracking-wide text-fg-tertiary uppercase">{t('Current allocation')}</span>
+            <span className="text-xs font-medium text-fg-tertiary">{t('Current allocation')}</span>
             <span className="text-base font-semibold text-fg tabular">
               {r.from.room} · {t('Bed {bed}', { bed: r.from.bed })}
             </span>
@@ -302,7 +302,7 @@ function Review({ request: r, onReject, onClose }) {
           </div>
 
           <div className="flex flex-col gap-1 rounded-lg border border-orange-200 bg-brand-subtle/40 px-4 py-3">
-            <span className="text-xs font-medium tracking-wide text-fg-brand uppercase">{t('Requested change')}</span>
+            <span className="text-xs font-medium text-fg-brand">{t('Requested change')}</span>
             <div className="flex flex-wrap items-center gap-2">
               {r.decision?.bed && (
                 <span className="rounded-md bg-success-bg px-2 py-0.5 font-mono text-sm font-semibold text-success-fg tabular">

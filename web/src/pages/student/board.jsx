@@ -81,10 +81,9 @@ export function PeriodStrip() {
   return (
     <Card padding="none" className="flex shrink-0 flex-col gap-3 px-5 py-3.5 shadow-xs lg:flex-row lg:items-center lg:gap-5">
       <div className="flex min-w-0 shrink-0 flex-col gap-1 lg:w-52">
-        <span className="text-xs font-medium tracking-wide text-fg-tertiary uppercase">{t('Registration period')}</span>
         <span className="flex flex-wrap items-center gap-2">
           <Link to={`/student/registration-periods/${card.termId}`} className="text-h3 font-semibold text-fg hover:text-fg-link hover:underline">
-            {card.name}
+            {t('Registration period')} {card.name}
           </Link>
           <Tag tone={periodTone[card.status] ?? 'neutral'}>{card.status}</Tag>
         </span>

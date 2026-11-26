@@ -125,14 +125,12 @@ class HomeScreen extends StatelessWidget {
               tiles: [
                 FeatureTile(
                   icon: Icons.notifications_rounded,
-                  color: const Color(0xFFF59E0B),
                   label: t('Notifications', 'Thông báo'),
                   badge: notifications,
                   onTap: () => open(const NotificationsScreen()),
                 ),
                 FeatureTile(
                   icon: Icons.assignment_ind_rounded,
-                  color: Tokens.link,
                   label: t('Applications', 'Đơn đăng ký'),
                   note: app == null ? null : label(app.str('status')),
                   onTap: () => tab(3, 'applications'),
@@ -140,7 +138,6 @@ class HomeScreen extends StatelessWidget {
                 if (card != null)
                   FeatureTile(
                     icon: Icons.event_available_rounded,
-                    color: const Color(0xFF0EA5E9),
                     label: t('Registration period', 'Đợt đăng ký'),
                     note: left == null
                         ? label(card.str('status'))
@@ -151,7 +148,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 FeatureTile(
                   icon: Icons.campaign_rounded,
-                  color: const Color(0xFF8B5CF6),
                   label: t('Dormitory board', 'Bảng tin KTX'),
                   badge: boardUnread,
                   onTap: () => open(const BoardScreen()),
@@ -163,7 +159,6 @@ class HomeScreen extends StatelessWidget {
               tiles: [
                 FeatureTile(
                   icon: Icons.vpn_key_rounded,
-                  color: const Color(0xFFF97316),
                   label: t('Check-in', 'Nhận phòng'),
                   badge: checkInTodo,
                   note: checkInNote,
@@ -171,7 +166,6 @@ class HomeScreen extends StatelessWidget {
                 ),
                 FeatureTile(
                   icon: Icons.logout_rounded,
-                  color: const Color(0xFFEF4444),
                   label: t('Check-out', 'Trả phòng'),
                   badge: claims + (toAgree ? 1 : 0),
                   note: checkedOut
@@ -187,14 +181,12 @@ class HomeScreen extends StatelessWidget {
                 ),
                 FeatureTile(
                   icon: Icons.build_rounded,
-                  color: const Color(0xFF10B981),
                   label: t('Requests', 'Yêu cầu'),
                   badge: requests,
                   onTap: () => tab(3, 'requests'),
                 ),
                 FeatureTile(
                   icon: Icons.family_restroom_rounded,
-                  color: const Color(0xFFEC4899),
                   label: t('Family Days', 'Ngày gia đình'),
                   onTap: () => open(const FamilyDaysScreen()),
                 ),
@@ -205,7 +197,6 @@ class HomeScreen extends StatelessWidget {
               tiles: [
                 FeatureTile(
                   icon: Icons.payments_rounded,
-                  color: Tone.error.mark,
                   label: t('Payments', 'Thanh toán'),
                   badge: due,
                   onTap: () => tab(2),

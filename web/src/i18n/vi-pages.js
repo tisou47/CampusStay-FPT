@@ -1065,6 +1065,7 @@ export default {
   "{n} unread": "{n} chưa đọc",
   "Before": "Trước",
   "Now": "Bây giờ",
+  "On shift": "Trong ca",
   "{n} hour": "{n} giờ",
   "{n} day": "{n} ngày",
   "hours": "giờ",

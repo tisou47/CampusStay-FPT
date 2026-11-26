@@ -300,7 +300,7 @@ function RunsTab({ query, base }) {
           {(rules?.groups ?? []).map((group) => (
             <details key={group.title} open className="group rounded-md border border-line">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-fg-secondary [&::-webkit-details-marker]:hidden">
-                <span className="uppercase">{tr(group.title)}</span>
+                <span>{tr(group.title)}</span>
                 <span className="flex items-center gap-1 text-fg-tertiary">
                   {group.items.length}
                   <ChevronRight size={16} aria-hidden="true" className="transition-transform group-open:rotate-90" />

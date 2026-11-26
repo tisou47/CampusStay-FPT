@@ -166,7 +166,7 @@ function HomeContent({ home }) {
         ? { value: t('Allocated'), note: [allocation.room, allocation.bed && t('Bed {bed}', { bed: allocation.bed })].filter(Boolean).join(' · '), to: '/student/room' }
         : { value: t('No application yet'), note: term ? t('{term} · not started', { term: term.name }) : t('Not started'), to: '/student/applications' },
     room: allocation
-      ? { value: t('{room} · Bed {bed}', { room: allocation.room, bed: allocation.bed }), note: [tr(allocation.block), allocation.floor != null && t('Floor {n}', { n: allocation.floor })].filter(Boolean).join(' · '), to: '/student/room' }
+      ? { value: t('{room} · Bed {bed}', { room: allocation.room, bed: allocation.bed }), note: [tr(allocation.block), allocation.floor != null && t('Floor {n}', { n: String(allocation.floor).replace(/\D/g, '') })].filter(Boolean).join(' · '), to: '/student/room' }
       : { value: t('Not assigned'), note: t('Assigned after the review and assignment run'), to: '/student/room' },
     payments:
       home.invoices?.total === 0

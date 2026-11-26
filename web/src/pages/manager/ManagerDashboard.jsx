@@ -177,7 +177,7 @@ function StaffCard({ staff, blocks }) {
             )}
             {busiest.length > 0 && (
               <div className="flex min-h-0 flex-col gap-1.5">
-                <span className="text-xs font-medium text-fg-tertiary uppercase">{t('Most open work')}</span>
+                <span className="text-xs font-medium text-fg-tertiary">{t('Most open work')}</span>
                 <ul className="flex min-h-0 flex-col gap-1.5 overflow-hidden">
                   {busiest.map((p) => (
                     <li key={p.id} className="flex items-center gap-2 text-sm">

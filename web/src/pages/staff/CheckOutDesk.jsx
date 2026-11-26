@@ -774,7 +774,7 @@ export function CheckOutPanel({ d, embedded = false }) {
             </dl>
 
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold tracking-wide text-fg-secondary uppercase">
+              <p className="text-xs font-semibold text-fg-secondary">
                 {t('Furniture condition at move-in ({n} items)', { n: d.handoverReport.items?.length ?? 0 })}
               </p>
               <div className="max-h-72 overflow-y-auto rounded-xl border border-line">

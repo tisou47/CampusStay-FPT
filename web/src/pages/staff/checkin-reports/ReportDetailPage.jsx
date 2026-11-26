@@ -103,7 +103,7 @@ export default function ReportDetailPage() {
           <section className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold tracking-wide text-fg-brand uppercase">{t(meta.kicker)}</span>
+                <span className="text-xs font-semibold text-fg-brand">{t(meta.kicker)}</span>
                 <h1 className="text-h1 font-bold text-fg">{t(meta.title)}</h1>
                 <p className="text-sm text-fg-secondary">{[t(meta.by), at ? formatDateTime(at) : null].filter(Boolean).join(' · ')}</p>
               </div>
