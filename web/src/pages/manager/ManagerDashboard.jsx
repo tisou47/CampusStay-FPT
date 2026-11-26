@@ -409,7 +409,7 @@ export default function ManagerDashboard() {
       {/* Work inbox (#69): check-out charges to decide and requests nobody has taken */}
       <WorkInboxPanel className="shrink-0" />
 
-      <div className="grid shrink-0 grid-cols-1 gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-12">
+      <div className="grid shrink-0 grid-cols-1 gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-12 xl:grid-rows-[minmax(0,1fr)]">
         <DashCard title={t('Action required')} badge={items.length > 0 ? <Tag tone="warning">{items.length}</Tag> : null} className="xl:col-span-5" bodyClassName="-mr-2 overflow-y-auto pr-2">
           <QueryState query={query} compact isEmpty={() => false}>
             {() => <WorkList items={items} empty={<EmptyBlock icon={Check} title={t('Nothing needs handling')}>{t('New transfers, applications, proposals and requests appear here.')}</EmptyBlock>} />}
