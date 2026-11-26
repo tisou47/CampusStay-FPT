@@ -264,6 +264,8 @@ class AssignmentIT {
                 .andReturn().getResponse().getContentAsString();
         getAs("/students/me/home", first)
                 .andExpect(jsonPath("$.allocation.room").value((String) JsonPath.read(room, "$.allocation.room")))
+                .andExpect(jsonPath("$.allocation.block").value("Block A"))
+                .andExpect(jsonPath("$.allocation.floor").isNumber())
                 .andExpect(jsonPath("$.checkedIn").value(false));
         getAs("/notifications", first)
                 .andExpect(jsonPath("$.items[0].title").value("Your room is ready"))

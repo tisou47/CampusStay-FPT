@@ -167,14 +167,6 @@ public interface Billing {
     IssuedInvoice issueCharge(ChargeRequest request);
 
     /**
-     * Money the dormitory owes a student outside a refund rule (a Deposit after a declined Round-2 offer, a Room Class
-     * set back after the next-Term fee was paid): a refund waiting for a Manager. {@code buildingId} is null when the
-     * student holds no Bed. @return the refund id
-     */
-    long requestCredit(long termId, long studentId, Long buildingId, String sourceType, long sourceId, String reason,
-            long amount);
-
-    /**
      * The whole of a paid Invoice back to the student outside the rules (a waitlisted Deposit, BE-APP-BIL-08): a
      * refund linked to the Invoice, waiting for a Manager, so the Invoice is refunded once. @return the refund, or
      * empty when the Invoice is not paid or already has a refund

@@ -80,6 +80,8 @@ export default {
   "Registration closes": "Đóng đăng ký",
   "Balance due": "Hạn tiền phòng còn lại",
   "Floor {n}": "Tầng {n}",
+  // The API's Block label ("Block A", e.g. /students/me/home allocation.block) on its own.
+  "Block {code}": "Tòa {code}",
   "Term and eligibility": "Học kỳ và điều kiện",
   "Room preference": "Chọn phòng",
   "Roommate": "Bạn cùng phòng",
