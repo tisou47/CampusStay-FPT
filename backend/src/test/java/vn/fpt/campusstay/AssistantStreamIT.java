@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -128,6 +129,50 @@ class AssistantStreamIT {
         streams("在", "仍然在");
         String refused = events(bearer(mvc, StayFlow.student(33)), question("Mình ở phòng nào?"));
         assertThat(refused).contains("event:error", "ASSISTANT_NO_ANSWER").doesNotContain("在", "event:done");
+    }
+
+    /**
+     * TC-AST-507: the dispatch that ends the stream (it carries no bearer token) is let through: denied, it cut the
+     * connection after the last event, and the browser said "NetworkError" under a whole answer.
+     */
+    @Test
+    void theStreamEndsCleanly() throws Exception {
+        streams("Bạn ở phòng A-501.");
+        MvcResult result = ask(bearer(mvc, StayFlow.student(36)), question("Mình ở phòng nào?"))
+                .andExpect(request().asyncStarted()).andReturn();
+        result.getAsyncResult(10_000);
+
+        mvc.perform(asyncDispatch(result)).andExpect(status().isOk());
+        assertThat(result.getResponse().getContentAsString(StandardCharsets.UTF_8)).contains("event:done");
+    }
+
+    /**
+     * TC-AST-506: the model's answer is stopped at its first Chinese character (the rest is not read), the words shown
+     * before it are cleared by {@code reset}, and the model is asked again with what it wrote up to there.
+     */
+    @Test
+    void chineseScriptStopsTheAnswerAtOnce() throws Exception {
+        List<String> offered = new ArrayList<>();
+        doAnswer(inv -> {
+            seen.add(List.copyOf(inv.<List<Message>>getArgument(0)));
+            Consumer<String> sink = inv.getArgument(1);
+            if (seen.size() == 1) {
+                for (String chunk : List.of("Bạn ở ", "phòng A-501", "在", " rồi tiếp", " nữa.")) {
+                    offered.add(chunk);
+                    sink.accept(chunk);
+                }
+                return "Bạn ở phòng A-501在 rồi tiếp nữa.";
+            }
+            sink.accept("Bạn ở phòng A-501.");
+            return "Bạn ở phòng A-501.";
+        }).when(model).stream(any(), any());
+
+        String body = events(bearer(mvc, StayFlow.student(35)), question("Mình ở phòng nào?"));
+
+        assertThat(offered).containsExactly("Bạn ở ", "phòng A-501", "在");
+        assertThat(body).contains("event:reset", "\"reply\":\"Bạn ở phòng A-501.\"").doesNotContain("在", "rồi tiếp");
+        assertThat(seen).hasSize(2);
+        assertThat(seen.get(1).get(seen.get(1).size() - 2).content()).isEqualTo("Bạn ở phòng A-501在");
     }
 
     /**

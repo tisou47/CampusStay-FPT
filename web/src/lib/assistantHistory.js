@@ -23,11 +23,15 @@ export const MAX_TURN = 2000
 /**
  * The turns sent with a question: the last `count`, without error bubbles, and without any turn over MAX_TURN, which
  * the API would refuse on every later question (WEB-STU-37). A signed answer cannot be cut (its signature would no
- * longer match), so a too-long one is left out whole.
+ * longer match), so a too-long one is left out whole. An answer the student stopped is kept on screen but never sent
+ * (it has no signature), and neither is a question whose answer was stopped or failed: sent with the next question, it
+ * was answered too, in the same reply.
  */
 export function turnsToSend(messages, count = 20) {
+  const unanswered = (i) => messages[i]?.role === 'user' && (messages[i + 1]?.stopped || messages[i + 1]?.error)
   return messages
-    .filter((m) => !m.error && typeof m.content === 'string' && m.content.length <= MAX_TURN)
+    .filter((m, i) => !m.error && !m.stopped && !unanswered(i))
+    .filter((m) => typeof m.content === 'string' && m.content.length <= MAX_TURN)
     .slice(-count)
     .map(({ role, content, signature }) => (signature ? { role, content, signature } : { role, content }))
 }

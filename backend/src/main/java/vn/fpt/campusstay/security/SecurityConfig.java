@@ -3,6 +3,8 @@ package vn.fpt.campusstay.security;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import jakarta.servlet.DispatcherType;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,6 +59,11 @@ public class SecurityConfig {
                         .authenticationEntryPoint(JsonSecurityHandlers.unauthorized())
                         .accessDeniedHandler(JsonSecurityHandlers.forbidden()))
                 .authorizeHttpRequests(auth -> auth
+                        // The second dispatch that ends a streamed answer (SseEmitter.complete) carries no bearer
+                        // token (the token filter runs once per request); its request was authorized when it came
+                        // in. Denying it cut the connection after the last event: the browser said "NetworkError"
+                        // under a whole answer, and a proxy in front kept the chat waiting.
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/sign-in", "/auth/google", "/auth/password/forgot",
                                 "/auth/password/reset")
                         .permitAll()

@@ -487,6 +487,10 @@ const vi = {
   'Which invoices do I still have to pay?': 'Mình còn hóa đơn nào chưa thanh toán?',
   'How do I report a broken item in my room?': 'Làm sao báo hỏng đồ trong phòng?',
   'The assistant is writing…': 'Trợ lý đang trả lời…',
+  'The assistant is writing the answer again…': 'Trợ lý đang viết lại câu trả lời…',
+  'The answer was cut off. Ask again in a moment.': 'Câu trả lời bị gián đoạn. Bạn hãy hỏi lại sau giây lát.',
+  'Stopped. Ask again for a whole answer.': 'Đã dừng. Hãy hỏi lại để có câu trả lời đầy đủ.',
+  'Stop this answer and send': 'Dừng câu trả lời này và gửi',
   'Type your question': 'Nhập câu hỏi của bạn',
 
   // Wave 1 fixes: numbers with a decimal comma, refunds marked paid, inspection schedules, turnover

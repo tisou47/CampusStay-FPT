@@ -18,6 +18,17 @@ test('turnsToSend leaves out errors and turns the API would refuse', () => {
   ])
 })
 
+test('turnsToSend leaves out a question whose answer was stopped or failed, and the stopped answer', () => {
+  const sent = turnsToSend([
+    { role: 'user', content: 'When does registration close?' },
+    { role: 'assistant', content: 'Registration closes on', stopped: true },
+    { role: 'user', content: 'Which room am I in?' },
+    { role: 'assistant', content: 'The assistant is offline', error: true },
+    { role: 'user', content: 'hi' },
+  ])
+  assert.deepEqual(sent, [{ role: 'user', content: 'hi' }])
+})
+
 test('turnsToSend keeps only the last turns', () => {
   const many = Array.from({ length: 30 }, (_, i) => ({ role: 'user', content: String(i) }))
   const sent = turnsToSend(many, 20)

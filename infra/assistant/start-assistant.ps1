@@ -37,7 +37,8 @@ function Write-Settings($s) {
 function Stop-Ours {
     $ours = Get-CimInstance Win32_Process | Where-Object {
         ($_.Name -eq 'node.exe' -and $_.CommandLine -like '*ollama-proxy.mjs*') -or
-        ($_.Name -eq 'ngrok.exe' -and $_.CommandLine -like "*http*$Port*")
+        ($_.Name -eq 'ngrok.exe' -and $_.CommandLine -like "*http*$Port*") -or
+        ($_.Name -eq 'powershell.exe' -and $_.CommandLine -like '*assistant-proxy.log*')
     }
     foreach ($p in $ours) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host "stopped $($p.Name) ($($p.ProcessId))" }
     if (-not $ours) { Write-Host 'Nothing to stop.' }
@@ -93,7 +94,13 @@ Write-Host ("Model ready ({0:N0} s)." -f $t.TotalSeconds)
 Stop-Ours | Out-Null
 $env:OLLAMA_PROXY_KEY = $s.OLLAMA_PROXY_KEY
 $env:PROXY_PORT = "$Port"
-Start-Process node -ArgumentList "`"$(Join-Path $here 'ollama-proxy.mjs')`"" -WindowStyle Normal
+# The proxy writes its log to a file, not to a console window: a click in a console window (QuickEdit) pauses its
+# output, and the proxy then hung on its next log line while students waited for the end of an answer. The window
+# that shows the log only reads the file, so pausing it stops nothing.
+$log = Join-Path $settingsDir 'assistant-proxy.log'
+Start-Process node -ArgumentList "`"$(Join-Path $here 'ollama-proxy.mjs')`"" -WindowStyle Hidden `
+    -RedirectStandardOutput $log -RedirectStandardError (Join-Path $settingsDir 'assistant-proxy.err.log')
+Start-Process powershell -ArgumentList "-NoProfile -Command `"`$Host.UI.RawUI.WindowTitle = 'CampusStay assistant proxy log'; Get-Content -Path '$log' -Wait -Tail 30`"" -WindowStyle Normal
 Start-Sleep 2
 Start-Process ngrok -ArgumentList "http $Port --url=https://$($s.NGROK_DOMAIN)" -WindowStyle Normal
 Remove-Item Env:OLLAMA_PROXY_KEY

@@ -217,7 +217,15 @@ export async function stream(path, body, { signal, onEvent } = {}) {
   const decoder = new TextDecoder()
   let buffer = ''
   for (;;) {
-    const { value, done } = await reader.read()
+    let chunk
+    try {
+      chunk = await reader.read()
+    } catch (err) {
+      // The connection dropped mid-stream: the browser's own words ("NetworkError when attempting…") mean nothing here.
+      if (err.name === 'AbortError') throw err
+      throw new ApiError(t('The answer was cut off. Ask again in a moment.'))
+    }
+    const { value, done } = chunk
     buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done })
     const { events, rest } = parseSse(done ? `${buffer}\n\n` : buffer)
     buffer = rest
