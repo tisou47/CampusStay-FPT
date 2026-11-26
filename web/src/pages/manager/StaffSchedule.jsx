@@ -373,7 +373,7 @@ export default function StaffSchedule() {
               {d?.nextWeek && <Tag tone="brand">Next week</Tag>}
               {d && !d.editable && <Tag>Past week · read only</Tag>}
               {d && d.sentBlocks.length > 0 && <Tag tone="success">{t('Sent: Blocks {list}', { list: d.sentBlocks.join(', ') })}</Tag>}
-              {d && pending && <Tag tone="warning">{t('Not sent: Blocks {list}', { list: d.pendingBlocks.join(', ') })}</Tag>}
+              {d && pending && <Tag tone="warning" className="max-w-full whitespace-normal!">{t('Not sent: Blocks {list}', { list: d.pendingBlocks.join(', ') })}</Tag>}
             </div>
             <IconButton icon={ChevronRight} variant="outline" aria-label={t('Next week')} onClick={() => goTo(1)} disabled={!d} />
             <Button size="sm" variant="text" onClick={() => setWeek(current)} disabled={!d || d.start === current}>

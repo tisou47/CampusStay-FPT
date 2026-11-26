@@ -30,7 +30,7 @@ export function Tabs({ items, value, onChange, label, className }) {
       role={isNav ? undefined : 'tablist'}
       aria-label={label}
       onKeyDown={isNav ? undefined : onKeyDown}
-      className={cx('flex shrink-0 items-center gap-6 overflow-x-auto border-b border-line scrollbar-none', className)}
+      className={cx('flex max-w-full min-w-0 shrink-0 items-center gap-6 overflow-x-auto border-b border-line scrollbar-none', className)}
     >
       {items.map((item) => {
         const active = item.key === value
@@ -91,7 +91,7 @@ export const UnderlineTabs = Tabs
 /** Segmented control (pill group) for compact filters. */
 export function Segmented({ options, value, onChange, className }) {
   return (
-    <div role="radiogroup" className={cx('inline-flex rounded-md border border-line-strong bg-surface p-0.5', className)}>
+    <div role="radiogroup" className={cx('scrollbar-none inline-flex max-w-full overflow-x-auto rounded-md border border-line-strong bg-surface p-0.5', className)}>
       {options.map((opt) => {
         const o = typeof opt === 'string' ? { value: opt, label: opt } : opt
         const active = o.value === value

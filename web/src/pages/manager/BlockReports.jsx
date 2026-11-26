@@ -39,7 +39,7 @@ export default function BlockReports() {
         title={block ? t('Reports · Block {code}', { code: block }) : 'Reports'}
       />
 
-      <div className="flex shrink-0 items-stretch gap-4">
+      <div className="flex shrink-0 items-stretch gap-4 max-md:flex-col">
         {reports.map((r) => {
           const Glyph = r.icon
           return (
@@ -69,7 +69,7 @@ export default function BlockReports() {
                 {data.weekly.map((w) => (
                   <li key={w.label} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5" title={t('{week}: {n} checked in', { week: tr(w.label), n: formatNumber(w.value) })}>
                     <span className="text-base font-medium text-fg tabular">{formatNumber(w.value)}</span>
-                    <span aria-hidden="true" className={w.value ? 'w-14 rounded-t-sm bg-accent' : 'h-0.5 w-14 rounded-t-sm bg-line'} style={w.value ? { height: `${Math.max(2, (w.value / top) * 80)}%` } : undefined} />
+                    <span aria-hidden="true" className={w.value ? 'w-full max-w-14 rounded-t-sm bg-accent' : 'h-0.5 w-full max-w-14 rounded-t-sm bg-line'} style={w.value ? { height: `${Math.max(2, (w.value / top) * 80)}%` } : undefined} />
                     <span className="text-sm whitespace-nowrap text-fg-secondary">{tr(w.label)}</span>
                   </li>
                 ))}

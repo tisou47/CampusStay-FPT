@@ -147,7 +147,7 @@ function StaffCard({ staff, blocks }) {
   const c = 2 * Math.PI * r
   const share = total ? onDuty / total : 0
   return (
-    <DashCard title={t('Staff on duty')} className="col-span-3">
+    <DashCard title={t('Staff on duty')} className="xl:col-span-3">
       <QueryState query={staff} compact isEmpty={(x) => !x.items?.length}>
         {() => (
           <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -353,7 +353,7 @@ export default function ManagerDashboard() {
 
       {term && <TermCard term={term} journey={journey} counts={stageCounts} />}
 
-      <div className="grid shrink-0 grid-cols-4 gap-4">
+      <div className="grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiTile icon={Bed} label="Occupancy" value={occupancy != null ? formatPercent(occupancy, 0) : '—'} note={k ? t('{n}/{total} beds', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null}>
           {k && <Meter value={k.allocated} max={k.beds} label={t('Occupancy')} className="mt-1 h-1.5" />}
         </KpiTile>
@@ -409,8 +409,8 @@ export default function ManagerDashboard() {
       {/* Work inbox (#69): check-out charges to decide and requests nobody has taken */}
       <WorkInboxPanel className="shrink-0" />
 
-      <div className="grid min-h-0 flex-1 grid-cols-12 gap-4">
-        <DashCard title={t('Action required')} badge={items.length > 0 ? <Tag tone="warning">{items.length}</Tag> : null} className="col-span-5" bodyClassName="-mr-2 overflow-y-auto pr-2">
+      <div className="grid shrink-0 grid-cols-1 gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-12">
+        <DashCard title={t('Action required')} badge={items.length > 0 ? <Tag tone="warning">{items.length}</Tag> : null} className="xl:col-span-5" bodyClassName="-mr-2 overflow-y-auto pr-2">
           <QueryState query={query} compact isEmpty={() => false}>
             {() => <WorkList items={items} empty={<EmptyBlock icon={Check} title={t('Nothing needs handling')}>{t('New transfers, applications, proposals and requests appear here.')}</EmptyBlock>} />}
           </QueryState>
@@ -418,7 +418,7 @@ export default function ManagerDashboard() {
 
         <DashCard
           title={t('Beds by block')}
-          className="col-span-4"
+          className="xl:col-span-4"
           action={capacity > 0 ? <span className="shrink-0 text-sm text-fg-tertiary tabular">{t('{n} free of {total}', { n: formatNumber(Math.max(0, capacity - held)), total: formatNumber(capacity) })}</span> : null}
         >
           <QueryState query={query} compact isEmpty={(x) => !x.bedsByBlock?.length}>

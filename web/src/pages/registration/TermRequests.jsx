@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useUnsavedChanges } from '@/app/unsaved'
 import { useNavigate, useSearchParams } from 'react-router'
 import { Bed, Building, CalendarRange, ClipboardList, DoorClosed, Hammer, MessageSquare, MessageSquareQuote, Pencil, Play, Plus, Send, Trash2, Undo2, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -91,6 +92,9 @@ function RequestFormBody({ request, defaults, blocks, onClose, onSaved }) {
     notes: request?.notes ?? '',
   }))
   const [fields, setFields] = useState({})
+  // The form as first opened: any change after it asks before leaving the page or switching the language.
+  const [opened] = useState(() => JSON.stringify(form))
+  useUnsavedChanges(JSON.stringify(form) !== opened)
   const set = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }))
     setFields((f) => ({ ...f, [key]: undefined }))

@@ -521,7 +521,7 @@ export function PageHeader({ title, tip, description, actions, badge, breadcrumb
       <div className="flex min-w-[220px] flex-1 flex-col gap-0.5">
         {breadcrumb}
         <div className={cx('flex items-center', compact ? 'gap-2' : 'gap-3')}>
-          <h1 className={cx('font-bold tracking-tight text-fg', compact ? 'text-[22px] leading-8 whitespace-nowrap' : 'text-h1')}>{tx(title)}</h1>
+          <h1 className={cx('font-bold tracking-tight text-fg', compact ? 'text-[22px] leading-8 sm:whitespace-nowrap' : 'text-h1')}>{tx(title)}</h1>
           {tipLabel && <InfoTip label={tipLabel} ariaLabel={tipName} size={16} side="bottom" align="start" />}
           {badge}
         </div>

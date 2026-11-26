@@ -3,6 +3,7 @@ import { ArrowRight, Check, Eye, Info, Moon, ScrollText, Sparkles, Users } from 
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
+import { useUnsavedChanges } from '@/app/unsaved'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { useOneBlock } from '@/components/layout/BlockPicker'
 import { Button } from '@/components/ui/Button'
@@ -71,6 +72,7 @@ function Form({ saved, block, picker }) {
   const [form, setForm] = useState(pick(saved))
   useEffect(() => setForm(pick(saved)), [saved])
   const dirty = JSON.stringify(form) !== JSON.stringify(pick(saved))
+  useUnsavedChanges(dirty)
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
   const save = useMutation(() => api.blockSettings.save({ block, ...form }), {
     invalidates: ['block-settings'],
