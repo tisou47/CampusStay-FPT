@@ -428,4 +428,51 @@ class DeskIT {
                 .andExpect(jsonPath("$.history[0].to").value("Broken"))
                 .andExpect(jsonPath("$.history[0].reason", startsWith("Damaged at the check-out of Room " + p.room())));
     }
+
+    /**
+     * TC-ASG-078: the desk reminds students to file the check-in inventory (user decision 26/11/2026): only paid
+     * students not checked in are reminded, with the standard text (the check-in period) or the Staff's own; other
+     * Blocks' Staff find nobody, students have no desk, and nothing is sent once the period is over.
+     */
+    @Test
+    void desksRemindStudentsToFileTheInventory() throws Exception {
+        Placed p = allocate(19).getFirst();
+        String staff = bearer(mvc, STAFF_A);
+        String one = "{\"termId\":\"%d\",\"studentCodes\":[\"%s\"]}".formatted(termId, p.studentCode());
+        postJson("/check-in/reminders", staff, one)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHECK_IN_NOTHING_TO_REMIND"));
+
+        flow.pay(p.auth(), p.balanceInvoiceId());
+        postJson("/check-in/reminders", staff, one)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sent").value(1))
+                .andExpect(jsonPath("$.skipped").value(0));
+        String end = LocalDate.now(TimeConfig.CAMPUS_ZONE).plusDays(5).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String body = jdbc.sql("""
+                SELECT n.body FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id
+                WHERE u.email = :e AND n.event_key = 'CHECK_IN_REPORT_REMINDER' ORDER BY n.id DESC LIMIT 1
+                """).param("e", student(19)).query(String.class).single();
+        assertThat(body).contains(end).contains(p.room());
+
+        postJson("/check-in/reminders", staff, "{\"termId\":\"%d\",\"block\":\"A\",\"message\":\"Please file it today.\"}"
+                .formatted(termId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sent").isNumber());
+        assertThat(jdbc.sql("""
+                SELECT n.body FROM ntf_notification n JOIN auth_user u ON u.id = n.user_id
+                WHERE u.email = :e AND n.event_key = 'CHECK_IN_REPORT_MESSAGE' ORDER BY n.id DESC LIMIT 1
+                """).param("e", student(19)).query(String.class).single()).isEqualTo("Please file it today.");
+
+        postJson("/check-in/reminders", bearer(mvc, TestAuth.STAFF_B2), one)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHECK_IN_NOTHING_TO_REMIND"));
+        postJson("/check-in/reminders", p.auth(), one).andExpect(status().isForbidden());
+
+        jdbc.sql("UPDATE cfg_term SET check_in_end = :end WHERE id = :t")
+                .param("end", LocalDate.now(TimeConfig.CAMPUS_ZONE).minusDays(1)).param("t", termId).update();
+        postJson("/check-in/reminders", staff, one)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CHECK_IN_PERIOD_OVER"));
+    }
 }

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import {
   Bed,
   CalendarClock,
+  BellRing,
   Check,
   CircleCheck,
   CircleX,
@@ -10,6 +11,7 @@ import {
   Clock,
   KeyRound,
   Search,
+  Send,
   UserX,
   Zap,
 } from 'lucide-react'
@@ -24,6 +26,7 @@ import { Field, FilePicker, SearchInput, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock, ErrorState, LoadingState, QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
+import { Segmented } from '@/components/ui/Tabs'
 import { InfoTip } from '@/components/ui/Tooltip'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatNumber, formatTime, formatVnd, toDateInput } from '@/lib/format'
@@ -125,17 +128,157 @@ function LateCheckInModal({ person, termId, onClose }) {
   )
 }
 
-function StudentPanel({ person, termId, onDone }) {
+/** Whole days from today (campus date) to a YYYY-MM-DD day; negative once it has passed. */
+function daysUntil(day) {
+  if (!day) return null
+  const [y, m, d] = day.split('-').map(Number)
+  const [ty, tm, td] = toDateInput(new Date()).split('-').map(Number)
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86_400_000)
+}
+
+/** The standard reminder, as the student reads it (NTF template CHECK_IN_REPORT_REMINDER). */
+function standardReminder(period, room) {
+  return t(
+    'The check-in period of {term} runs from {start} to {end}. Open My Room › Check-in inventory for Room {room}, answer every item and enter the meters, then submit. If nothing is filed by the end of {end}, the Room’s inspection by Staff (report 1) becomes your final report and Utility counts from when you received the door code.',
+    {
+      term: period.termName ?? '',
+      start: period.checkInStart ? formatDate(period.checkInStart) : '—',
+      end: period.checkInEnd ? formatDate(period.checkInEnd) : '—',
+      room: room ?? t('(the student’s Room)'),
+    },
+  )
+}
+
+/**
+ * Staff do not confirm a check-in: the student's inventory does (report 1 once the period is over). The desk reminds
+ * students who have not filed it: one (students = [person]) or every one of the Blocks still to file (students = null).
+ */
+function ReminderModal({ students, period, scope, onClose }) {
   const { notify, notifyError } = useToast()
+  const [mode, setMode] = useState('standard')
+  const one = students?.length === 1 ? students[0] : null
+  const preset = standardReminder(period, one?.room)
+  const [text, setText] = useState(preset)
+  const send = useMutation(
+    () =>
+      api.desk.checkInReminders({
+        termId: scope.termId,
+        block: scope.block,
+        studentCodes: students ? students.map((s) => s.studentCode) : undefined,
+        message: mode === 'custom' ? text.trim() : undefined,
+      }),
+    {
+      invalidates: ['check-in'],
+      onSuccess: (r) => {
+        notify({
+          title: t('Reminder sent'),
+          message: r.skipped
+            ? t('{n} students reminded; {s} have nothing to file now.', { n: formatNumber(r.sent), s: formatNumber(r.skipped) })
+            : t('{n} students reminded in the app.', { n: formatNumber(r.sent) }),
+        })
+        onClose()
+      },
+      onError: (e) => notifyError(e, 'Could not send the reminder'),
+    },
+  )
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      width={600}
+      title="Remind to file the check-in inventory"
+      description={
+        one
+          ? `${one.name} · ${one.studentCode}${one.room ? ` · ${one.room}` : ''}`
+          : t('Every student of the Block who has paid, has not checked in and has not submitted the inventory yet.')
+      }
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" icon={Send} disabled={send.pending || (mode === 'custom' && !text.trim())} onClick={() => send.run()}>
+            {send.pending ? t('Sending…') : one ? t('Send reminder') : t('Send to everyone')}
+          </Button>
+        </>
+      }
+    >
+      <Segmented
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: 'standard', label: 'Standard reminder' },
+          { value: 'custom', label: 'Write my own' },
+        ]}
+      />
+      {mode === 'standard' ? (
+        <div className="flex flex-col gap-1.5 rounded-lg bg-subtle/60 p-3.5">
+          <span className="text-xs font-semibold tracking-wider text-fg-tertiary uppercase">{t('The student reads')}</span>
+          <p className="text-sm leading-relaxed text-fg">{preset}</p>
+        </div>
+      ) : (
+        <Field label="Message" required hint={`${text.length}/1000`}>
+          {(id) => <Textarea id={id} rows={6} maxLength={1000} value={text} onChange={(e) => setText(e.target.value)} />}
+        </Field>
+      )}
+      <p className="text-xs text-fg-secondary">{t('Sent as an in-app notification and a push to the phone. It opens My Room › Check-in inventory.')}</p>
+    </Modal>
+  )
+}
+
+/** The Term's check-in period (set by the Admin) and how long the student has left to file. */
+function CheckInPeriod({ period, filed, onRemind }) {
+  const left = daysUntil(period.checkInEnd)
+  const toStart = daysUntil(period.checkInStart)
+  const state =
+    period.checkInEnd == null
+      ? null
+      : left < 0
+        ? { tone: 'neutral', label: t('Period over') }
+        : toStart > 0
+          ? { tone: 'info', label: t('Opens in {n} days', { n: toStart }) }
+          : left === 0
+            ? { tone: 'error', label: t('Last day today') }
+            : { tone: left <= 2 ? 'warning' : 'success', label: t('{n} days left', { n: left }) }
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-line p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <CalendarClock size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
+          <div className="flex flex-col gap-0.5">
+            <p className="text-base font-semibold text-fg">{t('Check-in period')}</p>
+            <p className="text-sm text-fg-secondary">
+              {period.checkInStart && period.checkInEnd
+                ? t('From {start} to the end of {end} (set by the Admin with the Term).', {
+                    start: formatDate(period.checkInStart),
+                    end: formatDate(period.checkInEnd),
+                  })
+                : t('The Term has no check-in days.')}
+            </p>
+          </div>
+        </div>
+        {state && <Tag tone={state.tone}>{state.label}</Tag>}
+      </div>
+      <p className="text-sm text-fg-secondary">
+        {filed
+          ? t('The student has filed the check-in inventory: nothing to remind.')
+          : t('Staff do not confirm the check-in: the student files the inventory in the app. If nothing is filed by the end of the period, report 1 becomes the final report and Utility counts from when the door code was received.')}
+      </p>
+      {onRemind && (
+        <div>
+          <Button icon={BellRing} onClick={onRemind}>
+            Remind to file the inventory
+          </Button>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function StudentPanel({ person, period, scope }) {
   const { term } = useSession()
-  const [note, setNote] = useState('')
   const [late, setLate] = useState(false)
+  const [remind, setRemind] = useState(false)
+  const termId = scope.termId
 
-  useEffect(() => {
-    setNote('')
-  }, [person.studentCode])
-
-  const ready = person.status === 'ready'
   const owing = [person.owes?.balance, person.owes?.utilityDeposit].filter((v) => v > 0).length
   const hStatus = person.handoverStatus
   const inRoomWithReport =
@@ -171,14 +314,10 @@ function StudentPanel({ person, termId, onDone }) {
     ) : (
       statusTag[person.status]
     )
-  const confirm = useMutation(() => api.desk.checkIn({ termId, studentCode: person.studentCode, items: [], note: note.trim() || undefined }), {
-    invalidates: ['check-in', 'dashboard'],
-    onSuccess: () => {
-      notify({ title: t('{name} checked in', { name: person.name }), message: t('{room} · Bed {bed}. The stay and the utility count have started.', { room: person.room, bed: person.bed }) })
-      onDone?.()
-    },
-    onError: (e) => notifyError(e, 'Could not check in'),
-  })
+  // Filed = submitted, being checked in the Room or final: nothing left for the student to do.
+  const filed = person.status === 'checked-in' || ['Submitted', 'Verifying', 'Final'].includes(hStatus)
+  const canRemind =
+    person.status !== 'not-allocated' && !filed && owing === 0 && period.checkInEnd != null && daysUntil(period.checkInEnd) >= 0
 
   return (
     <Card padding="none" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -351,43 +490,11 @@ function StudentPanel({ person, termId, onDone }) {
           </Alert>
         )}
 
-        {ready && (
-          <section className="flex flex-col gap-3 rounded-xl bg-subtle/40 p-4">
-            <div className="flex items-start gap-2.5">
-              <KeyRound size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-brand" />
-              <div className="flex flex-col gap-0.5">
-                <p className="text-base font-semibold text-fg">{t('Confirm check-in · Bed {bed}', { bed: person.bed })}</p>
-                <p className="text-sm text-fg-secondary">
-                  {t('Nothing is handed over at the desk: the student enters the room with the door code in their app. Confirming starts the stay and the utility count from now.')}
-                </p>
-              </div>
-            </div>
-            <Field label="Check-in note">
-              {(id) => <Textarea id={id} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything to remember about this check-in" />}
-            </Field>
-          </section>
+        {person.status !== 'not-allocated' && (
+          <CheckInPeriod period={period} filed={filed} onRemind={canRemind ? () => setRemind(true) : null} />
         )}
+        {remind && <ReminderModal students={[person]} period={period} scope={scope} onClose={() => setRemind(false)} />}
       </div>
-
-      {/* 3. Sticky Check-In Confirmation Footer */}
-      {ready && (
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-line bg-surface px-6 py-3.5 shadow-card">
-          <p className="text-sm text-fg-secondary">{t('{room} · Bed {bed}', { room: person.room, bed: person.bed })}</p>
-          <div className="flex items-center gap-2.5">
-            <Button onClick={onDone}>Cancel</Button>
-            <Button
-              tip="The stay starts and a meter reading is taken."
-              variant="primary"
-              size="lg"
-              icon={Check}
-              disabled={confirm.pending}
-              onClick={() => confirm.run()}
-            >
-              Confirm check-in
-            </Button>
-          </div>
-        </div>
-      )}
     </Card>
   )
 }
@@ -504,6 +611,15 @@ export default function CheckInDesk() {
   const today = useQuery(['check-in', 'today', scope], ({ signal }) => api.desk.checkInToday(scope, { signal }))
   const lookup = useQuery(['check-in', 'lookup', scope.termId, search], ({ signal }) => api.desk.checkInLookup({ termId: scope.termId, q: search }, { signal }), { enabled: Boolean(search), keepPrevious: false })
   const d0 = today.data
+  const { term } = useSession()
+  // The check-in period of the Term (Admin › Term), from the desk's numbers, else the session's Term.
+  const period = {
+    termName: d0?.termName ?? term?.name,
+    checkInStart: d0?.checkInStart ?? term?.checkInStart,
+    checkInEnd: d0?.checkInEnd ?? term?.checkInEnd,
+  }
+  const [remindAll, setRemindAll] = useState(false)
+  const periodOpen = period.checkInEnd != null && daysUntil(period.checkInEnd) >= 0
   const person = search ? lookup.data?.student : null
   // The side list: checked-in students, in-room inventory in progress, waiting to start or blocked; a click opens the student here.
   const [side, setSide] = useState('recent')
@@ -567,16 +683,7 @@ export default function CheckInDesk() {
             <ErrorState error={lookup.error} onRetry={lookup.reload} />
           </Card>
         ) : person ? (
-          <StudentPanel
-            key={`${person.studentCode}-${person.status}`}
-            person={person}
-            termId={scope.termId}
-            onDone={() => {
-              setQ('')
-              setSearch('')
-              setTimeout(() => input.current?.focus(), 50)
-            }}
-          />
+          <StudentPanel key={`${person.studentCode}-${person.status}`} person={person} period={period} scope={scope} />
         ) : (
           <Card padding="none" className="flex min-w-0 flex-1 flex-col">
             <EmptyBlock icon={UserX} title={t('No student matches “{q}”', { q: search })}>
@@ -598,10 +705,21 @@ export default function CheckInDesk() {
                     <SideTile label="Blocked (unpaid)" value={formatNumber(d.blocked)} tone="error" active={side === 'blocked'} onClick={() => setSide('blocked')} />
                   </div>
                   <ProgressBar value={d.checkedIn} max={d.expected || 1} tone="success" />
+                  {periodOpen && (d.inProgress ?? 0) + (d.waiting ?? 0) > 0 && (
+                    <Button
+                      size="sm"
+                      icon={BellRing}
+                      tip="Remind every paid student of the Block who has not submitted the check-in inventory yet."
+                      onClick={() => setRemindAll(true)}
+                    >
+                      Remind everyone who has not filed
+                    </Button>
+                  )}
                 </>
               )}
             </QueryState>
           </Card>
+          {remindAll && <ReminderModal students={null} period={period} scope={scope} onClose={() => setRemindAll(false)} />}
 
           <Card className="flex min-h-0 flex-1 flex-col gap-2.5 p-4">
             <div className="flex shrink-0 items-center justify-between gap-2">

@@ -73,6 +73,17 @@ class DeskController {
         return desk.today(termId, block);
     }
 
+    record ReminderRequest(Long termId, @Size(max = 20) String block,
+            @Size(max = 500, message = "Remind at most 500 students at a time.") List<@Size(max = 20) String> studentCodes,
+            @Size(max = 1000, message = "Keep the message under 1,000 characters.") String message) {
+    }
+
+    /** Reminds students to file the check-in inventory: the ones chosen, or every one of the Blocks still to file. */
+    @PostMapping("/check-in/reminders")
+    DeskService.RemindersSent remind(@Valid @RequestBody ReminderRequest body) {
+        return desk.remindCheckInReport(body.termId(), body.block(), body.studentCodes(), body.message());
+    }
+
     @GetMapping("/check-in/lookup")
     DeskService.Lookup lookup(@RequestParam(required = false) Long termId, @RequestParam(required = false) String q) {
         return desk.lookup(termId, q);

@@ -14,6 +14,7 @@ import vn.fpt.campusstay.event.CheckInAvailable;
 import vn.fpt.campusstay.event.CheckInInventoryDue;
 import vn.fpt.campusstay.event.CheckInInventoryFinal;
 import vn.fpt.campusstay.event.CheckInInventorySubmitted;
+import vn.fpt.campusstay.event.CheckInReportReminded;
 import vn.fpt.campusstay.event.CheckInToAgree;
 import vn.fpt.campusstay.event.CheckInVisit;
 import vn.fpt.campusstay.event.CheckOutCompleted;
@@ -41,6 +42,21 @@ class HandoverNotificationListener {
     void on(CheckInAvailable e) {
         notifier.notify(e.studentId(), "CHECK_IN_AVAILABLE", Map.of("room", e.room(), "dueAt", when(e.dueAt())),
                 "/student/room/inventory");
+    }
+
+    @EventListener
+    void on(CheckInReportReminded e) {
+        if (e.message() != null) {
+            notifier.notify(e.studentId(), "CHECK_IN_REPORT_MESSAGE", Map.of("room", e.room(), "message", e.message()),
+                    "/student/room/inventory");
+            return;
+        }
+        notifier.notify(e.studentId(), "CHECK_IN_REPORT_REMINDER", Map.of("room", e.room(), "term", e.term(),
+                "start", day(e.checkInStart()), "end", day(e.checkInEnd())), "/student/room/inventory");
+    }
+
+    private static String day(java.time.LocalDate date) {
+        return date == null ? "—" : DateTimeFormatter.ofPattern("dd/MM/yyyy").format(date);
     }
 
     @EventListener

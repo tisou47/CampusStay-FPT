@@ -30,6 +30,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.event.CheckInReportReminded;
 import vn.fpt.campusstay.event.CheckOutCompleted;
 import vn.fpt.campusstay.event.FurnitureDamaged;
 import vn.fpt.campusstay.event.ResidentLeftRoom;
@@ -342,6 +343,59 @@ public class DeskService {
         UserDirectory.StudentProfile profile = student != null ? student
                 : users.studentProfile(a.studentId()).orElse(null);
         return new Lookup(person(a, bed, profile, terms.findPublished(a.termId()).orElse(term)));
+    }
+
+    /** {@code sent}: students reminded; {@code skipped}: codes asked for that have nothing to file now. */
+    public record RemindersSent(int sent, int skipped) {
+    }
+
+    /**
+     * The desk reminds students to file their check-in inventory before the Term's check-in period ends (user
+     * decision 26/11/2026): Staff do not confirm a check-in, the student's inventory does (or report 1 once the period
+     * is over). A student is reminded while paid, not checked in and with no inventory submitted (none yet, or a
+     * draft). {@code studentCodes} empty = every such student of the Blocks of {@code block}; {@code message} blank =
+     * the standard reminder with the period's dates, else the Staff's own text.
+     */
+    @Transactional
+    public RemindersSent remindCheckInReport(Long termId, String block, List<String> studentCodes, String message) {
+        currentUser.require(Permission.DESK);
+        BlockSelection scope = blockScope.resolve(block);
+        TermSummary term = term(termId);
+        if (term.checkInEnd() != null && today().isAfter(term.checkInEnd())) {
+            throw ApiException.conflict("CHECK_IN_PERIOD_OVER",
+                    "The check-in period is over: students who did not file have report 1 as their final report.");
+        }
+        String text = message == null || message.isBlank() ? null : message.strip();
+        List<Placed> placed = active(term.id(), scope.ids());
+        List<Long> allocIds = placed.stream().map(p -> p.alloc().id()).toList();
+        Map<Long, Billing.CheckInDue> dues = billing.checkInDues(allocIds);
+        Map<Long, HandoverSummary> handoverMap = handovers(allocIds);
+        List<Placed> toFile = placed.stream()
+                .filter(p -> p.alloc().checkedInAt() == null && !dues.containsKey(p.alloc().id()))
+                .filter(p -> {
+                    HandoverSummary h = handoverMap.get(p.alloc().id());
+                    return h == null || "Draft".equals(h.status());
+                }).toList();
+        Map<Long, UserDirectory.Student> students = users.students(
+                toFile.stream().map(p -> p.alloc().studentId()).distinct().toList());
+        Set<String> asked = studentCodes == null ? Set.of() : studentCodes.stream().filter(Objects::nonNull)
+                .map(c -> c.trim().toUpperCase(Locale.ROOT)).filter(c -> !c.isEmpty())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        List<Placed> chosen = asked.isEmpty() ? toFile : toFile.stream().filter(p -> {
+            UserDirectory.Student s = students.get(p.alloc().studentId());
+            return s != null && asked.contains(s.studentCode().toUpperCase(Locale.ROOT));
+        }).toList();
+        if (chosen.isEmpty()) {
+            throw ApiException.conflict("CHECK_IN_NOTHING_TO_REMIND",
+                    "Nobody to remind: the students chosen have filed their check-in inventory, checked in or not paid yet.");
+        }
+        for (Placed p : chosen) {
+            events.publishEvent(new CheckInReportReminded(p.alloc().studentId(), p.bed().roomCode(), term.name(),
+                    term.checkInStart(), term.checkInEnd(), text));
+        }
+        audit.record("CHECK_IN_REPORT_REMINDED", AuditLog.Tone.INFO, "Term", term.id(), term.name(),
+                Map.of("students", chosen.size(), "custom", text != null));
+        return new RemindersSent(chosen.size(), asked.isEmpty() ? 0 : asked.size() - chosen.size());
     }
 
     @Transactional

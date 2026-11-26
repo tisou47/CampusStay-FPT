@@ -290,6 +290,8 @@ export const api = {
     /** Find a student by code, name or QR pass payload. */
     checkInLookup: g('/check-in/lookup'),
     checkIn: (body) => http.post('/check-in', body),
+    // Reminds students to file the check-in inventory: studentCodes, or every one of the Blocks still to file.
+    checkInReminders: (body) => http.post('/check-in/reminders', body),
     /** Multipart studentCode, reason, requestedFor (YYYY-MM-DD), termId?, evidence? → { id }; the Block Manager decides it. */
     recordLateCheckIn: (formData) => http.post('/late-check-ins', formData),
     checkOutList: g('/check-out'),

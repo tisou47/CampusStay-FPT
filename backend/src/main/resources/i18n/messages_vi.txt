@@ -1145,3 +1145,7 @@ The reading is far above the Room's record ({0} {1}). Check it for a typo. ⟶ C
 The visit cannot start in the past. Choose a later time. ⟶ Không thể hẹn giờ đến đã qua. Hãy chọn giờ muộn hơn.
 The visit starts and ends on the same day. ⟶ Giờ đến kiểm tra phải bắt đầu và kết thúc trong cùng một ngày.
 Plan the visit within the Block's hours, {0} – {1}. ⟶ Hãy hẹn trong giờ làm việc của tòa, {0} – {1}.
+The check-in period is over: students who did not file have report 1 as their final report. ⟶ Đợt nhận phòng đã kết thúc: sinh viên chưa nộp biên bản dùng report 1 làm biên bản final.
+Nobody to remind: the students chosen have filed their check-in inventory, checked in or not paid yet. ⟶ Không có ai để nhắc: các sinh viên đã chọn đã nộp biên bản kiểm kê, đã nhận phòng hoặc chưa thanh toán.
+Remind at most 500 students at a time. ⟶ Mỗi lần chỉ nhắc tối đa 500 sinh viên.
+Keep the message under 1,000 characters. ⟶ Nội dung tối đa 1.000 ký tự.

@@ -37,6 +37,9 @@ export function useRoomReports(room) {
     })),
     ...(inventories.data?.items ?? []).map((r) => ({
       key: `h-${r.id}`,
+      // A student's own report: Rooms and beds shows it under that student's Bed.
+      studentCode: r.studentCode,
+      bed: r.bed,
       at: r.finalizedAt ?? r.submittedAt ?? r.openedAt,
       title: t('Check-in inventory · Bed {bed}', { bed: r.bed }),
       meta: [r.id, r.studentName].filter(Boolean).join(' · '),
