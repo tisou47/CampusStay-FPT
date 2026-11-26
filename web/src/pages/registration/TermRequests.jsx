@@ -772,6 +772,12 @@ export default function TermRequests() {
               )}
             </QueryState>
           </div>
+          {/* The API returns at most 100 rows (PageQuery.MAX_SIZE): say when older ones are not listed (WEB-STU-19). */}
+          {query.data?.total > items.length && (
+            <p className="shrink-0 border-t border-line px-3 py-2 text-sm text-fg-tertiary" role="status">
+              {t('Showing the latest {n} of {total} requests. Filter by status to find older ones.', { n: items.length, total: query.data.total })}
+            </p>
+          )}
         </Card>
         <Card padding="lg" className="flex min-h-0 min-w-0 flex-1 flex-col">
           {selected ? <RequestDetail key={selected} id={selected} onEdit={(r) => setEditing(r)} /> : <EmptyBlock icon={ClipboardList} title="Select a request" />}

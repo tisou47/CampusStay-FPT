@@ -4,7 +4,7 @@ import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { IconButton } from '@/components/ui/Button'
 import { t } from '@/i18n'
-import { assistantKey } from '@/lib/assistantHistory'
+import { assistantKey, MAX_TURN, turnsToSend } from '@/lib/assistantHistory'
 import { cx } from '@/lib/cx'
 
 /*
@@ -71,13 +71,15 @@ export function AssistantChat({ userId }) {
   const [messages, setMessages] = useState(() => load(userId))
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
+  const [partial, setPartial] = useState('')
+  const abort = useRef(null)
   const end = useRef(null)
   const input = useRef(null)
 
   useEffect(() => save(userId, messages), [userId, messages])
   useEffect(() => {
     if (open) end.current?.scrollIntoView({ block: 'end' })
-  }, [open, messages, pending])
+  }, [open, messages, pending, partial])
   useEffect(() => {
     if (open) input.current?.focus()
   }, [open])
@@ -87,19 +89,40 @@ export function AssistantChat({ userId }) {
   async function ask(text) {
     const question = text.trim()
     if (!question || pending) return
-    const turns = [...messages.filter((m) => !m.error), { role: 'user', content: question }]
+    const turns = [...messages, { role: 'user', content: question }]
     setMessages((m) => [...m, { role: 'user', content: question }])
     setDraft('')
     setPending(true)
+    setPartial('')
+    const controller = new AbortController()
+    abort.current = controller
+    const body = { messages: turnsToSend(turns, SENT_TURNS) }
     try {
-      // Each answer comes with the server's signature and goes back with it; unsigned turns are ignored (BE-PLT-02).
-      const { reply, signature } = await api.me.askAssistant({
-        messages: turns.slice(-SENT_TURNS).map(({ role, content, signature: sig }) => (sig ? { role, content, signature: sig } : { role, content })),
-      })
-      setMessages((m) => [...m, { role: 'assistant', content: reply, signature }])
+      // The answer appears as the model writes it (D6); `done` carries the whole reply with the server's signature,
+      // which goes back with the next question (unsigned turns are ignored, BE-PLT-02).
+      let result = null
+      let failure = null
+      try {
+        await api.me.streamAssistant(body, {
+          signal: controller.signal,
+          onEvent: (name, data) => {
+            if (name === 'delta') setPartial((p) => p + (data.text ?? ''))
+            else if (name === 'reset') setPartial('')
+            else if (name === 'done') result = data
+            else if (name === 'error') failure = data
+          },
+        })
+      } catch (error) {
+        if (error.status !== 404) throw error
+        result = await api.me.askAssistant(body) // a server without the stream endpoint
+      }
+      if (failure) throw new Error(failure.message)
+      if (result) setMessages((m) => [...m, { role: 'assistant', content: result.reply, signature: result.signature }])
     } catch (error) {
-      setMessages((m) => [...m, { role: 'assistant', content: error.message, error: true }])
+      if (error.name !== 'AbortError') setMessages((m) => [...m, { role: 'assistant', content: error.message, error: true }])
     } finally {
+      abort.current = null
+      setPartial('')
       setPending(false)
     }
   }
@@ -163,7 +186,15 @@ export function AssistantChat({ userId }) {
         {messages.map((m, i) => (
           <Bubble key={i} message={m} />
         ))}
-        {pending && <p className="text-sm text-fg-secondary">{t('The assistant is writing…')}</p>}
+        {pending && partial && <Bubble message={{ role: 'assistant', content: partial }} />}
+        {pending && (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-fg-secondary">{t('The assistant is writing…')}</p>
+            <button type="button" onClick={() => abort.current?.abort()} className="rounded-md px-2 py-1 text-sm text-fg-secondary hover:bg-subtle hover:text-fg">
+              {t('Stop')}
+            </button>
+          </div>
+        )}
         <div ref={end} />
       </div>
 
@@ -178,7 +209,7 @@ export function AssistantChat({ userId }) {
           ref={input}
           rows={1}
           value={draft}
-          maxLength={2000}
+          maxLength={MAX_TURN}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={onKeyDown}
           placeholder={t('Type your question')}

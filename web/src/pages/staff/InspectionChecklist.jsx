@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { PHOTO_ACCEPT, PHOTO_MAX_MB, photoProblem } from '@/lib/uploads'
+import { parseReading } from '@/lib/numbers'
 import { CalendarDays, CheckCheck, CircleCheck, Download, FileText, Printer } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -227,9 +229,8 @@ function Checklist({ run, room }) {
   const meterError = (key, unit) => {
     const raw = String(meters[key] ?? '').trim()
     if (raw === '') return t('Enter the reading ({unit}).', { unit })
-    const value = Number(raw)
-    if (!Number.isFinite(value)) return t('Enter a valid number.')
-    if (value < 0) return t('The reading cannot be negative.')
+    const value = parseReading(raw)
+    if (Number.isNaN(value)) return Number(raw) < 0 ? t('The reading cannot be negative.') : t('Enter a valid number.')
     const last = room.previousMeters?.[key]
     if (!meters.replaced && last != null && value < Number(last)) {
       return t('Lower than the last reading ({value} {unit}). Read the meter again.', { value: formatNumber(last), unit })
@@ -277,7 +278,7 @@ function Checklist({ run, room }) {
         }),
         meters:
           meters.electricity !== '' || meters.water !== ''
-            ? { electricity: Number(meters.electricity), water: Number(meters.water), replaced: meters.replaced }
+            ? { electricity: parseReading(meters.electricity), water: parseReading(meters.water), replaced: meters.replaced }
             : undefined,
       }),
     {
@@ -357,9 +358,7 @@ function Checklist({ run, room }) {
                 helper={room.previousMeters ? t('Previous reading: {value} kWh (recorded {date})', { value: formatNumber(room.previousMeters.electricity), date: formatDate(room.previousMeters.date) }) : undefined}
               >
                 <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
+                  inputMode="decimal"
                   disabled={done}
                   invalid={!done && touched.electricity && Boolean(electricityError)}
                   value={meters.electricity}
@@ -378,9 +377,7 @@ function Checklist({ run, room }) {
                 helper={room.previousMeters ? t('Previous reading: {value} m³ (recorded {date})', { value: formatNumber(room.previousMeters.water), date: formatDate(room.previousMeters.date) }) : undefined}
               >
                 <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
+                  inputMode="decimal"
                   disabled={done}
                   invalid={!done && touched.water && Boolean(waterError)}
                   value={meters.water}
@@ -490,13 +487,14 @@ function Checklist({ run, room }) {
                           <label className="flex cursor-pointer items-center gap-1 text-xs text-fg-brand">
                             <input
                               type="file"
-                              accept="image/*"
+                              accept={PHOTO_ACCEPT}
                               className="sr-only"
                               disabled={addPhoto.pending}
                               onChange={(e) => {
                                 const file = e.target.files?.[0]
                                 e.target.value = ''
-                                if (file) addPhoto.run({ itemId: item.id, file })
+                                if (file && photoProblem(file)) notifyError(new Error(photoProblem(file) === 'size' ? t('{name} is larger than {n} MB. Take a smaller photo.', { name: file.name, n: PHOTO_MAX_MB }) : t('{name} is not a JPEG or PNG photo.', { name: file.name })), 'Could not add the photo')
+                                else if (file) addPhoto.run({ itemId: item.id, file })
                               }}
                             />
                             {t('Add a photo ({n} so far)', { n: (room.photos ?? []).filter((p) => p.itemId === item.id).length })}

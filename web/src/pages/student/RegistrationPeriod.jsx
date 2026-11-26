@@ -15,6 +15,7 @@ import {
   Users,
 } from 'lucide-react'
 import { api } from '@/api/endpoints'
+import { useSession } from '@/app/session'
 import { useQuery } from '@/api/hooks'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Display'
@@ -414,6 +415,7 @@ function FaqAccordionTab({ faq = [] }) {
 
 export default function RegistrationPeriod() {
   const { termId } = useParams()
+  const { setTermId } = useSession()
   const [tab, setTab] = useState('timeline')
   const query = useQuery(['registration-period', termId], ({ signal }) => api.registrationPeriods.details(termId, { signal }))
   const d = query.data
@@ -452,7 +454,8 @@ export default function RegistrationPeriod() {
             </span>
           )}
           {d.status === 'Open' && (
-            <Button variant="primary" to="/student/apply/term">
+            // The wizard applies for the session Term: make it this period's Term first (WEB-STU-08).
+            <Button variant="primary" to="/student/apply/term" onClick={() => setTermId(termId)}>
               Apply now
             </Button>
           )}

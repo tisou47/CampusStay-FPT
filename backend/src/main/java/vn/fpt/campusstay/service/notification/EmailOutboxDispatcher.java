@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.notification;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -35,8 +37,11 @@ class EmailOutboxDispatcher {
     /** How long a claimed email waits before another run may take it again. */
     private static final Duration LEASE = Duration.ofMinutes(10);
 
-    EmailOutboxDispatcher(JdbcClient jdbc, EmailSender sender, MailProperties props, PlatformTransactionManager tm,
+    private final ScheduledJobs jobs;
+
+    EmailOutboxDispatcher(ScheduledJobs jobs, JdbcClient jdbc, EmailSender sender, MailProperties props, PlatformTransactionManager tm,
             Clock clock) {
+        this.jobs = jobs;
         this.tx = new TransactionTemplate(tm);
         this.jdbc = jdbc;
         this.sender = sender;
@@ -49,6 +54,11 @@ class EmailOutboxDispatcher {
 
     @Scheduled(fixedDelayString = "${campusstay.mail.dispatch-interval:30s}")
     public void dispatch() {
+        jobs.run("ntf.email-outbox", this::dispatchOnce);
+    }
+
+    /** One pass without the job lock (tests call it directly, so a scheduled run holding the lock cannot skip it). */
+    void dispatchOnce() {
         List<Pending> due = tx.execute(s -> claim());
         for (Pending p : due) {
             send(p);
@@ -83,7 +93,8 @@ class EmailOutboxDispatcher {
             int attempts = p.attempts() + 1;
             boolean giveUp = attempts >= props.maxAttempts();
             Instant retryAt = Instant.now(clock).plus(props.retryBase().multipliedBy((long) attempts * attempts));
-            log.warn("Email {} failed (attempt {}): {}", p.id(), attempts, e.getMessage());
+            // SMTP replies quote the address: only the exception class in the log, the text stays in last_error (BE-PLT-19).
+            log.warn("Email {} failed (attempt {}): {}", p.id(), attempts, e.getClass().getSimpleName());
             jdbc.sql("""
                     UPDATE ntf_email_outbox SET attempts = :attempts, last_error = :error,
                            status = :status, not_before = :retryAt WHERE id = :id

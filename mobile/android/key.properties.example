@@ -1,0 +1,6 @@
+# Copy to android/key.properties (never committed) to sign release builds with the upload key.
+# storeFile is relative to the android/ folder; keep the keystore outside Git too (*.jks is ignored).
+storeFile=upload-keystore.jks
+storePassword=<the keystore password>
+keyAlias=upload
+keyPassword=<the key password>

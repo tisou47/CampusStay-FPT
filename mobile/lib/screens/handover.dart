@@ -1,8 +1,10 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../common.dart';
 import '../files.dart';
+import 'room.dart' show DoorCodeCard;
 
 /// The check-in inventory (web Student › My room › Check-in inventory, contract A-81): the four conditions and the
 /// start (the door code), each item of the Bed and the shared items with a condition, a note and photos, the meters,
@@ -40,6 +42,7 @@ class HandoverCard extends StatefulWidget {
 class _HandoverCardState extends State<HandoverCard> {
   Json? _inventory;
   Json? _charges;
+  bool _failed = false;
 
   @override
   void initState() {
@@ -48,6 +51,7 @@ class _HandoverCardState extends State<HandoverCard> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _failed = false);
     try {
       final inventory = await Api.get('/students/me/handover');
       Json? charges;
@@ -63,14 +67,18 @@ class _HandoverCardState extends State<HandoverCard> {
         });
       }
     } on ApiException {
-      // the card stays hidden
+      if (mounted) setState(() => _failed = true); // MOB-33: say so instead of hiding the prompt
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final h = _inventory;
-    if (h == null) return const SizedBox.shrink();
+    if (h == null) {
+      return _failed
+          ? Panel(child: RetryRow(what: t('the check-in inventory', 'biên bản kiểm kê'), retry: _load))
+          : const SizedBox.shrink();
+    }
     final status = h.str('status');
     final c = _charges;
     final claims = c?.objects('claims').where((x) => x.str('status') == 'Pending').length ?? 0;
@@ -78,7 +86,9 @@ class _HandoverCardState extends State<HandoverCard> {
     final (String? title, String? body, Tone tone) = switch (status) {
       'Ready' => (
         t('You can receive your Room', 'Bạn đã có thể nhận phòng'),
-        t('At the Room, start the check-in inventory to get the door code.', 'Khi đến phòng, hãy bắt đầu kiểm kê để nhận mã cửa.'),
+        h.str('dueAt') == null
+            ? t('Your door code is on this screen. File the check-in inventory.', 'Mã cửa ở ngay trên màn hình này. Hãy nộp biên bản kiểm kê.')
+            : '${t('Your door code is on this screen. File the check-in inventory by', 'Mã cửa ở ngay trên màn hình này. Hãy nộp biên bản kiểm kê trước')} ${moment(h.str('dueAt'))}.',
         Tone.info,
       ),
       'Draft' => (
@@ -141,6 +151,8 @@ class HandoverScreen extends StatelessWidget {
           final status = h.str('status');
           return Cards(
             children: [
+              // Owner decision 25/11/2026: the door code comes with check-in, before any inventory.
+              if (status == 'Waiting' || status == 'Ready' || status == 'Draft') const DoorCodeCard(),
               if (status == 'Not needed')
                 EmptyState(
                   icon: Icons.assignment_outlined,
@@ -180,16 +192,16 @@ class _StartState extends State<_Start> {
       context,
       title: t('Start the check-in inventory?', 'Bắt đầu kiểm kê nhận phòng?'),
       body: t(
-        'Do it when you are at the Room. You receive the door code now and have 48 hours to file the inventory: after that the Room\'s recorded condition is used and you can no longer report damage that was already there.',
-        'Hãy bấm khi bạn đã ở phòng. Bạn nhận mã cửa ngay và có 48 giờ để nộp biên bản: sau đó hệ thống dùng tình trạng đã ghi nhận của phòng và bạn không thể báo hư hỏng có sẵn nữa.',
+        'Do it at the Room. Submit it before the deadline: after that the Room\'s recorded condition is used, Utility counts from the day you received the code, and you can no longer report damage that was already there.',
+        'Hãy làm khi đang ở phòng. Nộp trước hạn: sau thời hạn, hệ thống dùng tình trạng đã ghi nhận của phòng, điện nước tính từ ngày bạn nhận mã và bạn không thể báo hư hỏng có sẵn nữa.',
       ),
-      yes: t('I am at the Room, start', 'Tôi đã ở phòng, bắt đầu'),
+      yes: t('Start', 'Bắt đầu'),
     );
     if (!ok) return;
     setState(() => _busy = true);
     final done = await attempt(
       () => Api.post('/students/me/handover/start'),
-      success: t('Inventory started. Your door code is on My Room.', 'Đã bắt đầu kiểm kê. Mã cửa nằm ở Phòng của tôi.'),
+      success: t('Inventory started. Answer each item and the meters, then submit.', 'Đã bắt đầu kiểm kê. Khai từng món và chỉ số điện nước rồi nộp.'),
     );
     if (mounted) setState(() => _busy = false);
     if (done != null) await widget.reload();
@@ -201,8 +213,8 @@ class _StartState extends State<_Start> {
     return Section(
       title: t('Receive your Room', 'Nhận phòng'),
       subtitle: t(
-        'At the Room, start the check-in inventory: you receive the door code and record your Bed\'s items, the shared items and the meters.',
-        'Khi đến phòng, hãy bắt đầu kiểm kê: bạn nhận mã cửa và ghi tình trạng đồ của giường bạn, đồ dùng chung và công tơ.',
+        'Filed by the deadline, Utility counts from your own meter reading. Record your Bed\'s items, the shared items and the meters.',
+        'Nộp đúng hạn thì điện nước tính từ chỉ số bạn ghi. Ghi tình trạng đồ của giường bạn, đồ dùng chung và công tơ.',
       ),
       children: [
         for (final c in widget.data.objects('checks'))
@@ -261,22 +273,34 @@ class _FormState extends State<_Form> {
       for (final e in _conditions.entries)
         if (e.value != null) {'itemId': e.key, 'condition': e.value, 'note': _notes[e.key]!.text.trim()},
     ],
-    if (_electricity.text.trim().isNotEmpty) 'electricity': num.tryParse(_electricity.text.trim()),
-    if (_water.text.trim().isNotEmpty) 'water': num.tryParse(_water.text.trim()),
+    if (_electricity.text.trim().isNotEmpty) 'electricity': meterReading(_electricity.text),
+    if (_water.text.trim().isNotEmpty) 'water': meterReading(_water.text),
   };
+
+  /// Field errors for meter readings that are not numbers; nothing is saved while there is one (MOB-29).
+  bool _readingsOk() {
+    final bad = {
+      for (final (field, c) in [('electricity', _electricity), ('water', _water)])
+        if (c.text.trim().isNotEmpty && meterReading(c.text) == null)
+          field: t('Enter a number such as 1360.5 (1.360 is unclear)', 'Hãy nhập một số như 1360,5 (1.360 không rõ nghĩa)'),
+    };
+    if (bad.isNotEmpty) setState(() => _errors = bad);
+    return bad.isEmpty;
+  }
 
   Future<void> _photo(String? itemId) async {
     final picked = await pickImages(1);
-    if (picked.isEmpty) return;
-    await Api.put('/students/me/handover', _body());
-    final done = await attempt(
-      () => Api.multipart('/students/me/handover/photos', {'itemId': ?itemId}, [('photo', picked.first.path)]),
-      success: t('Photo added', 'Đã thêm ảnh'),
-    );
+    if (picked.isEmpty || !_readingsOk()) return;
+    // The draft is saved first, inside the error handling (MOB-14).
+    final done = await attempt(() async {
+      await Api.put('/students/me/handover', _body());
+      return Api.multipart('/students/me/handover/photos', {'itemId': ?itemId}, [('photo', picked.first.path)]);
+    }, success: t('Photo added', 'Đã thêm ảnh'));
     if (done != null) await widget.reload();
   }
 
   Future<void> _send(bool submit) async {
+    if (!_readingsOk()) return;
     setState(() {
       _busy = true;
       _errors = const {};
@@ -292,7 +316,7 @@ class _FormState extends State<_Form> {
       );
       if (submit) await widget.reload();
     } on ApiException catch (e) {
-      setState(() => _errors = e.fields);
+      if (mounted) setState(() => _errors = e.fields);
       if (e.fields.isEmpty) toast(e.message, error: true);
     }
     if (mounted) setState(() => _busy = false);
@@ -438,7 +462,7 @@ class _SummaryState extends State<_Summary> {
     return Section(
       title: '${t('Check-in inventory', 'Kiểm kê nhận phòng')} · ${d.text('room')}',
       subtitle: subtitle,
-      trailing: Tag(status == 'Final' ? t('Final', 'Đã chốt') : status ?? '', tone: status == 'Final' ? Tone.success : Tone.info),
+      trailing: Tag(status == 'Final' ? t('Final', 'Đã chốt') : label(status), tone: status == 'Final' ? Tone.success : Tone.info),
       children: [
         for (final i in d.objects('items'))
           Row(
@@ -532,9 +556,9 @@ class _Charges extends StatelessWidget {
         for (final c in pending)
           Alert(
             tone: Tone.warning,
-            title: '${t('Did you damage', 'Bạn có làm hỏng')} ${c.text('type')} ${c.text('assetCode')}?',
+            title: '${t('Did you damage', 'Bạn có làm hỏng')} ${furnitureName(c)} ${c.text('assetCode')}?',
             body:
-                '${t('Confirm by', 'Xác nhận trước')} ${moment(c.str('dueAt'))}: ${money(c.number('amount'))} ${t('is charged at check-out. Decline: nobody is charged.', 'sẽ tính khi trả phòng. Từ chối: không ai bị tính.')}',
+                '${t('Confirm by', 'Xác nhận trước')} ${moment(c.str('dueAt'))}: ${money(c.number('amount'))} ${t('is charged at check-out. Decline: a Manager reviews it and decides.', 'sẽ tính khi trả phòng. Từ chối: ban quản lý xem xét và quyết định.')}',
             action: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

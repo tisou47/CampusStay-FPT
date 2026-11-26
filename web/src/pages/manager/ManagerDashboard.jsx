@@ -24,6 +24,7 @@ import { MANAGER_STAGES } from '@/app/managerFlow'
 import { useScopeQuery, useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { stageSteps } from '@/components/layout/FlowTrail'
+import { WorkInboxPanel } from '@/components/layout/WorkInbox'
 import { Button } from '@/components/ui/Button'
 import { KpiTile, Meter } from '@/components/ui/Charts'
 import { Avatar } from '@/components/ui/Display'
@@ -185,10 +186,8 @@ export default function ManagerDashboard() {
   }
 
   // Sort items: error (highest) -> warning -> info -> neutral
-  const items = useMemo(() => {
-    const toneRank = { error: 0, warning: 1, info: 2, neutral: 3 }
-    return [...rawItems].sort((x, y) => (toneRank[x.tone] ?? 2) - (toneRank[y.tone] ?? 2))
-  }, [rawItems])
+  const toneRank = { error: 0, warning: 1, info: 2, neutral: 3 }
+  const items = [...rawItems].sort((x, y) => (toneRank[x.tone] ?? 2) - (toneRank[y.tone] ?? 2))
 
   const journey = stageSteps(MANAGER_STAGES, term, undefined, {
     assignment: w?.toReview
@@ -219,7 +218,7 @@ export default function ManagerDashboard() {
   const s = staff.data?.summary
 
   // Staff on duty calculations
-  const allBlocks = useMemo(() => d?.bedsByBlock?.map((b) => b.block) ?? ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], [d])
+  const allBlocks = useMemo(() => d?.bedsByBlock?.map((b) => b.block) ?? [], [d]) // nothing to warn about until the dashboard loads (WEB-OPS-37)
   const blocksWithDutyStaff = useMemo(
     () => new Set(people.filter((p) => p.onDuty).flatMap((p) => p.blocks ?? [])),
     [people],
@@ -379,6 +378,8 @@ export default function ManagerDashboard() {
           noteClassName="text-xs"
         />
       </div>
+
+      <WorkInboxPanel className="shrink-0" />
 
       {/* Row 4: Main Balanced 2-Column Bento Grid (Left 7/12, Right 5/12) */}
       <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-12 xl:gap-5">

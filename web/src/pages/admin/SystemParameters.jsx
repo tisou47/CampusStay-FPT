@@ -249,9 +249,12 @@ export default function SystemParameters() {
   const sections = cfg.draft?.sections ?? []
   const isBool = (f) => f.type === 'BOOL' || typeof f.value === 'boolean' || f.value === 'true' || f.value === 'false'
   const isDecimal = (f) => f.type === 'DECIMAL' || (!f.options && !isBool(f) && String(f.value ?? '').includes('.'))
+  // TEXT values (privacy.notice_version "2026-11", W3-D3) are free text: only a blank one is refused.
+  const isText = (f) => f.type === 'TEXT'
   const isBad = (f) => {
     if (f.options || isBool(f)) return false
     const v = String(f.value ?? '').trim()
+    if (isText(f)) return v === ''
     return isDecimal(f) ? !/^\d+(\.\d+)?$/.test(v) : !/^\d+$/.test(v)
   }
   const extraChanged = (x, key) => String(x.form.value(key) ?? '') !== String(x.form.saved(key) ?? '')
@@ -361,12 +364,12 @@ export default function SystemParameters() {
                               id={id}
                               value={f.value ?? ''}
                               onChange={(e) => setField(o.si, f.key, e.target.value)}
-                              inputMode={isDecimal(f) ? 'decimal' : 'numeric'}
+                              inputMode={isText(f) ? 'text' : isDecimal(f) ? 'decimal' : 'numeric'}
                               invalid={bad}
-                              className="text-right tabular"
+                              className={isText(f) ? undefined : 'text-right tabular'}
                             />
                           )}
-                          {bad && <p className="text-sm text-error-fg">{t(isDecimal(f) ? 'Enter a valid number' : 'Enter a whole number')}</p>}
+                          {bad && <p className="text-sm text-error-fg">{t(isText(f) ? 'Enter a value' : isDecimal(f) ? 'Enter a valid number' : 'Enter a whole number')}</p>}
                         </ParamRow>
                       )}
                     </Field>

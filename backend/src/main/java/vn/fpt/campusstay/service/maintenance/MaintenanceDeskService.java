@@ -169,6 +169,7 @@ public class MaintenanceDeskService {
 
     @Transactional(readOnly = true)
     public QueuePage queue(Filter f, PageQuery page) {
+        currentUser.require(Permission.PROCESS_MAINTENANCE); // BE-OPS-10: Block scope alone let the Admin read it
         Set<Long> scope = blockScope.resolve(f.block()).ids();
         Map<String, Object> params = new HashMap<>();
         params.put("scope", List.copyOf(scope));
@@ -260,6 +261,7 @@ public class MaintenanceDeskService {
 
     @Transactional(readOnly = true)
     public Detail detail(String idOrCode) {
+        currentUser.require(Permission.PROCESS_MAINTENANCE);
         RequestStore.Request r = inScope(idOrCode, false);
         List<RequestStore.Event> history = requests.events(r.id());
         List<Long> people = new ArrayList<>(history.stream().map(RequestStore.Event::actorId).filter(Objects::nonNull)
@@ -401,6 +403,9 @@ public class MaintenanceDeskService {
                 window = RequestStore.parseVisitWindow(String.valueOf(value))
                         .orElseThrow(() -> FieldErrors.single("visitWindow",
                                 "Use dd/mm/yyyy hh:mm – hh:mm, with the end after the start."));
+                if (window[1].isBefore(now)) {
+                    throw FieldErrors.single("visitWindow", "Choose a visit window that has not ended yet.");
+                }
             }
             jdbc.sql("UPDATE mnt_request SET visit_window_start = :s, visit_window_end = :e WHERE id = :id")
                     .param("s", window == null ? null : Timestamp.from(window[0]))
@@ -482,6 +487,9 @@ public class MaintenanceDeskService {
         }
         RequestStore.Request r = inScope(idOrCode, true);
         boolean privateNote = internal || !r.source().equals("STUDENT");
+        if (!privateNote && r.status().equals("CLOSED")) { // the student can no longer answer (BE-OPS-14)
+            throw ApiException.conflict("REQUEST_CLOSED", "This request is closed: only internal notes can be added.");
+        }
         requests.event(r.id(), user.userId(), user.role().name(), null, message.trim(), privateNote,
                 Instant.now(clock));
         if (!privateNote) {

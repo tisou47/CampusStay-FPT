@@ -311,4 +311,14 @@ class MaintenanceIT {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.status").isString());
     }
+
+    /** TC-MNT-500: a visit window that has already ended is refused, not announced to the student (BE-OPS-13). */
+    @Test
+    void visitWindowInThePastIsRefused() throws Exception {
+        livesIn(20, "A-305", "A");
+        String id = reported(bearer(mvc, student(20)), "Normal");
+        patchAs("/maintenance-requests/" + id, bearer(mvc, STAFF_A), "{\"visitWindow\":\"01/01/2020 08:00 - 09:00\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.visitWindow").value("Choose a visit window that has not ended yet."));
+    }
 }

@@ -11,6 +11,7 @@ import { cx } from '@/lib/cx'
 import { daysFromToday, formatDate, formatNumber } from '@/lib/format'
 import { floorPercent } from '@/lib/money'
 import { t, tr } from '@/i18n'
+import { WorkInboxPanel } from '@/components/layout/WorkInbox'
 
 // SCR-HOME-04 Admin Dashboard
 // GET /dashboards/admin?termId → { term: { name, statusLabel, endsAt }, kpis: { residents, beds, allocated, collected,
@@ -195,7 +196,7 @@ function AccountsCard({ k }) {
 function Shortcuts() {
   return (
     <ChartCard title={t('Shortcuts')} className="col-span-7">
-      <ul className="grid min-h-0 flex-1 grid-cols-2 content-center gap-2">
+      <ul className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto [align-content:safe_center]">
         {SHORTCUTS.map(({ to, icon: Glyph, label }) => (
           <li key={to} className="min-w-0">
             <Link to={to} className="group flex items-center gap-3 rounded-lg border border-line px-3 py-2 transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-primary">
@@ -237,6 +238,9 @@ export default function AdminDashboard() {
         <KpiTile icon={FileText} label="Applications" value={<span className="text-h1">{formatNumber(first)}</span>} note={first > 0 && end != null ? t('{p} have moved in', { p: floorPercent(end / first) }) : null} />
         <KpiTile icon={Bed} label="Living in" value={<span className="text-h1">{formatNumber(k?.residents)}</span>} note={k ? t('{n} beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) }) : null} />
       </div>
+
+      {/* Work inbox (#69): what is waiting on the Admin */}
+      <WorkInboxPanel className="shrink-0" />
 
       <div className="grid min-h-0 flex-1 grid-cols-12 grid-rows-[minmax(0,1.45fr)_minmax(0,1fr)] gap-4">
         <ChartCard

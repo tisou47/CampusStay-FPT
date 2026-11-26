@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.common.file.FileLinks;
 import vn.fpt.campusstay.common.file.FileStore;
+import vn.fpt.campusstay.common.i18n.Messages;
 import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.dto.PageQuery;
 import vn.fpt.campusstay.dto.setting.TermSummary;
@@ -55,11 +56,18 @@ import vn.fpt.campusstay.service.setting.TermCatalog;
 @Service
 public class PaymentClaimService {
 
-    /** The claim state of one Invoice, for the student's payment page. */
-    public record ClaimView(String status, Instant claimedAt, String reference, int rejected, Rejection lastRejection) {
+    /**
+     * The claim state of one Invoice, for the student's payment page.
+     *
+     * @param rejectionsLeft     rejected claims left before the Invoice is cancelled, null for a debt (BE-APP-BIL-19)
+     * @param rejectionsToCancel rejected claims that cancel the Invoice; null for a debt or charge, never cancelled
+     */
+    public record ClaimView(String status, Instant claimedAt, String reference, int rejected, Integer rejectionsLeft,
+            Rejection lastRejection, Integer rejectionsToCancel) {
     }
 
-    public record Rejection(String reason, Instant at) {
+    /** @param dueAt the deadline after the latest rejection */
+    public record Rejection(String reason, Instant at, Instant dueAt) {
     }
 
     /** @param since {@code today}, {@code 24h}, {@code 7d} or blank (every claim waiting) */
@@ -113,9 +121,12 @@ public class PaymentClaimService {
     private final AuditLog audit;
     private final Clock clock;
 
+    private final Messages messages;
+
     public PaymentClaimService(JdbcClient jdbc, InvoiceStore invoices, InvoiceScope scope, CurrentUser currentUser,
             TermCatalog terms, Parameters parameters, FileStore files, FileLinks links, ApplicationEventPublisher events,
-            AuditLog audit, Clock clock) {
+            AuditLog audit, Messages messages, Clock clock) {
+        this.messages = messages;
         this.jdbc = jdbc;
         this.invoices = invoices;
         this.scope = scope;
@@ -187,9 +198,18 @@ public class PaymentClaimService {
         Row latest = rows.getFirst();
         int rejected = (int) rows.stream().filter(r -> r.status().equals("REJECTED")).count();
         Rejection last = rows.stream().filter(r -> r.status().equals("REJECTED")).findFirst()
-                .map(r -> new Rejection(r.reason(), r.decidedAt())).orElse(null);
+                .map(r -> new Rejection(r.reason(), r.decidedAt(), null)).orElse(null);
+        record Inv(String type, Instant dueAt) {
+        }
+        Inv inv = jdbc.sql("SELECT type, due_at FROM bil_invoice WHERE id = :id").param("id", invoiceId)
+                .query((rs, i) -> new Inv(rs.getString("type"), InvoiceStore.instant(rs, "due_at"))).single();
+        if (last != null) {
+            last = new Rejection(last.reason(), last.at(), inv.dueAt());
+        }
+        Integer toCancel = PLACE_TYPES.contains(inv.type()) ? rejectionsToCancel() : null;
+        Integer left = toCancel == null ? null : Math.max(0, toCancel - rejected);
         return Optional.of(new ClaimView(statusLabel(latest.status()), latest.claimedAt(), latest.reference(), rejected,
-                last));
+                left, last, toCancel));
     }
 
     // ---------------------------------------------------------------- Managers: the queue
@@ -236,15 +256,23 @@ public class PaymentClaimService {
                 .params(params).query((rs, i) -> new ClaimSummary(rs.getLong("n"), rs.getLong("amount"))).single();
         params.put("limit", page.limit());
         params.put("offset", page.offset());
-        List<ClaimItem> items = jdbc.sql("""
+        List<Map.Entry<ClaimItem, Long>> rows = jdbc.sql("""
                 SELECT i.code, i.student_name, i.student_code, i.type, i.title, i.amount, i.due_at, i.transfer_content,
                        c.claimed_at, c.time_left_seconds, c.reference, c.receipt_file_id,
-                       (SELECT count(*) FROM bil_payment_claim r WHERE r.invoice_id = i.id AND r.status = 'REJECTED')
-                           AS rejected
-                """ + from + where + " ORDER BY c.claimed_at, c.id LIMIT :limit OFFSET :offset")
+                       coalesce(rj.n, 0) AS rejected
+                """ + from + """
+                 LEFT JOIN (SELECT invoice_id, count(*) AS n FROM bil_payment_claim WHERE status = 'REJECTED'
+                            GROUP BY invoice_id) rj ON rj.invoice_id = i.id
+                """ + where + " ORDER BY c.claimed_at, c.id LIMIT :limit OFFSET :offset")
                 .params(params).query(this::item).list();
+        Map<Long, FileStore.StoredFile> receipts = files.infos(rows.stream().map(Map.Entry::getValue)
+                .filter(java.util.Objects::nonNull).toList());
+        List<ClaimItem> items = rows.stream().map(e -> withReceipt(e.getKey(),
+                Optional.ofNullable(e.getValue()).map(receipts::get)
+                        .map(file -> new Receipt(file.name(), file.size(), links.link(file.id()))).orElse(null)))
+                .toList();
         return new ClaimPage(items, summary.count(), summary,
-                List.of("Deposit", "Balance", "Utility", "Room change", "Damage"));
+                List.of("Deposit", "Balance", "Utility", "Room change", "Damage", "Next-Term fee"));
     }
 
     // ---------------------------------------------------------------- Managers: decisions
@@ -287,12 +315,12 @@ public class PaymentClaimService {
             Optional<InvoiceStore.Invoice> inv = lockedInScope(code);
             Optional<Claim> claim = inv.flatMap(i -> openClaim(i.id()));
             if (inv.isEmpty() || claim.isEmpty()) {
-                skipped.add(new Skipped(code, inv.isEmpty() ? "This Invoice does not exist."
+                skipped.add(skip(code, inv.isEmpty() ? "This Invoice does not exist."
                         : "No payment claim is waiting for this Invoice."));
                 continue;
             }
             if (claim.get().receiptFileId() == null) {
-                skipped.add(new Skipped(code, "Attach the transfer receipt first."));
+                skipped.add(skip(code, "Attach the transfer receipt first."));
                 continue;
             }
             pay(inv.get(), claim.get(), user, claim.get().reference(), claim.get().receiptFileId());
@@ -337,6 +365,15 @@ public class PaymentClaimService {
         pay(inv, claim, user, ref != null ? ref : claim.reference(), receiptId);
     }
 
+    /** A 200 body is not translated by LocalizedErrors: the reason is given in the request's language (BE-APP-BIL-14). */
+    private Skipped skip(String code, String reason) {
+        return new Skipped(code, messages.forRequest(reason));
+    }
+
+    private int rejectionsToCancel() {
+        return Math.max(1, parameters.intValue("payment.rejections_to_cancel"));
+    }
+
     /** Rejects the open claims of the Invoices with one reason (shown to each student). */
     @Transactional
     public Rejected reject(List<String> invoiceCodes, String reason) {
@@ -349,7 +386,7 @@ public class PaymentClaimService {
             throw FieldErrors.single("reason", "Keep the reason under 500 characters.");
         }
         List<String> codes = codes(invoiceCodes);
-        int limit = Math.max(1, parameters.intValue("payment.rejections_to_cancel"));
+        int limit = rejectionsToCancel();
         Duration minimum = Duration.ofHours(Math.max(0, parameters.intValue("payment.rejected_claim_min_hours")));
         int rejected = 0;
         int cancelled = 0;
@@ -358,7 +395,7 @@ public class PaymentClaimService {
             Optional<InvoiceStore.Invoice> found = lockedInScope(code);
             Optional<Claim> claim = found.flatMap(i -> openClaim(i.id()));
             if (found.isEmpty() || claim.isEmpty()) {
-                skipped.add(new Skipped(code, found.isEmpty() ? "This Invoice does not exist."
+                skipped.add(skip(code, found.isEmpty() ? "This Invoice does not exist."
                         : "No payment claim is waiting for this Invoice."));
                 continue;
             }
@@ -388,7 +425,8 @@ public class PaymentClaimService {
                     due = now.plus(back.compareTo(minimum) < 0 ? minimum : back);
                 }
                 jdbc.sql("""
-                        UPDATE bil_invoice SET status = :status, due_at = :due, updated_at = :now, version = version + 1
+                        UPDATE bil_invoice SET status = :status, due_at = :due, reminders_sent = 0, updated_at = :now,
+                               version = version + 1
                         WHERE id = :id
                         """).param("status", due.isAfter(now) || inv.type().equals("DEPOSIT") ? "UNPAID" : "OVERDUE")
                         .param("due", Timestamp.from(due)).param("now", Timestamp.from(now)).param("id", inv.id())
@@ -498,7 +536,8 @@ public class PaymentClaimService {
         if (invoiceCodes.size() > MAX_BULK) {
             throw FieldErrors.single("invoiceIds", "Select at most " + MAX_BULK + " Invoices at a time.");
         }
-        Set<String> codes = new LinkedHashSet<>();
+        // Sorted, so overlapping bulks lock their Invoices in the same order and cannot deadlock (TC-BIL-606).
+        Set<String> codes = new java.util.TreeSet<>();
         invoiceCodes.stream().filter(c -> c != null && !c.isBlank()).map(c -> c.trim().toUpperCase(Locale.ROOT))
                 .forEach(codes::add);
         if (codes.isEmpty()) {
@@ -515,15 +554,21 @@ public class PaymentClaimService {
         };
     }
 
-    private ClaimItem item(ResultSet rs, int i) throws SQLException {
+    private static ClaimItem withReceipt(ClaimItem c, Receipt receipt) {
+        return new ClaimItem(c.invoiceId(), c.studentName(), c.studentCode(), c.type(), c.typeLabel(), c.title(),
+                c.amount(), c.claimedAt(), c.dueAt(), c.timeLeftSeconds(), c.reference(), c.rejected(),
+                c.transferContent(), receipt);
+    }
+
+    /** A claim row and its receipt file id (the receipts are read together, BE-APP-BIL-13). */
+    private Map.Entry<ClaimItem, Long> item(ResultSet rs, int i) throws SQLException {
         String type = rs.getString("type");
         Long receiptId = rs.getObject("receipt_file_id", Long.class);
-        Receipt receipt = receiptId == null ? null : files.info(receiptId)
-                .map(f -> new Receipt(f.name(), f.size(), links.link(f.id()))).orElse(null);
-        return new ClaimItem(rs.getString("code"), rs.getString("student_name"), rs.getString("student_code"),
+        ClaimItem claim = new ClaimItem(rs.getString("code"), rs.getString("student_name"), rs.getString("student_code"),
                 InvoiceLabels.type(type), InvoiceLabels.typeLabel(type), rs.getString("title"), rs.getLong("amount"),
                 InvoiceStore.instant(rs, "claimed_at"), InvoiceStore.instant(rs, "due_at"),
                 rs.getLong("time_left_seconds"), rs.getString("reference"), rs.getInt("rejected"),
-                rs.getString("transfer_content"), receipt);
+                rs.getString("transfer_content"), null);
+        return new java.util.AbstractMap.SimpleEntry<>(claim, receiptId);
     }
 }

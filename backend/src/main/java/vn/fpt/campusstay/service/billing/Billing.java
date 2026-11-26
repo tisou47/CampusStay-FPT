@@ -171,6 +171,13 @@ public interface Billing {
     long requestCredit(long termId, long studentId, Long buildingId, String sourceType, long sourceId, String reason,
             long amount);
 
+    /**
+     * The whole of a paid Invoice back to the student outside the rules (a waitlisted Deposit, BE-APP-BIL-08): a
+     * refund linked to the Invoice, waiting for a Manager, so the Invoice is refunded once. @return the refund, or
+     * empty when the Invoice is not paid or already has a refund
+     */
+    Optional<RefundRequested> refundInFull(long invoiceId, String sourceType, long sourceId, String reason);
+
     /** Allocation id → its unpaid Balance; Allocations whose Balance is paid (or not issued) are left out. */
     Map<Long, CheckInDue> checkInDues(Collection<Long> allocationIds);
 

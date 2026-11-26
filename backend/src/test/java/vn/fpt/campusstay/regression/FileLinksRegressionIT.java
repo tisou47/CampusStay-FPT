@@ -43,6 +43,9 @@ class FileLinksRegressionIT {
     @Autowired
     TransactionTemplate tx;
 
+    @Autowired
+    org.springframework.jdbc.core.simple.JdbcClient jdbc;
+
     private long store() {
         return tx.execute(s -> files.store("mnt", "photo.png", RegressionSupport.PNG, FileStore.IMAGES_AND_PDF, null).id());
     }
@@ -74,5 +77,21 @@ class FileLinksRegressionIT {
         String past = String.valueOf(Instant.now().minusSeconds(60).getEpochSecond());
         mvc.perform(get("/files/" + id).param("exp", past).param("sig", sig)).andExpect(status().isNotFound());
         mvc.perform(get("/files/" + id)).andExpect(status().isNotFound());
+    }
+
+    /** TC-MNT-301: BE-PLT-16: an inline file is sandboxed, so nothing in it runs on the API origin. */
+    @Test
+    void inlineFilesAreSandboxed() throws Exception {
+        mvc.perform(get(path(store()))).andExpect(status().isOk())
+                .andExpect(header().string("Content-Security-Policy", "sandbox; default-src 'none'"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+    }
+
+    /** TC-PLT-500: a file row whose bytes are gone from disk answers 404 "does not exist", not 500 (BE-PLT-17). */
+    @Test
+    void missingBytesAnswerNotFound() throws Exception {
+        long id = store();
+        jdbc.sql("UPDATE shared_file SET storage_key = 'gone/missing-' || id WHERE id = :id").param("id", id).update();
+        mvc.perform(get(path(id))).andExpect(status().isNotFound());
     }
 }

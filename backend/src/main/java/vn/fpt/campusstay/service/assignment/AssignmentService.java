@@ -205,7 +205,7 @@ public class AssignmentService {
 
         Map<Long, String> genders = new HashMap<>();
         candidates.forEach(c -> genders.put(c.applicationId(), c.gender()));
-        Map<String, Long> fallbackBlock = engines.blockForGender();
+        Map<String, Long> fallbackBlock = engines.blockForGender(term.id());
         int proposed = (int) placements.stream().filter(p -> p.bedId() != null).count();
         int conflicts = (int) placements.stream().filter(p -> p.issue() != null && !"INFO".equals(p.tone())).count();
         BigDecimal average = average(placements.stream().map(AssignmentEngine.Placement::fit).toList());
@@ -431,6 +431,18 @@ public class AssignmentService {
         if (all) {
             jdbc.sql("UPDATE asg_run SET status = 'COMMITTED', stage = 5, version = version + 1 WHERE id = :id")
                     .param("id", run.id()).update();
+            // Students listed under no Block (no Block of their gender) would never be committed (BE-ASG-20).
+            List<RunStore.Item> blockless = runs.items(run.id()).stream().filter(i -> i.buildingId() == null).toList();
+            Map<Long, Applications.Candidate> left = applications.find(
+                    blockless.stream().map(RunStore.Item::applicationId).toList());
+            for (RunStore.Item item : blockless) {
+                Applications.Candidate app = left.get(item.applicationId());
+                if (app != null && app.status().equals("APPROVED")) {
+                    applications.waitlisted(app.applicationId(),
+                            item.reason() == null ? "No free Bed in a Block for this gender" : item.reason());
+                    waitlisted++;
+                }
+            }
         }
         audit.record("PROPOSAL_APPROVED", AuditLog.Tone.SUCCESS, "Assignment run", run.id(),
                 run.code() + " · Block " + blockCode, Map.of("allocated", allocated, "waitlisted", waitlisted));

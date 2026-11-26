@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { PHOTO_ACCEPT, PHOTO_MAX_MB, photoProblem } from '@/lib/uploads'
 import { useNavigate } from 'react-router'
 import { Check, Upload, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
@@ -41,7 +42,10 @@ export default function NewMaintenanceRequest() {
   useEffect(() => () => photos.forEach((p) => URL.revokeObjectURL(p.url)), [photos])
 
   const addPhotos = (e) => {
-    const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith('image/'))
+    const picked = Array.from(e.target.files ?? [])
+    const refused = picked.filter((file) => photoProblem(file))
+    if (refused.length) notify({ type: 'warning', title: 'Some photos were not added', message: refused.map((file) => photoProblem(file) === 'size' ? t('{name} is larger than {n} MB. Take a smaller photo.', { name: file.name, n: PHOTO_MAX_MB }) : t('{name} is not a JPEG or PNG photo.', { name: file.name })).join(' ') })
+    const files = picked.filter((file) => !photoProblem(file))
     setPhotos((list) => [...list, ...files.map((file) => ({ file, url: URL.createObjectURL(file) }))].slice(0, MAX_PHOTOS))
     e.target.value = ''
   }
@@ -92,7 +96,7 @@ export default function NewMaintenanceRequest() {
             )}
             <Field label="Location" helper="Filled in from your allocation.">
               <StaticField size="lg" className="text-fg-disabled">
-                {a ? [t('{room} · Bed {bed}', { room: a.room, bed: a.bed }), tr(a.block), tr(a.floor)].filter(Boolean).join(' · ') : '—'}
+                {a ? [t('{room} · Bed {bed}', { room: a.room, bed: a.bed }), tr(a.block), a.floor != null && t('Floor {n}', { n: a.floor })].filter(Boolean).join(' · ') : '—'}
               </StaticField>
             </Field>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
@@ -170,7 +174,7 @@ export default function NewMaintenanceRequest() {
                     <span className="text-sm">{t('Add photo')}</span>
                   </button>
                 )}
-                <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={addPhotos} />
+                <input ref={fileInput} type="file" accept={PHOTO_ACCEPT} multiple hidden onChange={addPhotos} />
               </div>
             </div>
 

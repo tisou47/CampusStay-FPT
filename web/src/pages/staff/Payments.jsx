@@ -134,7 +134,7 @@ export default function Payments() {
   const query = useQuery(['payments', filters], ({ signal }) => api.payments.list(filters, { signal }))
   const items = query.data?.items ?? []
   const s = query.data?.summary
-  const exporting = useMutation(() => api.exports.download('payments', { ...filters, page: undefined, pageSize: undefined }, 'payments.xlsx'), { onError: (e) => notifyError(e, 'Export failed') })
+  const exporting = useMutation(() => api.exports.download('payments', { ...filters, page: undefined, pageSize: undefined }, 'payments.csv'), { onError: (e) => notifyError(e, 'Export failed') })
 
   const confirmId = params.get('confirm')
   const linked = useQuery(['payments', 'one', confirmId], ({ signal }) => api.payments.list({ q: confirmId, pageSize: 5 }, { signal }), { enabled: Boolean(confirmId) })

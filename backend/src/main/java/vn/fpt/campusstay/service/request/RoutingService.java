@@ -217,7 +217,9 @@ public class RoutingService {
                 .orElseThrow(() -> ApiException.notFound("This routing rule does not exist."));
         blockScope.check(r.buildingId());
         String type = body.containsKey("type") ? type(text(body.get("type"))) : r.type();
-        String scope = body.containsKey("scope") ? scope(type, text(body.get("scope"))) : r.scope();
+        // A category scope belongs to maintenance rules: a rule changed to another type covers all (BE-OPS-11).
+        String scope = body.containsKey("scope") ? scope(type, text(body.get("scope")))
+                : type.equals("MAINTENANCE") ? r.scope() : ALL;
         long assignee = body.containsKey("assigneeId") ? staffId(r.buildingId(), body.get("assigneeId"), "assigneeId", true)
                 : r.assigneeId();
         Long fallback = !body.containsKey("fallbackId") ? r.fallbackId()

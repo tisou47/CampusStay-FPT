@@ -8,7 +8,7 @@
  * Maintenance = bảo trì · Family Day = Ngày thăm thân. English is sentence case: "Room type", "your bed this term".
  *
  * This file holds the shell (menus, common words, statuses) and is always loaded; the screens' texts are in
- * ./vi-pages.js, loaded only when Vietnamese is in use (see loadLanguage in ./index.jsx).
+ * ./vi-pages.js, ./vi-student.js and ./vi-office.js, loaded only when Vietnamese is in use (see ./index.jsx).
  */
 
 const vi = {
@@ -36,7 +36,6 @@ const vi = {
   '{n} items left': 'Còn {n} mục',
   'Provided': 'Đã có',
   'In residence': 'Đang lưu trú',
-  'No emergency contact yet. You give one when you apply for a Bed.': 'Chưa có người liên hệ khẩn cấp. Bạn sẽ khai báo khi đăng ký giường.',
   '{used} of {total} terms · {left} left': '{used}/{total} học kỳ · còn {left} học kỳ',
   'You have no bed this term yet.': 'Bạn chưa có giường trong học kỳ này.',
   'Shift': 'Ca trực',
@@ -59,7 +58,6 @@ const vi = {
   'Language, password and this device.': 'Ngôn ngữ, mật khẩu và thiết bị này.',
   'Your latest notifications.': 'Các thông báo mới nhất của bạn.',
   'Who the dormitory calls if something happens to you.': 'Người ký túc xá sẽ gọi khi bạn gặp sự cố.',
-  'Your account, work and sign-in settings.': 'Tài khoản, công việc và cài đặt đăng nhập của bạn.',
   'Set by an admin. Ask one to change it.': 'Do Admin thiết lập. Liên hệ Admin để thay đổi.',
   'Read-only: from the student list. Ask a manager to correct it.': 'Chỉ xem: lấy từ danh sách sinh viên. Nhờ Quản lý chỉnh sửa.',
   'You can still correct these until a manager verifies them.': 'Bạn vẫn sửa được cho đến khi Quản lý xác minh.',
@@ -84,7 +82,6 @@ const vi = {
   'Add contact': 'Thêm người liên hệ',
   'Recording your shift': 'Đang ghi nhận trong ca',
   'Shift off': 'Đã tắt ca',
-  'Click to end your shift': 'Bấm để kết thúc ca',
   'On duty while you are signed in': 'Đang trực khi bạn đăng nhập',
   'Signing out ends your shift.': 'Đăng xuất là kết thúc ca.',
   'Cancelled: nothing was changed.': 'Đã hủy: không có gì thay đổi.',
@@ -109,7 +106,6 @@ const vi = {
   'Sat': 'T7',
   'Sun': 'CN',
   'On duty: new requests can be routed to you. Signing out ends your shift.': 'Đang trực: yêu cầu mới có thể được chuyển cho bạn. Đăng xuất là kết thúc ca.',
-  'Click to start your shift': 'Bấm để vào ca',
   'Sign out': 'Đăng xuất',
   'Not signed in': 'Chưa đăng nhập',
   'Staff portal': 'Cổng nhân viên',
@@ -121,7 +117,6 @@ const vi = {
   'Housing Administrator': 'Quản trị ký túc xá',
   'Residence Life Officer': 'Cán bộ quản lý sinh viên nội trú',
   'Maintenance Technician': 'Kỹ thuật viên bảo trì',
-  'Finance Officer': 'Cán bộ tài chính',
   'FPT University · Tân Uyên': 'Đại học FPT · Tân Uyên',
   'Today': 'Hôm nay',
   'Desk': 'Quầy',
@@ -147,12 +142,10 @@ const vi = {
   'Inspection schedules': 'Lịch kiểm tra phòng',
   'Routing and timers': 'Phân công và thời hạn',
   'Block settings': 'Thiết lập tòa',
-  'Rooms and people': 'Phòng và nhân sự',
   'Staff': 'Nhân viên',
   'Reports': 'Báo cáo',
   'Block reports': 'Báo cáo theo tòa',
   'Registration periods': 'Đợt đăng ký',
-  'Terms and timeline': 'Học kỳ và mốc thời gian',
   'Prices and fees': 'Giá và phí',
   'Room Types': 'Loại phòng',
   'Room types': 'Loại phòng',
@@ -181,8 +174,6 @@ const vi = {
   'All blocks': 'Tất cả tòa',
   'Blocks: {list}': 'Các tòa: {list}',
   'Block {code}': 'Tòa {code}',
-  'Go to page…': 'Đi đến trang…',
-  'No matching page': 'Không có trang phù hợp',
 
   // ---------------------------------------------------------------- shared components
   'Retry': 'Thử lại',
@@ -209,7 +200,6 @@ const vi = {
   'Something went wrong': 'Đã xảy ra lỗi',
   'Just now': 'Vừa xong',
   '{n} min ago': '{n} phút trước',
-  '{n} h ago': '{n} giờ trước',
   'Yesterday': 'Hôm qua',
   '{n} days ago': '{n} ngày trước',
   'Today {time}': 'Hôm nay {time}',
@@ -229,10 +219,8 @@ const vi = {
   'Search': 'Tìm kiếm',
   'Filter': 'Lọc',
   'Filters': 'Bộ lọc',
-  'Clear filters': 'Xóa bộ lọc',
   'Export': 'Xuất dữ liệu',
   'Export CSV': 'Xuất CSV',
-  'Exporting…': 'Đang xuất…',
   'Open': 'Mở',
   'View': 'Xem',
   'View all': 'Xem tất cả',
@@ -358,7 +346,6 @@ const vi = {
   'Entered': 'Đã nhập',
   'Check value': 'Cần kiểm tra',
   'Confirmed': 'Đã xác nhận',
-  'Open status': 'Đang mở',
   'Out of service': 'Ngưng sử dụng',
   'In service': 'Đang sử dụng',
   'Available': 'Còn trống',
@@ -424,7 +411,6 @@ const vi = {
   "now": "hiện tại",
   "The term is in {stage} now.": "Học kỳ đang ở giai đoạn {stage}.",
   "Now: {stage}.": "Hiện tại: {stage}.",
-  "Screens of this stage, in order": "Các màn hình của giai đoạn này, theo thứ tự",
   // Staff flow guide: the Term stages and their screens.
   "Students are applying: get the block’s rooms, beds and furniture right before beds are given out.": "Sinh viên đang nộp đơn: chuẩn bị đúng phòng, giường và nội thất của tòa trước khi chia giường.",
   "Take broken beds and rooms out of service so nobody is placed in them.": "Ngừng sử dụng giường và phòng hỏng để không ai bị xếp vào.",
@@ -461,13 +447,11 @@ const vi = {
   "Collected this term": "Đã thu trong học kỳ",
   "Paid invoices of every kind, utility deposit included; refunds shown apart": "Mọi hóa đơn đã thanh toán, gồm cả tiền đặt cọc điện nước; hoàn tiền tính riêng",
   "{p} of invoiced · {amount} unpaid ({n} invoices)": "{p} số đã lập hóa đơn · còn nợ {amount} ({n} hóa đơn)",
-  "{n} beds held of {total} · {r} living in": "{n}/{total} giường đã giữ · {r} đang ở",
   "{n} beds held of {total}": "{n}/{total} giường đã giữ",
   "Not in the funnel: {c} continuing residents (no application this term) · {w} waitlisted · {r} rejected · {e} expired": "Ngoài phiếu: {c} cư dân ở tiếp (không nộp đơn học kỳ này) · {w} chờ · {r} bị từ chối · {e} hết hạn",
   "Check-in opens {date} · {n} expected": "Mở nhận phòng ngày {date} · dự kiến {n} người",
   "{blocked} not paid yet": "{blocked} người chưa đóng tiền",
   "Opens {date} · {n} expected": "Mở ngày {date} · dự kiến {n}",
-  "Check-in closed on {date}": "Đã đóng nhận phòng ngày {date}",
   "Current": "Hiện tại",
   "Confirm with receipt": "Xác nhận kèm biên lai",
   "Show password": "Hiện mật khẩu",
@@ -480,7 +464,6 @@ const vi = {
   "Moves": "Chuyển phòng",
   // Overview focus: one stage to do now; routing gaps as a set-up note.
   "Up next": "Làm tiếp theo",
-  "Set-up: {n} routing rules missing (Blocks {list}); those requests wait until someone takes them.": "Thiết lập: thiếu {n} quy tắc phân công (Tòa {list}); các yêu cầu đó sẽ chờ đến khi có người nhận.",
   // AI assistant (ADR-28)
   'Ask the CampusStay Assistant': 'Hỏi Trợ lý CampusStay',
   'CampusStay Assistant': 'Trợ lý CampusStay',
@@ -509,7 +492,13 @@ const vi = {
   'Temporary bed arranged': 'Đã sắp xếp giường tạm',
   "Write in the note which bed and until when: the student and the request's owner are told.": 'Ghi rõ giường nào và đến khi nào: sinh viên và người phụ trách yêu cầu sẽ được thông báo.',
   "Rooms whose residents or class change. The meter readings are recorded at each leaver's check-out.": 'Các phòng có người ở hoặc hạng phòng thay đổi. Chỉ số điện nước được ghi khi từng người rời phòng trả phòng.',
+  "Rooms whose residents or class change. The meter readings are recorded at each leaver's check-out.": 'Các phòng có người ở hoặc hạng phòng thay đổi. Chỉ số điện nước được ghi khi từng người rời phòng trả phòng.',
   'Their residents are told that the code changed (never the code itself).': 'Người ở được báo rằng mã đã đổi (không bao giờ gửi chính mã).',
+  "{name} is larger than {n} MB. Take a smaller photo.": "{name} lớn hơn {n} MB. Hãy chụp ảnh nhỏ hơn.",
+  "{name} is not a JPEG or PNG photo.": "{name} không phải ảnh JPEG hoặc PNG.",
+  "Some photos were not added": "Một số ảnh không được thêm",
+  "System health": "Sức khỏe hệ thống",
+  "Erasure requests": "Yêu cầu xóa dữ liệu",
 }
 
 export default vi

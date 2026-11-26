@@ -35,7 +35,7 @@ Stack: React 19, Vite 8, Tailwind CSS 4 (design tokens in `src/index.css`), Reac
 
 ## Deploy (Vercel)
 
-Production: https://campusstay-fpt-ten.vercel.app (project `campusstay-fpt`, Root Directory `web/`). Vercel builds every push to `main` for production and a preview for other branches that change `web/`. `vercel.json` sets the Vite build, rewrites every path to `index.html` for client-side routes, caches `/assets/*` for a year and adds security headers (`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`).
+Production: https://campusstay-fpt-ten.vercel.app (project `campusstay-fpt`, Root Directory `web/`). Vercel builds every push to `main` for production and a preview for other branches that change `web/`. `vercel.json` sets the Vite build, rewrites every path to `index.html` for client-side routes, caches `/assets/*` for a year and adds security headers (`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS and a Content-Security-Policy that allows only this site, the production API origin, Google Sign-In and the VietQR image service `qr.sepay.vn`; a new external origin must be added there or the browser blocks it).
 
 Vercel environment variables (Production and Preview): `VITE_API_BASE_URL=https://campusstay-api.eastasia.cloudapp.azure.com/api`; `VITE_GOOGLE_CLIENT_ID` once the Google OAuth client exists. `VITE_*` values are baked in at build time: redeploy after changing one. The API must list the web origins in `CORS_ALLOWED_ORIGINS` (`infra/prod/.env.example`). Setup and rollback: `infra/prod/README.md` §2 and §6.
 

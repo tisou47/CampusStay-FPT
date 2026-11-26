@@ -50,3 +50,4 @@ app.*.map.json
 # CampusStay: the Firebase project file and the local build settings (Google client id) stay out of Git
 google-services.json
 config.json
+/android/build/

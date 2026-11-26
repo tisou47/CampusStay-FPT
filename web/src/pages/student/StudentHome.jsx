@@ -155,12 +155,12 @@ function HomeContent({ home }) {
 
   const cards = {
     application: app
-      ? { value: app.status, note: [app.id, app.roomTypeName, app.roomClassName].filter(Boolean).join(' · '), to: `/student/applications/${app.id}` }
+      ? { value: app.status, note: [app.id, tr(app.roomTypeName), tr(app.roomClassName)].filter(Boolean).join(' · '), to: `/student/applications/${app.id}` }
       : allocation
         ? { value: t('Allocated'), note: [allocation.room, allocation.bed && t('Bed {bed}', { bed: allocation.bed })].filter(Boolean).join(' · '), to: '/student/room' }
         : { value: t('No application yet'), note: term ? t('{term} · not started', { term: term.name }) : t('Not started'), to: '/student/applications' },
     room: allocation
-      ? { value: t('{room} · Bed {bed}', { room: allocation.room, bed: allocation.bed }), note: [tr(allocation.block), tr(allocation.floor)].filter(Boolean).join(' · '), to: '/student/room' }
+      ? { value: t('{room} · Bed {bed}', { room: allocation.room, bed: allocation.bed }), note: [tr(allocation.block), allocation.floor != null && t('Floor {n}', { n: allocation.floor })].filter(Boolean).join(' · '), to: '/student/room' }
       : { value: t('Not assigned'), note: t('Assigned after the review and assignment run'), to: '/student/room' },
     payments:
       home.invoices?.total === 0
@@ -192,7 +192,7 @@ function HomeContent({ home }) {
           <StatusRow
             icon={FileText}
             value={app.id}
-            note={[term?.name, app.roomTypeName, app.roomClassName].filter(Boolean).join(' · ')}
+            note={[term?.name, tr(app.roomTypeName), tr(app.roomClassName)].filter(Boolean).join(' · ')}
             tag={<StatusTag status={app.status} />}
             to={cards.application.to}
           />

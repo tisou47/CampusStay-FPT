@@ -309,6 +309,28 @@ class PaymentClaimIT {
     }
 
     /**
+     * TC-CFG-504: the claim view says how many rejections cancel the Invoice ({@code payment.rejections_to_cancel})
+     * for a Deposit, and {@code null} for a Utility Invoice, which is never cancelled (WEB-STU-09).
+     */
+    @Test
+    void claimViewCarriesTheRejectionLimit() throws Exception {
+        String auth = bearer(mvc, student(37));
+        ApplyFlow.Applied app = flow.apply(auth, "4-bed", "Basic", null);
+        flow.claim(auth, app.depositInvoiceId()).andExpect(status().isOk());
+        getAs("/invoices/" + app.depositInvoiceId() + "/payment", auth)
+                .andExpect(jsonPath("$.claim.rejectionsToCancel").value(2));
+
+        StayFlow stay = new StayFlow(mvc, jdbc, flow, flow.openTerm());
+        stay.livesIn(38, "B-109", "A", true);
+        String code = utilityInvoice(38, "2 days");
+        String debtor = bearer(mvc, student(38));
+        flow.claim(debtor, code).andExpect(status().isOk());
+        getAs("/invoices/" + code + "/payment", debtor)
+                .andExpect(jsonPath("$.claim.status").isString())
+                .andExpect(jsonPath("$.claim.rejectionsToCancel").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    /**
      * TC-BIL-036: Balance reminders go out 3 and 1 days before the deadline, once each, never for a claim waiting;
      * the Managers hear once an hour how many claims wait.
      */
@@ -339,6 +361,25 @@ class PaymentClaimIT {
         String json = getAs("/notifications", bearer(mvc, MANAGER_B)).andReturn().getResponse().getContentAsString();
         assertThat(JsonPath.<List<String>>read(json, "$.items[*].title")).contains("Payment claims to confirm");
         assertThat(claims.summarize(Instant.now().plusSeconds(60))).isZero();
+    }
+
+    /** TC-BIL-500: next-Term fees can be filtered on Payments and in the claims queue (BE-APP-BIL-09). */
+    @Test
+    void nextTermFeesCanBeFiltered() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        getAs("/payments?type=termFee", manager).andExpect(status().isOk());
+        getAs("/payment-claims?type=Next-Term fee", manager).andExpect(status().isOk())
+                .andExpect(jsonPath("$.types", hasItem("Next-Term fee")));
+    }
+
+    /** TC-BIL-501: the reasons of skipped Invoices in a bulk decision come in the Manager's language (BE-APP-BIL-14). */
+    @Test
+    void skippedReasonsAreTranslated() throws Exception {
+        mvc.perform(post("/payment-claims/confirm").header(HttpHeaders.AUTHORIZATION, bearer(mvc, MANAGER_A))
+                .header(HttpHeaders.ACCEPT_LANGUAGE, "vi").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"invoiceIds\":[\"INV-NONE-1\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.skipped[0].reason").value("Hóa đơn này không tồn tại."));
     }
 
     private String balanceOf(String applicationCode) {

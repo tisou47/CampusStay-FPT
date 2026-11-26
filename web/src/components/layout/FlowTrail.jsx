@@ -105,37 +105,6 @@ export function stageSteps(STAGES_OF_ROLE, term, stateOf, notes) {
 /** The stage the Term is in now, as an index of the role's stages (-1 when there is no Term). */
 const liveIndex = (term) => termJourney(term).findIndex((s) => s.state === 'current')
 
-/**
- * The current stage's work on a role's home: why the stage matters and its screens as numbered links, in order.
- * Manager overview and Staff Today show it under the Term's stages.
- */
-export function StageNow({ role, term }) {
-  const stage = STAGES[role]?.[liveIndex(term)]
-  if (!stage) return null
-  return (
-    <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
-      <p className="text-base text-fg-secondary">
-        <span className="font-semibold text-fg">{t('Now: {stage}.', { stage: t(stage.label) })} </span>
-        {t(stage.why)}
-      </p>
-      <ol className="flex flex-wrap gap-2" aria-label={t('Screens of this stage, in order')}>
-        {stage.screens.map((sc, i) => (
-          <li key={sc.to}>
-            <Link
-              to={sc.to}
-              title={t(sc.why)}
-              className="flex items-center gap-2 rounded-md border border-line bg-canvas px-3 py-1.5 text-base text-fg hover:border-primary hover:text-fg-brand"
-            >
-              <span className="flex size-5 items-center justify-center rounded-full bg-primary-subtle text-sm font-semibold text-fg-brand tabular">{i + 1}</span>
-              {t(sc.label)}
-            </Link>
-          </li>
-        ))}
-      </ol>
-    </div>
-  )
-}
-
 function termTrail(STAGES_OF_ROLE, home, pathname, term) {
   const live = liveIndex(term)
   const at = stagePosition(STAGES_OF_ROLE, pathname, live)

@@ -170,11 +170,12 @@ export default function Announcements() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [writing, setWriting] = useState(false)
+  const [ending, setEnding] = useState(null)
   const options = useQuery(['announcement-options'], ({ signal }) => api.announcements.options(undefined, { signal }))
   const query = useQuery(['announcements', q, category, page, pageSize], ({ signal }) =>
     api.announcements.list({ q: q.trim() || undefined, category: category || undefined, page, pageSize }, { signal }),
   )
-  const change = useMutation((id, body) => api.announcements.change(id, body), { invalidates: ['announcements'], onError: (e) => notifyError(e, 'Could not change the announcement') })
+  const change = useMutation((id, body) => api.announcements.change(id, body), { invalidates: ['announcements'], onSuccess: () => setEnding(null), onError: (e) => notifyError(e, 'Could not change the announcement') })
   const items = query.data?.items ?? []
 
   return (
@@ -246,7 +247,7 @@ export default function Announcements() {
                 {a.canEdit && a.active && (
                   <div className="flex justify-end gap-1">
                     <IconButton icon={a.pinned ? PinOff : Pin} aria-label={a.pinned ? t('Unpin') : t('Pin')} onClick={() => change.run(a.id, { pinned: !a.pinned })} />
-                    <IconButton icon={X} aria-label={t('End now')} onClick={() => change.run(a.id, { end: true })} />
+                    <IconButton icon={X} aria-label={t('End now')} onClick={() => setEnding(a)} />
                   </div>
                 )}
               </Td>
@@ -255,6 +256,20 @@ export default function Announcements() {
         </TBody>
       </Table>
       <Pagination total={query.data?.total ?? 0} page={page} pageSize={pageSize} onChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1) }} noun={['announcement', 'announcements']} />
+      <Modal
+        open={Boolean(ending)}
+        onClose={() => setEnding(null)}
+        title="End this announcement now?"
+        description={ending ? t('“{title}” leaves the board of every reader ({n} read it). This cannot be undone.', { title: ending.title, n: ending.reads ?? 0 }) : undefined}
+        footer={
+          <>
+            <Button onClick={() => setEnding(null)}>Cancel</Button>
+            <Button variant="danger" disabled={change.pending} onClick={() => change.run(ending.id, { end: true })}>
+              End now
+            </Button>
+          </>
+        }
+      />
       {writing && options.data && <NewAnnouncement options={options.data} onClose={() => setWriting(false)} />}
     </>
   )

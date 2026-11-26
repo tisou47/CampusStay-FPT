@@ -81,7 +81,7 @@ class GoogleSignUpIT {
     private static String form(String code) {
         return """
                 {"studentCode":"%s","name":"Tran Thi Thu","gender":"Female","dateOfBirth":"2005-06-01","major":"SE",
-                 "cohort":"K19","phone":"0901234567"}""".formatted(code);
+                 "cohort":"K19","phone":"0901234567","privacyNoticeVersion":"2026-11"}""".formatted(code);
     }
 
     /**

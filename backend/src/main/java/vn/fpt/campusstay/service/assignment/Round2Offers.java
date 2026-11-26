@@ -27,14 +27,12 @@ import vn.fpt.campusstay.service.inventory.Inventory;
 /**
  * Round 2: when a Block is approved, and again when a Manager runs Round 2 (M8, after Beds were freed by forfeits,
  * unpaid next-Term fees, ended stays and terminations), each Waitlisted student who was not flagged ineligible is
- * offered up to three free Beds of other kinds (one per Room Type and Room Class, nearest Term price first), in
+ * offered up to {@code round2.max_options} free Beds of other kinds (one per Room Type and Room Class, nearest Term price first), in
  * partly filled Rooms first. The Beds are held until the offer is answered or expires (Admin › System parameters,
  * {@code round2.offer_hours}).
  */
 @Component
 class Round2Offers {
-
-    private static final int MAX_OPTIONS = 3;
 
     private final JdbcClient jdbc;
     private final Inventory inventory;
@@ -85,6 +83,7 @@ class Round2Offers {
                         .thenComparing(Inventory.BedSlot::code))
                 .toList();
         Instant expires = Instant.now(clock).plus(Duration.ofHours(parameters.intValue("round2.offer_hours")));
+        int maxOptions = Math.max(1, parameters.intValue("round2.max_options"));
 
         for (Applications.Candidate c : waitlisted.stream()
                 .sorted(Comparator.comparing(Applications.Candidate::submittedAt,
@@ -112,7 +111,7 @@ class Round2Offers {
             List<Applications.Round2Option> chosen = options.stream()
                     .sorted(Comparator.comparing((Applications.Round2Option o) -> Math.abs(o.difference()))
                             .thenComparing(Applications.Round2Option::difference))
-                    .limit(MAX_OPTIONS).toList();
+                    .limit(maxOptions).toList();
             if (chosen.isEmpty()) {
                 continue;
             }

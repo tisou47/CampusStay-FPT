@@ -54,6 +54,9 @@ public interface Inventory {
     /** {@link #bedsOfBuilding(long, long)} with the Room Class of the current Term. */
     List<BedSlot> bedsOfBuilding(long buildingId);
 
+    /** The ids of every Bed of these Blocks, retired ones included: a scope filter that lists can push into SQL. */
+    List<Long> bedIdsOfBuildings(Collection<Long> buildingIds);
+
     /** {@link #assignableBeds(long)} with the Room Class (and the Blocks and Rooms) of the current Term. */
     List<BedSlot> assignableBeds();
 

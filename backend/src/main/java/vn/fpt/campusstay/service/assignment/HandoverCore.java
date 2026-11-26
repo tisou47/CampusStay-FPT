@@ -83,10 +83,12 @@ class HandoverCore {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
+    private final vn.fpt.campusstay.service.setting.TermCatalog terms;
 
     HandoverCore(JdbcClient jdbc, Inventory inventory, InspectionRecords inspections, Billing billing,
             Residences residences, Parameters parameters, ApplicationEventPublisher events, AuditLog audit,
-            Clock clock) {
+            Clock clock, vn.fpt.campusstay.service.setting.TermCatalog terms) {
+        this.terms = terms;
         this.jdbc = jdbc;
         this.inventory = inventory;
         this.inspections = inspections;
@@ -214,7 +216,8 @@ class HandoverCore {
 
     /** A new inventory for the Allocation: its items with their baseline, and the Room's meters before it. */
     long open(Alloc a, Inventory.BedSlot bed, Instant now) {
-        Instant due = now.plus(Duration.ofHours(parameters.intValue("handover.submit_hours")));
+        Instant due = dueFor(a).filter(d -> d.isAfter(now))
+                .orElse(now.plus(Duration.ofHours(parameters.intValue("handover.submit_hours"))));
         Optional<InspectionRecords.Meters> meters = baselineMeters(bed.roomId());
         long id = jdbc.sql("""
                 INSERT INTO asg_handover (allocation_id, room_id, status, opened_at, due_at, baseline_electricity,
@@ -234,6 +237,26 @@ class HandoverCore {
                     .param("source", b == null ? null : b.source()).update();
         }
         return id;
+    }
+
+    /**
+     * The check-in inventory deadline (owner decision 25/11/2026): the end of the Term's last check-in day, or of the
+     * arrival deadline of an approved late check-in when that is later. Empty when the Term has no check-in end.
+     */
+    Optional<Instant> dueFor(Alloc a) {
+        LocalDate end = terms.findPublished(a.termId()).map(vn.fpt.campusstay.dto.setting.TermSummary::checkInEnd)
+                .orElse(null);
+        LocalDate late = lateArrival(a.id()).orElse(null);
+        LocalDate day = end == null ? late : late != null && late.isAfter(end) ? late : end;
+        return Optional.ofNullable(day).map(d -> d.plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant());
+    }
+
+    /** The arrival deadline of the Allocation's approved late check-in, if any. */
+    Optional<LocalDate> lateArrival(long allocationId) {
+        return jdbc.sql("""
+                SELECT max(deadline) FROM asg_late_check_in WHERE allocation_id = :a AND status = 'APPROVED'
+                """).param("a", allocationId).query((rs, i) -> rs.getObject(1, LocalDate.class)).optional()
+                .flatMap(Optional::ofNullable);
     }
 
     /** Compares the student's answers with the baseline and stores the result. */
@@ -324,7 +347,14 @@ class HandoverCore {
         Instant readAt = switch (source) {
             case "VERIFIED" -> h.verifiedAt() != null ? h.verifiedAt() : now;
             case "STUDENT" -> h.submittedAt() != null ? h.submittedAt() : now;
-            default -> a.codeReleasedAt() != null ? a.codeReleasedAt() : h.openedAt();
+            // AUTO: Utility counts from the code's release (check-in open, or a later payment), and an approved late
+            // arrival is not charged before its arrival day (owner decision 25/11/2026).
+            default -> {
+                Instant released = a.codeReleasedAt() != null ? a.codeReleasedAt() : h.openedAt();
+                Instant arrival = lateArrival(a.id()).map(d -> d.atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant())
+                        .orElse(null);
+                yield arrival != null && arrival.isAfter(released) ? arrival : released;
+            }
         };
         Inventory.BedSlot bed = inventory.beds(a.termId(), List.of(a.bedId())).get(a.bedId());
         if (electricity != null && water != null && bed != null) {

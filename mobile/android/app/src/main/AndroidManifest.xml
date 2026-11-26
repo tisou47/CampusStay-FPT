@@ -53,5 +53,10 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:mimeType="application/pdf"/>
         </intent>
+        <!-- open_filex: "My data" (a JSON file) opens in a viewer. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="application/json"/>
+        </intent>
     </queries>
 </manifest>

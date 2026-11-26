@@ -262,7 +262,8 @@ public class AssignmentQueries {
                 .filter(Objects::nonNull).toList());
         Map<Long, String> typeNames = typeNames();
         Map<Long, String> classNames = classNames();
-        List<ProposalItem> rows = pageItems.stream().map(i -> {
+        // an Application no longer returned is left out instead of a 500 (BE-ASG-23)
+        List<ProposalItem> rows = pageItems.stream().filter(i -> apps.containsKey(i.applicationId())).map(i -> {
             Applications.Candidate c = apps.get(i.applicationId());
             Inventory.BedSlot bed = i.bedId() == null ? null : beds.get(i.bedId());
             return new ProposalItem(c.code(), c.studentName(), c.studentCode(), c.partnerApplicationId() != null,

@@ -35,3 +35,23 @@ test('a lone separator followed by exactly three digits is ambiguous (M1)', () =
   assert.equal(parseDecimal('0,125'), 0.125)
   assert.equal(parseDecimal('1.25'), 1.25)
 })
+
+test('parseReading: one reader for every meter input (WEB-OPS-17)', async () => {
+  const { parseReading } = await import('./numbers.js')
+  assert.equal(parseReading('12,5'), 12.5)
+  assert.equal(parseReading('1.234,5'), 1234.5)
+  assert.equal(parseReading(''), null)
+  assert.ok(Number.isNaN(parseReading('1.234')))
+  assert.ok(Number.isNaN(parseReading('abc')))
+  assert.ok(Number.isNaN(parseReading('-3')))
+  assert.equal(parseReading('0'), 0)
+})
+
+test('byteSize picks the unit', async () => {
+  const { byteSize } = await import('./numbers.js')
+  assert.deepEqual(byteSize(0), { value: 0, unit: 'B' })
+  assert.deepEqual(byteSize(1023), { value: 1023, unit: 'B' })
+  assert.deepEqual(byteSize(1536), { value: 1.5, unit: 'KB' })
+  assert.deepEqual(byteSize(5 * 1024 * 1024), { value: 5, unit: 'MB' })
+  assert.deepEqual(byteSize(null), { value: 0, unit: 'B' })
+})

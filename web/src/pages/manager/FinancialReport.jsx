@@ -16,7 +16,7 @@ import { t, tr } from '@/i18n'
 // GET /reports/financial?termId&block → { asOf, blocks: [string],
 //   rows: [{ block, invoiced, collected, outstanding, refunded }],
 //   summary: { invoiced, collected, outstanding, refunded, outstandingInvoices, overdueInvoices, refundCount } }
-// GET /exports/financial?termId&block (.xlsx)
+// GET /exports/financial?termId&block (.csv)
 
 const columns = ['invoiced', 'collected', 'outstanding', 'refunded']
 const rate = (r) => (r.invoiced ? formatPercent(r.collected / r.invoiced) : '—')
@@ -29,7 +29,7 @@ export default function FinancialReport() {
   const query = useQuery(['reports', 'financial', params], ({ signal }) => api.finance.report(params, { signal }))
   const d = query.data
   const s = d?.summary
-  const exporting = useMutation(() => api.exports.download('financial', params, 'financial.xlsx'), { onError: (e) => notifyError(e, 'Export failed') })
+  const exporting = useMutation(() => api.exports.download('financial', params, 'financial.csv'), { onError: (e) => notifyError(e, 'Export failed') })
 
   return (
     <>
@@ -39,7 +39,7 @@ export default function FinancialReport() {
         actions={
           <>
             <Button icon={Download} onClick={() => exporting.run()} disabled={!d || exporting.pending}>
-              Export .xlsx
+              Export CSV
             </Button>
           </>
         }

@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -77,57 +78,6 @@ class NotificationsScreen extends StatelessWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-/// Home's notifications card: the newest few, the unread count and "See all".
-class NotificationsCard extends StatelessWidget {
-  const NotificationsCard({super.key, required this.data, required this.reload, required this.seeAll});
-
-  /// The answer of `GET /notifications?limit=…`.
-  final Json data;
-  final Future<void> Function() reload;
-  final VoidCallback seeAll;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = data.objects('items').take(3).toList();
-    final unread = (data.number('unread') ?? 0).toInt();
-    return Panel(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            spacing: 8,
-            children: [
-              const Icon(Icons.notifications_none, size: 20, color: Tokens.fg),
-              Expanded(
-                child: Text(
-                  t('Notifications', 'Thông báo'),
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                ),
-              ),
-              if (unread > 0) Tag(t('$unread new', '$unread mới'), tone: Tone.brand, dot: false),
-              SmallAction(t('See all', 'Xem tất cả'), onPressed: seeAll),
-            ],
-          ),
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                t('No notifications yet.', 'Chưa có thông báo.'),
-                style: const TextStyle(color: Tokens.fgTertiary),
-              ),
-            )
-          else
-            for (var i = 0; i < items.length; i++) ...[
-              if (i > 0) const Divider(height: 1, indent: 52),
-              NotificationRow(n: items[i], reload: reload, compact: true),
-            ],
-        ],
       ),
     );
   }

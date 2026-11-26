@@ -2,7 +2,6 @@ package vn.fpt.campusstay.service.notification;
 
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.StudentVerificationRequested;
@@ -18,7 +17,7 @@ class AccountNotificationListener {
         this.notifier = notifier;
     }
 
-    @EventListener
+    @AfterCommit
     void on(StudentVerificationRequested e) {
         for (long manager : e.managerIds()) {
             notifier.notify(manager, "STUDENT_VERIFICATION_REQUESTED",
@@ -26,7 +25,7 @@ class AccountNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(StudentVerified e) {
         notifier.notify(e.userId(), "STUDENT_VERIFIED", Map.of(), "/student");
     }

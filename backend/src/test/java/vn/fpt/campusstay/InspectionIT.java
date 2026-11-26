@@ -230,7 +230,10 @@ class InspectionIT {
         roomChecks(run, staff, itemIds, rooms);
 
         getAs("/inspection-runs/" + run + "/rooms", bearer(mvc, TestAuth.STAFF_B2)).andExpect(status().isForbidden());
-        stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isNoContent());
+        // Rooms are left unfinished: sending needs the inspector's confirmation (BE-OPS-16).
+        stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SUBMIT_NOT_CONFIRMED"));
+        stay.postJson("/inspection-runs/" + run + "/submit", staff, "{\"confirmed\":true}").andExpect(status().isNoContent());
         stay.postJson("/inspection-runs/" + run + "/submit", staff, "{}").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RUN_SUBMITTED"));
         getAs("/inspection-schedules?block=A", manager)

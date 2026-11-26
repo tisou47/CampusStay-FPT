@@ -404,7 +404,9 @@ public class InspectionRunService {
                     """).param("room", room.id()).param("key", checkKey(check.id())).param("result", result)
                     .param("note", note == null || note.length() <= NOTE_MAX ? note : note.substring(0, NOTE_MAX))
                     .param("request", requestId).param("condition", choice.condition()).update();
-            if (check.kind().equals("furniture") && choice.condition() != null) {
+            // Published when the condition changes, so saving a Room again adds no duplicate history (BE-OPS-16).
+            boolean sameCondition = previous != null && Objects.equals(previous.condition(), choice.condition());
+            if (check.kind().equals("furniture") && choice.condition() != null && !sameCondition) {
                 long itemId = Long.parseLong(check.id().substring("furniture-".length()));
                 events.publishEvent(new vn.fpt.campusstay.event.FurnitureDamaged(itemId, choice.condition(),
                         "Inspection " + InspectionScheduleService.code(run.id())
@@ -470,11 +472,15 @@ public class InspectionRunService {
         currentUser.require(Permission.PROCESS_MAINTENANCE);
         Run run = run(id, true);
         open(run);
-        jdbc.sql("UPDATE mnt_inspection_run SET status = 'SUBMITTED', submitted_at = :now WHERE id = :id")
-                .param("now", Timestamp.from(Instant.now(clock))).param("id", run.id()).update();
         List<RoomRow> rows = roomRows(run.id());
         long inspected = rows.stream().filter(r -> r.status().equals("INSPECTED")).count();
         long unfinished = rows.stream().filter(r -> r.status().equals("PENDING")).count();
+        if (unfinished > 0 && !confirmed) { // BE-OPS-16: the commitment the Audit Log records is asked for
+            throw ApiException.conflict("SUBMIT_NOT_CONFIRMED",
+                    "Some Rooms are not finished. Confirm to send the results anyway.");
+        }
+        jdbc.sql("UPDATE mnt_inspection_run SET status = 'SUBMITTED', submitted_at = :now WHERE id = :id")
+                .param("now", Timestamp.from(Instant.now(clock))).param("id", run.id()).update();
         audit.record("INSPECTION_SUBMITTED", unfinished > 0 ? AuditLog.Tone.WARNING : AuditLog.Tone.SUCCESS,
                 "Inspection run", run.id(), InspectionScheduleService.code(run.id()),
                 Map.of("inspected", inspected, "unfinished", unfinished, "confirmed", confirmed));

@@ -811,6 +811,7 @@ public class FurnitureService {
     }
 
     /** A Maintenance Request names the item: its history keeps the repair (spec §6.18), and resolving resets it. */
+    // Same transaction: the item's history is part of the repair record.
     @EventListener
     void on(FurnitureRepairLogged repair) {
         Instant now = Instant.now(clock);
@@ -849,6 +850,7 @@ public class FurnitureService {
     }
 
     /** Damage/condition recorded at a check-out, check-in or inspection: Worn keeps In use; Damaged/Missing becomes Broken. */
+    // Same transaction: the item's status follows the recorded damage.
     @EventListener
     void on(FurnitureDamaged damaged) {
         String before = jdbc.sql("SELECT status FROM inv_furniture_item WHERE id = :id FOR UPDATE")

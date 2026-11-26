@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -43,6 +44,11 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _finish(Json result) async {
     final user = result.obj('user') ?? {};
     if (user['role'] != 'student') {
+      // MOB-12: end the session the API just opened, so no 30-day session is left behind.
+      final token = result.str('token');
+      if (token != null) await signOutToken(token);
+      await googleSignOut();
+      if (!mounted) return;
       setState(
         () => _error = t(
           'This app is for students. Staff and Managers use the web.',
@@ -159,6 +165,29 @@ Future<String?> googleIdToken() async {
   }
   final account = await google.authenticate();
   return account.authentication.idToken;
+}
+
+/// Forgets the Google account chosen at sign-in, so the next student on this phone sees the account picker (MOB-21).
+Future<void> googleSignOut() async {
+  if (!_googleReady) return;
+  try {
+    await GoogleSignIn.instance.signOut();
+  } catch (_) {
+    // best effort
+  }
+}
+
+/// Ends the session of [token] at the API (`POST /auth/sign-out`) without touching the app's own session.
+Future<void> signOutToken(String token) async {
+  final saved = Api.token;
+  Api.token = token;
+  try {
+    await Api.post('/auth/sign-out');
+  } on ApiException {
+    // the session expires on its own
+  } finally {
+    Api.token = saved;
+  }
 }
 
 /// The first password of an account made by Google sign-up (spec §6.1 step 3, `POST /auth/password/set`): until it

@@ -144,7 +144,7 @@ export default function RefundsTerminations() {
             </Table>
           </Card>
           {!draft.policyConfirmed && (
-            <Alert type="warning" title="Refund policy not confirmed" className="shrink-0" action={<Button onClick={() => cfg.save({ policyConfirmed: true })} disabled={cfg.saving}>Confirm policy</Button>}>
+            <Alert type="warning" title="Refund policy not confirmed" className="shrink-0" action={<Button onClick={() => cfg.save({ policyConfirmed: true })} disabled={cfg.saving || cfg.dirty} title={cfg.dirty ? t('Save or discard your changes first.') : undefined}>Confirm policy</Button>}>
               Confirm the percentages and approvers once the dormitory has approved its refund policy.
             </Alert>
           )}

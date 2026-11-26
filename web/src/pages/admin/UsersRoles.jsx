@@ -28,7 +28,7 @@ function UserModal({ user, roles, scopes, onClose }) {
   const isNew = !user.id
   const [form, setForm] = useState({ name: user.name ?? '', email: user.email ?? '', role: user.role ?? roles[0] ?? '', scope: user.scope ?? scopes[0] ?? '', status: user.status ?? 'Invited' })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const save = useMutation(() => (isNew ? api.admin.users.invite({ name: form.name.trim(), email: form.email.trim(), role: form.role, scope: form.scope }) : api.admin.users.update(user.id, form)), {
+  const save = useMutation(() => (isNew ? api.admin.users.invite({ name: form.name.trim(), email: form.email.trim().toLowerCase(), role: form.role, scope: form.scope }) : api.admin.users.update(user.id, form)), {
     invalidates: ['admin-users'],
     onSuccess: () => {
       notify({ title: isNew ? t('Invite sent') : t('{name} updated', { name: form.name }), message: isNew ? t('{email} can sign in after accepting the invite.', { email: form.email }) : 'The change is written to the audit log.' })
@@ -45,7 +45,7 @@ function UserModal({ user, roles, scopes, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} disabled={!form.name.trim() || !form.email.trim().endsWith('@fpt.edu.vn') || save.pending} onClick={() => save.run()}>
+          <Button variant="primary" icon={Check} disabled={!form.name.trim() || !form.email.trim().toLowerCase().endsWith('@fpt.edu.vn') || save.pending} onClick={() => save.run()}>
             {isNew ? t('Send invite') : t('Save')}
           </Button>
         </>

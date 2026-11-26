@@ -10,7 +10,7 @@ import { Alert, Card, Divider } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { ErrorState, LoadingState, Spinner } from '@/components/ui/States'
-import { formatNumber } from '@/lib/format'
+import { formatNumber, formatTime } from '@/lib/format'
 import { ConfigPage } from './shared'
 import { t } from '@/i18n'
 
@@ -29,6 +29,9 @@ export default function SendEmail() {
   const [form, setForm] = useState({ mode: 'bulk', studentCode: '', termId: '', group: '', block: '', gender: '', templateKey: '', subject: '', channel: '', sendAt: '' })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const [confirming, setConfirming] = useState(false)
+  // The last send: Send stays off until the form changes, so two clicks never queue the same email twice (WEB-ADM-27).
+  const [lastSent, setLastSent] = useState(null)
+  const sentAlready = lastSent?.form === form
 
   // Defaults once the options arrive.
   useEffect(() => {
@@ -60,6 +63,7 @@ export default function SendEmail() {
   const send = useMutation(() => api.admin.emails.send({ ...recipients, channel: form.channel, sendAt: form.sendAt }), {
     onSuccess: (res) => {
       setConfirming(false)
+      setLastSent({ form, at: new Date(), n: res?.queued ?? count })
       notify({ title: form.sendAt === 'now' ? 'Email queued' : 'Email scheduled', message: t('{n} recipients. Written to the audit log.', { n: formatNumber(res?.queued ?? count) }) })
     },
     onError: () => {},
@@ -75,7 +79,12 @@ export default function SendEmail() {
       actions={
         <>
           <Button to="/admin/notifications">Templates</Button>
-          <Button variant="primary" icon={Send} onClick={() => setConfirming(true)} disabled={!ready || !count || stale}>
+          {sentAlready && (
+            <span className="text-sm text-fg-secondary" role="status">
+              {t('Sent at {time} to {n} students. Change the form to send another.', { time: formatTime(lastSent.at), n: formatNumber(lastSent.n) })}
+            </span>
+          )}
+          <Button variant="primary" icon={Send} onClick={() => setConfirming(true)} disabled={!ready || !count || stale || sentAlready || send.pending}>
             Send email
           </Button>
         </>

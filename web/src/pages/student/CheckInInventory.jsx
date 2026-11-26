@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { PHOTO_ACCEPT, PHOTO_MAX_MB, photoProblem } from '@/lib/uploads'
+import { parseReading } from '@/lib/numbers'
 import { Camera, CircleCheck, ClipboardList, KeyRound, Printer, Trash2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
@@ -15,6 +17,7 @@ import { formatCurrency, formatDateTime } from '@/lib/format'
 import { t, tr } from '@/i18n'
 import { StudentPage } from './shared'
 import { ConditionGuide } from './room/ConditionGuide'
+import { DoorCodeCard } from './room/RoomAccessAndFinance'
 
 // Student › My room › Check-in inventory. The student never sees what the dormitory recorded about the Room.
 // GET /students/me/handover → { id, status: Not needed | Waiting | Ready | Draft | Submitted | Verifying | Final, room, bed,
@@ -59,7 +62,13 @@ function PhotoButton({ itemId, onAdded }) {
     <label className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-fg-brand">
       <Camera size={16} aria-hidden="true" />
       {upload.pending ? t('Uploading…') : t('Add photo')}
-      <input type="file" accept="image/jpeg,image/png" capture="environment" className="sr-only" onChange={(e) => e.target.files?.[0] && upload.run(e.target.files[0])} />
+      <input type="file" accept={PHOTO_ACCEPT} capture="environment" className="sr-only" onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (!file) return
+          if (photoProblem(file)) notifyError(new Error(photoProblem(file) === 'size' ? t('{name} is larger than {n} MB. Take a smaller photo.', { name: file.name, n: PHOTO_MAX_MB }) : t('{name} is not a JPEG or PNG photo.', { name: file.name })), 'Could not add the photo')
+          else upload.run(file)
+        }} />
     </label>
   )
 }
@@ -69,7 +78,7 @@ function Start({ data }) {
   const [open, setOpen] = useState(false)
   const start = useMutation(() => api.handover.start(), {
     invalidates: ['handover', 'allocation', 'door-code'],
-    onSuccess: () => notify({ title: 'Inventory started', message: 'Your door code is on My room. File the inventory before the deadline.' }),
+    onSuccess: () => notify({ title: 'Inventory started', message: 'Answer each item and the meters, then submit before the deadline.' }),
     onError: (e) => notifyError(e, 'Could not start the inventory'),
   })
   const ready = data.status === 'Ready'
@@ -77,7 +86,9 @@ function Start({ data }) {
     <Card className="flex flex-col gap-3">
       <CardHeader
         title="Receive your Room"
-        description="At the Room, start the check-in inventory: you receive the door code and record the condition of your Bed's items, the shared items and the meters."
+        description={data.dueAt
+          ? t("Your door code is above. File the check-in inventory by {date}: Utility then counts from your own meter reading. Without it, the Room's recorded condition is used and Utility counts from the day you received the code.", { date: formatDateTime(data.dueAt) })
+          : "Your door code is above. File the check-in inventory: record the condition of your Bed's items, the shared items and the meters."}
       />
       <ul className="flex flex-col gap-1.5">
         {data.checks.map((c) => (
@@ -96,12 +107,12 @@ function Start({ data }) {
         open={open}
         onClose={() => setOpen(false)}
         title="Start the check-in inventory?"
-        description="Do it when you are at the Room. You receive the door code now, and you have 48 hours to file the inventory: after that the Room's recorded condition is used and you can no longer report damage that was already there."
+        description={t("Do it at the Room. Submit it by {date}: after that the Room's recorded condition is used and you can no longer report damage that was already there.", { date: data.dueAt ? formatDateTime(data.dueAt) : '—' })}
         footer={
           <>
             <Button onClick={() => setOpen(false)}>Not yet</Button>
             <Button variant="primary" disabled={start.pending} onClick={() => start.run().then(() => setOpen(false))}>
-              I am at the Room, start
+              Start
             </Button>
           </>
         }
@@ -115,10 +126,11 @@ function Form({ data }) {
   const [answers, setAnswers] = useState(Object.fromEntries(data.items.map((i) => [i.itemId, { condition: i.condition ?? '', note: i.note ?? '' }])))
   const [electricity, setElectricity] = useState(data.electricity ?? '')
   const [water, setWater] = useState(data.water ?? '')
+  const readingsBad = Number.isNaN(parseReading(electricity)) || Number.isNaN(parseReading(water))
   const body = () => ({
     items: Object.entries(answers).filter(([, a]) => a.condition).map(([itemId, a]) => ({ itemId, condition: a.condition, note: a.note || undefined })),
-    electricity: electricity === '' ? undefined : Number(electricity),
-    water: water === '' ? undefined : Number(water),
+    electricity: parseReading(electricity) ?? undefined,
+    water: parseReading(water) ?? undefined,
   })
   const save = useMutation(() => api.handover.save(body()), {
     invalidates: ['handover'],
@@ -197,10 +209,10 @@ function Form({ data }) {
         <span className="text-base font-medium text-fg">{t('Meters of the Room')}</span>
         <div className="flex flex-wrap gap-3">
           <Field label="Electricity (kWh)" required className="w-44">
-            <Input type="number" min="0" step="0.1" value={electricity} onChange={(e) => setElectricity(e.target.value)} />
+            <Input inputMode="decimal" invalid={Number.isNaN(parseReading(electricity))} value={electricity} onChange={(e) => setElectricity(e.target.value)} />
           </Field>
           <Field label="Water (m³)" required className="w-44">
-            <Input type="number" min="0" step="0.1" value={water} onChange={(e) => setWater(e.target.value)} />
+            <Input inputMode="decimal" invalid={Number.isNaN(parseReading(water))} value={water} onChange={(e) => setWater(e.target.value)} />
           </Field>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -215,10 +227,10 @@ function Form({ data }) {
         Your answers are compared with the Room's record. A large difference brings Staff to the Room to check it with you, and the inventory you make together is the one that counts.
       </Alert>
       <div className="flex justify-end gap-2">
-        <Button onClick={() => save.run()} disabled={save.pending}>
+        <Button onClick={() => save.run()} disabled={save.pending || readingsBad}>
           Save draft
         </Button>
-        <Button variant="primary" onClick={() => submit.run()} disabled={submit.pending}>
+        <Button variant="primary" onClick={() => submit.run()} disabled={submit.pending || readingsBad}>
           Submit inventory
         </Button>
       </div>
@@ -309,9 +321,9 @@ function Summary({ data }) {
                     · {i.assetCode} · {i.personal ? t('Your Bed {bed}', { bed: i.bed }) : t('Shared')}
                   </span>
                 </span>
-                <span>{i.condition ? <Tag tone={conditionTone[i.condition] ?? 'neutral'}>{conditionName(i.condition)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
+                <span>{i.condition ? <Tag tone={conditionTone[i.condition] ?? 'neutral'}>{conditionName(i.condition, data.conditionLevels)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
                 {visited && (
-                  <span>{i.staffCondition ? <Tag tone={conditionTone[i.staffCondition] ?? 'neutral'}>{conditionName(i.staffCondition)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
+                  <span>{i.staffCondition ? <Tag tone={conditionTone[i.staffCondition] ?? 'neutral'}>{conditionName(i.staffCondition, data.conditionLevels)}</Tag> : <span className="text-fg-tertiary">—</span>}</span>
                 )}
               </div>
               {(i.note || i.staffNote) && (
@@ -380,7 +392,7 @@ function FurnitureCharges() {
   })
   const answer = useMutation((id, acknowledge) => api.checkOutFurniture.answerClaim(id, { acknowledge }), {
     invalidates: ['check-out-furniture'],
-    onSuccess: (_, __, acknowledge) => notify({ title: acknowledge ? 'Damage confirmed' : 'Damage declined', message: acknowledge ? 'It is charged at check-out.' : 'You are not charged for it.' }),
+    onSuccess: (_, __, acknowledge) => notify({ title: acknowledge ? 'Damage confirmed' : 'Damage declined', message: acknowledge ? 'It is charged at check-out.' : 'A Manager reviews it and decides whether it is charged.' }),
     onError: (e) => notifyError(e, 'Could not answer'),
   })
   const d = query.data
@@ -395,9 +407,9 @@ function FurnitureCharges() {
         description="Only what got worse while you lived here is charged; items that were already damaged and normal wear are not."
       />
       {pending.map((c) => (
-        <Alert key={c.id} type="warning" title={t('Did you damage {item}?', { item: `${c.type} ${c.assetCode}` })}>
+        <Alert key={c.id} type="warning" title={t('Did you damage {item}?', { item: `${typeName(c)} ${c.assetCode}` })}>
           <div className="flex flex-col gap-2">
-            <span>{t('Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: nobody is charged.', { condition: conditionName(c.condition), date: formatDateTime(c.dueAt), amount: formatCurrency(c.amount) })}</span>
+            <span>{t('Staff recorded it as {condition}. If it was you, confirm by {date}: {amount} is charged at check-out. Otherwise decline: a Manager reviews it and decides.', { condition: conditionName(c.condition, d.conditionLevels), date: formatDateTime(c.dueAt), amount: formatCurrency(c.amount) })}</span>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => answer.run(c.id, false)} disabled={answer.pending}>
                 Decline
@@ -541,9 +553,16 @@ export default function CheckInInventory() {
                 </EmptyBlock>
               </Card>
             ) : d.status === 'Waiting' || d.status === 'Ready' ? (
-              <Start data={d} />
+              <>
+                {/* Owner decision 25/11/2026: the code is released when check-in opens, before any inventory. */}
+                <DoorCodeCard />
+                <Start data={d} />
+              </>
             ) : d.status === 'Draft' ? (
-              <Form key={d.id} data={d} />
+              <>
+                <DoorCodeCard />
+                <Form key={d.id} data={d} />
+              </>
             ) : (
               <Summary data={d} />
             )

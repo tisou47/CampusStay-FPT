@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.auth;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -39,8 +41,11 @@ public class SessionService {
     private final BlockDirectory blocks;
     private final DutyPresence duty;
 
-    public SessionService(SessionRepository sessions, JdbcClient jdbc, AuthProperties props, Clock clock,
+    private final ScheduledJobs jobs;
+
+    public SessionService(ScheduledJobs jobs, SessionRepository sessions, JdbcClient jdbc, AuthProperties props, Clock clock,
             BlockDirectory blocks, DutyPresence duty) {
+        this.jobs = jobs;
         this.sessions = sessions;
         this.jdbc = jdbc;
         this.props = props;
@@ -130,7 +135,9 @@ public class SessionService {
     @Scheduled(cron = "0 15 3 * * *", zone = "Asia/Ho_Chi_Minh")
     @Transactional
     public void purgeOldSessions() {
-        sessions.deleteExpiredBefore(Instant.now(clock).minus(Duration.ofDays(30)));
+        jobs.run("auth.session-purge", () -> {
+            sessions.deleteExpiredBefore(Instant.now(clock).minus(Duration.ofDays(30)));
+        });
     }
 
     private void touchIfDue(SessionRow row, Instant now) {

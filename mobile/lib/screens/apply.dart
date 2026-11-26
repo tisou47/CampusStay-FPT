@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -156,12 +157,14 @@ class _ApplyScreenState extends State<ApplyScreen> {
     });
     try {
       final r = await Api.post('/applications/roommate-check', {'termId': _term?.str('id'), 'studentCode': value});
+      if (!mounted) return;
       setState(() {
         _verifiedCode = r.flag('valid') ? value : null;
         _rejected = !r.flag('valid');
         _checksLeft = r.number('checksLeft')?.toInt();
       });
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() => _checkError = e.message);
     }
     if (mounted) setState(() => _checking = false);
@@ -406,7 +409,10 @@ class _ApplyScreenState extends State<ApplyScreen> {
                           )
                         : t('Matched automatically by gender.', 'Ghép tự động theo giới tính.')),
               ],
-              onTap: () => setState(() => _roomTypeId = rt.str('id')),
+              onTap: () => setState(() {
+                _roomTypeId = rt.str('id');
+                if (_price(_roomTypeId, _roomClassId) == null) _roomClassId = null; // MOB-31
+              }),
             ),
         ],
       ),
@@ -418,6 +424,16 @@ class _ApplyScreenState extends State<ApplyScreen> {
         ),
         children: [
           for (final c in _roomClasses)
+            // MOB-31: a Room Class without a price for the chosen Room Type shows "—" and cannot be chosen.
+            if (_roomTypeId != null && _price(_roomTypeId, c.str('id')) == null)
+              OptionTile(
+                selected: false,
+                title: label(c.str('name')),
+                trailing: '—',
+                lines: [t('Not offered with this Room Type', 'Không có với loại phòng này')],
+                onTap: null,
+              )
+            else
             OptionTile(
               selected: _roomClassId == c.str('id'),
               title: '${label(c.str('name'))}  ${surcharge(c.number('surchargeRate'))}',

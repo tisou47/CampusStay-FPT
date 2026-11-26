@@ -229,7 +229,8 @@ public class StudentInvoiceService {
         boolean waiting = i.status().equals("UNPAID") || i.status().equals("OVERDUE");
         Qr qr = null;
         if (waiting && payment.accountConfigured()) {
-            Instant expires = i.qrExpiresAt() != null ? i.qrExpiresAt() : startQr(i.id());
+            // Only the student's own visit starts the window; the back office sees it as it is (BE-APP-BIL-12).
+            Instant expires = i.qrExpiresAt() != null || !ownStudent(i) ? i.qrExpiresAt() : startQr(i.id());
             qr = new Qr(qrImage(i), expires);
         }
         boolean canClaim = waiting && currentUser.get().is(Role.STUDENT)
@@ -252,7 +253,12 @@ public class StudentInvoiceService {
             throw ApiException.conflict("INVOICE_NOT_PAYABLE", "This Invoice cannot be paid: it is " +
                     InvoiceLabels.status(i.status()).toLowerCase(Locale.ROOT) + ".");
         }
-        return new QrRefresh(new Qr(qrImage(i), startQr(i.id())));
+        return new QrRefresh(new Qr(qrImage(i), ownStudent(i) ? startQr(i.id()) : i.qrExpiresAt()));
+    }
+
+    private boolean ownStudent(InvoiceStore.Invoice i) {
+        AuthenticatedUser user = currentUser.get();
+        return user.is(Role.STUDENT) && user.userId() == i.studentId();
     }
 
     @Transactional(readOnly = true)

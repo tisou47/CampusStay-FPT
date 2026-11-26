@@ -28,6 +28,8 @@ import vn.fpt.campusstay.security.Tokens;
 @Service
 public class FileStore {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FileStore.class);
+
     public static final Set<String> IMAGES_AND_PDF = Set.of("image/jpeg", "image/png", "application/pdf");
     public static final Set<String> IMAGES = Set.of("image/jpeg", "image/png");
 
@@ -72,7 +74,29 @@ public class FileStore {
         return new StoredFile(id, name, type, bytes.length);
     }
 
+    /** {@link #info} of several files in one query, by id (ids not found are left out). */
     @Transactional(readOnly = true)
+    public java.util.Map<Long, StoredFile> infos(java.util.Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return java.util.Map.of();
+        }
+        return jdbc.sql("SELECT id, original_name, content_type, size_bytes FROM shared_file WHERE id IN (:ids)")
+                .param("ids", java.util.List.copyOf(ids))
+                .query((rs, i) -> new StoredFile(rs.getLong("id"), rs.getString("original_name"),
+                        rs.getString("content_type"), rs.getLong("size_bytes")))
+                .list().stream().collect(java.util.stream.Collectors.toMap(StoredFile::id, f -> f));
+    }
+
+    @Transactional(readOnly = true)
+    public record Usage(long files, long bytes) {
+    }
+
+    /** What the uploads hold, from their metadata (Admin › System health, D2). */
+    public Usage usage() {
+        return jdbc.sql("SELECT count(*) AS files, coalesce(sum(size_bytes), 0) AS bytes FROM shared_file")
+                .query((rs, i) -> new Usage(rs.getLong("files"), rs.getLong("bytes"))).single();
+    }
+
     public Optional<StoredFile> info(long id) {
         return jdbc.sql("SELECT id, original_name, content_type, size_bytes FROM shared_file WHERE id = :id")
                 .param("id", id)
@@ -85,11 +109,15 @@ public class FileStore {
     public Optional<FileContent> read(long id) {
         return jdbc.sql("SELECT storage_key FROM shared_file WHERE id = :id").param("id", id).query(String.class)
                 .optional()
-                .flatMap(key -> info(id).map(file -> {
+                .flatMap(key -> info(id).flatMap(file -> {
                     try {
-                        return new FileContent(file, Files.readAllBytes(root.resolve(key)));
+                        return Optional.of(new FileContent(file, Files.readAllBytes(root.resolve(key))));
+                    } catch (java.nio.file.NoSuchFileException e) {
+                        // The row outlived its bytes (another volume or FILES_DIR): "does not exist", not a 500.
+                        log.warn("Stored file {} has no bytes on disk", id);
+                        return Optional.empty();
                     } catch (IOException e) {
-                        throw new UncheckedIOException("Stored file " + id + " is missing", e);
+                        throw new UncheckedIOException("Stored file " + id + " could not be read", e);
                     }
                 }));
     }

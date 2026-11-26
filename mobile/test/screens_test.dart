@@ -12,14 +12,17 @@ import 'package:campusstay_student/screens/family_day.dart';
 import 'package:campusstay_student/screens/apply.dart';
 import 'package:campusstay_student/screens/home.dart';
 import 'package:campusstay_student/screens/payments.dart';
+import 'package:campusstay_student/screens/privacy.dart';
 import 'package:campusstay_student/screens/registration.dart';
 import 'package:campusstay_student/screens/requests.dart';
 import 'package:campusstay_student/screens/room.dart';
 import 'package:campusstay_student/session.dart';
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Widget tests of the student screens against a fake API (fictional data only). The test machine's language is
 // English, so the English texts are checked.
@@ -58,6 +61,8 @@ Future<void> show(WidgetTester tester, Widget screen) async {
 const session = Session('token', 'Nguyễn Văn Demo', 'demo@fpt.edu.vn', 'SE000001', true, 'Verified');
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({})); // My Room keeps its offline copy there (MOB-22)
+
   group('helpers', () {
     test('the schedule joins the registration window and marks the current row', () {
       final now = DateTime.utc(2026, 11, 13);
@@ -143,6 +148,46 @@ void main() {
     await tester.tap(find.text('Deposit'));
     await tester.pumpAndSettle();
     expect(find.text('Pay with VietQR'), findsOneWidget);
+  });
+
+  testWidgets('My data: accept the notice and ask to erase (D3)', (tester) async {
+    useApi({
+      '/students/me/privacy': {'noticeVersion': '2026-11', 'consent': null, 'consentCurrent': false, 'erasure': null},
+      'POST /students/me/privacy/consent': <String, Object>{},
+      'POST /students/me/privacy/erasure': {'id': 1, 'status': 'Pending'},
+    });
+    await show(tester, const MyDataScreen());
+    await tester.tap(find.text('I accept the privacy notice'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('POST /students/me/privacy/consent'));
+    await tester.tap(find.text('Ask to erase my data'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Send request'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('POST /students/me/privacy/erasure'));
+  });
+
+  testWidgets('Invoice payment: a rejected transfer shows the reason, the new deadline and what is left (D4)', (tester) async {
+    useApi({
+      '/invoices/INV-1/payment': {
+        'invoice': {'id': 'INV-1', 'title': 'Deposit', 'amount': 900000, 'status': 'Unpaid', 'dueAt': _future},
+        'qr': null,
+        'bank': null,
+        'transferContent': 'CS INV1',
+        'claim': {
+          'status': 'Rejected',
+          'rejected': 1,
+          'rejectionsToCancel': 2,
+          'lastRejection': {'reason': 'No matching transfer', 'at': _past, 'dueAt': '2026-12-01T10:00:00Z'},
+        },
+        'canClaim': true,
+      },
+    });
+    await show(tester, const InvoiceScreen(id: 'INV-1'));
+    expect(find.textContaining('No matching transfer'), findsOneWidget);
+    expect(find.textContaining('New deadline: 1 Dec 2026 17:00'), findsOneWidget);
+    expect(find.textContaining('One more rejection cancels this Invoice'), findsOneWidget);
+    expect(find.textContaining('1 of 2 that cancel this Invoice'), findsOneWidget);
   });
 
   testWidgets('Invoice payment: the transfer content and "I have transferred"', (tester) async {

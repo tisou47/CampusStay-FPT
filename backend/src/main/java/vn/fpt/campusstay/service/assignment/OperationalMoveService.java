@@ -259,21 +259,22 @@ public class OperationalMoveService {
     public MovePage list(Long termId, String block, PageQuery page) {
         currentUser.require(Permission.MOVE_RESIDENTS);
         Set<Long> scope = blockScope.resolve(block).ids();
+        // Block scope and paging in SQL (BE-ASG-18): a move counts in a Block it left or reached.
         Map<String, Object> params = new HashMap<>();
-        String where = termId == null ? "" : " WHERE term_id = :term";
+        List<Long> scopedBeds = inventory.bedIdsOfBuildings(scope);
+        params.put("beds", scopedBeds.isEmpty() ? List.of(-1L) : scopedBeds);
+        String where = " WHERE (from_bed_id IN (:beds) OR to_bed_id IN (:beds))";
         if (termId != null) {
+            where += " AND term_id = :term";
             params.put("term", termId);
         }
-        List<Move> rows = jdbc.sql("SELECT * FROM asg_move" + where + " ORDER BY moved_at DESC, id DESC").params(params)
+        long total = jdbc.sql("SELECT count(*) FROM asg_move" + where).params(params).query(Long.class).single();
+        List<Move> shown = jdbc.sql("SELECT * FROM asg_move" + where
+                + " ORDER BY moved_at DESC, id DESC LIMIT :limit OFFSET :offset").params(params)
+                .param("limit", page.limit()).param("offset", page.offset())
                 .query(OperationalMoveService::move).list();
-        Map<Long, Inventory.BedSlot> beds = inventory.beds(rows.stream()
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(shown.stream()
                 .flatMap(m -> Stream.of(m.fromBedId(), m.toBedId())).collect(Collectors.toSet()));
-        List<Move> visible = rows.stream().filter(m -> {
-            var from = beds.get(m.fromBedId());
-            var to = beds.get(m.toBedId());
-            return from != null && to != null && (scope.contains(from.buildingId()) || scope.contains(to.buildingId()));
-        }).toList();
-        List<Move> shown = visible.stream().skip(page.offset()).limit(page.limit()).toList();
         Map<Long, UserDirectory.Student> students = users.students(shown.stream().map(Move::studentId).toList());
         Map<Long, String> movers = users.displayNames(shown.stream().map(Move::movedBy).collect(Collectors.toSet()));
         Map<Long, String> termNames = terms.publishedTerms().stream()
@@ -285,7 +286,7 @@ public class OperationalMoveService {
                     beds.get(m.toBedId()).code(), label(m.reason()), m.note(), NEXT_TERM.get(m.nextTerm()),
                     movers.get(m.movedBy()), m.movedAt());
         }).toList();
-        return new MovePage(items, visible.size(), reasons());
+        return new MovePage(items, total, reasons());
     }
 
     // ---------------------------------------------------------------- next-Term rules
