@@ -16,7 +16,7 @@ export function SectionTabs({ role }) {
   if (!group) return null
   const current = group.tabs.findLast((tab) => pathname === tab.to || pathname.startsWith(`${tab.to}/`))
   return (
-    <nav aria-label={t(group.label)} className="-mb-1 flex shrink-0 gap-1 border-b border-line">
+    <nav aria-label={t(group.label)} className="scrollbar-none -mb-1 flex shrink-0 gap-1 overflow-x-auto border-b border-line">
       {group.tabs.map((tab) => {
         const active = tab === current
         return (

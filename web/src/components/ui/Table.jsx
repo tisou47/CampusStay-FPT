@@ -26,7 +26,8 @@ export function Table({ size = 'md', inset = 'md', bare = false, fill = false, c
   return (
     <SizeContext.Provider value={{ size, inset }}>
       <div
-        className={cx('overflow-auto', fill && 'min-h-0 flex-1', className)}
+        // min-w-0: inside a flex row the wrapper must shrink so the table scrolls here, not the whole page.
+        className={cx('min-w-0 max-w-full overflow-auto', fill && 'min-h-0 flex-1', className)}
         {...props}
       >
         <table

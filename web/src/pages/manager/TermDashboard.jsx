@@ -56,8 +56,8 @@ export default function TermDashboard() {
         <KpiTile icon={CreditCard} label="Deposits paid" value={`${formatNumber(d.money.depositsPaid)} / ${formatNumber(d.money.depositsIssued)}`} note={t('Balances paid {paid} / {issued}', { paid: d.money.balancesPaid, issued: d.money.balancesIssued })} />
         <KpiTile icon={LogIn} label="Residents" value={formatNumber(d.residents)} note={t('Door code released · {n} checked in at the desk', { n: formatNumber(d.checkedIn) })} />
       </div>
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <Card className="flex w-96 shrink-0 flex-col gap-3 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 items-stretch gap-4 max-lg:flex-col">
+        <Card className="flex shrink-0 flex-col gap-3 overflow-y-auto lg:w-96">
           <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
             <CalendarRange size={18} aria-hidden="true" />
             {t('Milestones')}

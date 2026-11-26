@@ -67,14 +67,15 @@ export function Alert({ type = 'info', title, children, action, onClose, classNa
   return (
     <div
       role={type === 'error' ? 'alert' : 'status'}
-      className={cx('flex items-start gap-3 rounded-lg px-4 py-3', kind.box, className)}
+      className={cx('flex flex-wrap items-start gap-3 rounded-lg px-4 py-3', kind.box, className)}
     >
       <Glyph size={20} aria-hidden="true" className={cx('mt-px shrink-0', kind.iconColor)} />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-base">
+      {/* 14rem basis: on a narrow screen the action wraps under the text instead of pushing past the edge. */}
+      <div className="flex min-w-0 flex-[1_1_14rem] flex-col gap-0.5 text-base">
         {title && <p className="font-medium text-fg">{tx(title)}</p>}
         {children && <div className="text-fg-secondary">{tx(children)}</div>}
       </div>
-      {action && <div className="shrink-0 self-center">{action}</div>}
+      {action && <div className="max-w-full shrink-0 self-center">{action}</div>}
       {onClose && (
         <button type="button" onClick={onClose} aria-label={t('Dismiss')} className="-m-1 shrink-0 rounded-md p-1 text-fg-tertiary transition-colors hover:bg-surface/60 hover:text-fg">
           <X size={16} aria-hidden="true" />

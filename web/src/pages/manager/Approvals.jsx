@@ -158,7 +158,7 @@ function LateTab() {
   const req = items.find((r) => r.id === selected) ?? items[0]
 
   return (
-    <div className="flex min-h-0 flex-1 items-stretch gap-4">
+    <div className="flex min-h-0 flex-1 items-stretch gap-4 max-md:flex-col max-md:*:w-full">
       <Table fill className="min-w-0">
         <THead>
           <tr>
