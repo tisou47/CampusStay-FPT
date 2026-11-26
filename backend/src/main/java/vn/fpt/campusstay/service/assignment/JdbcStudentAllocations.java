@@ -2,8 +2,11 @@ package vn.fpt.campusstay.service.assignment;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -55,6 +58,17 @@ class JdbcStudentAllocations implements StudentAllocations {
         return found.flatMap(row -> Optional.ofNullable(inventory.beds(List.of(row.bedId())).get(row.bedId()))
                 .map(bed -> new Placement(row.id(), bed.roomCode(), bed.bedLabel(), bed.block(), bed.floor(),
                         row.allocatedAt(), row.residentAt())));
+    }
+
+    @Override
+    public Set<Long> stayEnded(Collection<Long> applicationIds) {
+        if (applicationIds.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(jdbc.sql("""
+                SELECT application_id FROM asg_allocation WHERE application_id IN (:apps)
+                GROUP BY application_id HAVING bool_or(status = 'ENDED') AND NOT bool_or(status = 'ACTIVE')
+                """).param("apps", applicationIds).query(Long.class).list());
     }
 
     @Override

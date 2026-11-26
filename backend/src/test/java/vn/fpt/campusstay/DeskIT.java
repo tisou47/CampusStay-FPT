@@ -391,6 +391,20 @@ class DeskIT {
                 .andExpect(jsonPath("$.items[?(@.type == 'damage')].amount", hasItem((int) owed)));
     }
 
+    /** TC-APP-028: My Applications says when an Allocated Application's stay is over (its Allocation ended). */
+    @Test
+    void myApplicationsShowStayEnded() throws Exception {
+        Placed p = allocate(19).getFirst();
+        getAs("/students/me/applications", p.auth())
+                .andExpect(jsonPath("$.items[0].status").value("Allocated"))
+                .andExpect(jsonPath("$.items[0].stayEnded").value(false));
+        jdbc.sql("UPDATE asg_allocation SET status = 'ENDED', ended_at = now(), end_reason = 'CHECK_OUT' WHERE id = :id")
+                .param("id", Long.parseLong(p.allocationId())).update();
+        getAs("/students/me/applications", p.auth())
+                .andExpect(jsonPath("$.items[0].status").value("Allocated"))
+                .andExpect(jsonPath("$.items[0].stayEnded").value(true));
+    }
+
     /**
      * TC-ASG-045: check-out records the damage of each furniture item of the Room (spec §6.16): the damage charge
      * is their sum, a damaged item becomes Broken with the reason in its history, an item of another Room is

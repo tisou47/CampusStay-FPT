@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,7 +49,7 @@ public class StudentApplicationQueries {
     public record HomeApplication(String id, String status, String roomTypeName, String roomClassName) {
     }
 
-    public record HomeAllocation(String room, String bed, String block, String floor) {
+    public record HomeAllocation(String room, String bed, String block, int floor) {
     }
 
     public record DueInvoice(String id, String type, String title, long amount, Instant dueAt) {
@@ -70,9 +71,12 @@ public class StudentApplicationQueries {
             ProfileContact contact) {
     }
 
-    /** @param stayTerms stay length: the Terms the student wants to stay */
+    /**
+     * @param stayTerms stay length: the Terms the student wants to stay
+     * @param stayEnded Allocated, but the stay is over (no Allocation of it is left that has not ended)
+     */
     public record ApplicationItem(String id, String termName, String roomTypeName, String roomClassName, Long deposit,
-            Instant submittedAt, String status, int stayTerms) {
+            Instant submittedAt, String status, int stayTerms, boolean stayEnded) {
     }
 
     public record ApplicationPage(List<ApplicationItem> items, long total, String activeTermName) {
@@ -190,7 +194,7 @@ public class StudentApplicationQueries {
         return new Home(words[words.length - 1], TermView.of(term),
                 app.map(a -> new HomeApplication(a.code(), ApplicationStore.label(a.status()), names.type(a.roomTypeId()),
                         names.roomClass(a.roomClassId()))).orElse(null),
-                placement.map(p -> new HomeAllocation(p.room(), p.bed(), "Block " + p.block(), "Floor " + p.floor()))
+                placement.map(p -> new HomeAllocation(p.room(), p.bed(), "Block " + p.block(), p.floor()))
                         .orElse(null),
                 placement.map(p -> p.residentAt() != null).orElse(false), due, count, 0);
     }
@@ -236,10 +240,13 @@ public class StudentApplicationQueries {
         List<ApplicationStore.Application> all = applications.ofStudent(me);
         Map<Long, TermSummary> termsById = termsById();
         Names names = names();
-        List<ApplicationItem> items = all.stream().skip(page.offset()).limit(page.limit())
+        List<ApplicationStore.Application> shown = all.stream().skip(page.offset()).limit(page.limit()).toList();
+        Set<Long> ended = allocations.stayEnded(shown.stream().filter(a -> a.status().equals("ALLOCATED"))
+                .map(ApplicationStore.Application::id).toList());
+        List<ApplicationItem> items = shown.stream()
                 .map(a -> new ApplicationItem(a.code(), termName(termsById, a.termId()), names.type(a.roomTypeId()),
                         names.roomClass(a.roomClassId()), a.depositAmount(), a.submittedAt(),
-                        ApplicationStore.label(a.status()), a.stayTerms()))
+                        ApplicationStore.label(a.status()), a.stayTerms(), ended.contains(a.id())))
                 .toList();
         String active = terms.openForRegistration()
                 .filter(t -> all.stream().anyMatch(a -> a.termId() == t.id() && a.live()))
@@ -270,7 +277,7 @@ public class StudentApplicationQueries {
                 plain(app.surchargeRate()),
                 twoBed, twoBed ? roommate(app) : null,
                 allocations.ofApplication(app.id())
-                        .map(p -> new HomeAllocation(p.room(), p.bed(), "Block " + p.block(), "Floor " + p.floor()))
+                        .map(p -> new HomeAllocation(p.room(), p.bed(), "Block " + p.block(), p.floor()))
                         .orElse(null),
                 events(app, term), invoices, canCancel,
                 cancelPolicy(term), term.resultsPublishedAt(), term.registrationClosesAt(), app.decisionNote(),

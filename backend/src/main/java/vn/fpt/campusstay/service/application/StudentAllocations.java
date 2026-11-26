@@ -1,7 +1,9 @@
 package vn.fpt.campusstay.service.application;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Port implemented by Assignment, which owns Allocations: where an Application's
@@ -19,6 +21,9 @@ public interface StudentAllocations {
 
     /** Active Bed currently held by the student in the given Term (including continuing stays). */
     Optional<Placement> ofStudent(long studentId, long termId);
+
+    /** Of the given Applications, those whose stay is over: an Allocation ended and none is left that has not. */
+    Set<Long> stayEnded(Collection<Long> applicationIds);
 
     /** The student already holds a Bed for the Term (a continuing resident uses requests, not an Application). */
     boolean holdsBed(long studentId, long termId);

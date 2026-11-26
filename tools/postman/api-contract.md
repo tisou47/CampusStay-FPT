@@ -77,7 +77,7 @@ Applications have no `period` field: the length of a stay is the stay length (`s
 
 ### Home, profile, catalog
 
-- `GET /students/me/home?termId` → `{ firstName, term, application: { id, status, roomTypeName, roomClassName } | null, allocation: { room, bed, block, floor } | null, checkedIn, dueInvoice: { id, type, title, amount, dueAt } | null, invoices: { due, total }, openRequests }`
+- `GET /students/me/home?termId` → `{ firstName, term, application: { id, status, roomTypeName, roomClassName } | null, allocation: { room, bed, block, floor } | null (`block` is the label "Block A", translated by the client; `floor` is the number), checkedIn, dueInvoice: { id, type, title, amount, dueAt } | null, invoices: { due, total }, openRequests }`
 - `GET /students/me/profile` → `{ name, studentCode, gender, major, cohort, hometown, contact: { phone, email, emergencyName, relationship, emergencyPhone } }`
 - `GET /students/me/board` → `{ items: [{ id: 'ann-<n>', category, title, body, changes: [{ field, type, before, after }] | null, link, pinned, shownFrom, createdAt, read }], unread }`: the dormitory board, pinned first (A-30)
 - `GET /catalog?termId` (prices, `depositRate` and `utilityDeposit` of that Term; without it the Term open for registration, else the current Term, C-41) → `{ roomTypes: [{ id, name, beds, description? }], roomClasses: [{ id, name, surchargeRate, amenities: [string] }], prices: [{ roomTypeId, roomClassId, termPrice }], depositRate, utilityDeposit, preferenceOptions: { region: [string], semester: [string], major: [string] }, relationships: [string] }`
@@ -115,8 +115,8 @@ Applications have no `period` field: the length of a stay is the stay length (`s
 Application and Invoice `id`s are their codes (`APP-SP27-000123`, `INV-SP27-000123`); for a student `GET /terms` marks their own Term as `current`, and the Application endpoints always use the Term open for registration (C-19). Wizard rules, errors and payment behaviour: C-20.
 
 
-- `GET /students/me/applications?page&pageSize` → `{ items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status }], total, activeTermName }`
-- `GET /applications/{id}` (student view) → `{ id, status, termName, roomTypeName, roomClassName, surchargeRate, twoBed, roommate: { mode, studentCode, status, preferences } | null, allocation: { room, bed, block } | null, events: [{ title, at, state: 'done'|'current'|'upcoming', note }], invoices: [{ id, type, title, amount, status, dueAt, paidAt }], canCancel, cancelPolicy, resultsPublishedAt, registrationClosesAt, decisionNote }`
+- `GET /students/me/applications?page&pageSize` → `{ items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status, stayTerms, stayEnded }], total, activeTermName }` (`stayEnded`: Allocated, but its stay is over: it has no Allocation left that has not ended)
+- `GET /applications/{id}` (student view) → `{ id, status, termName, roomTypeName, roomClassName, surchargeRate, twoBed, roommate: { mode, studentCode, status, preferences } | null, allocation: { room, bed, block, floor } | null (as on Home), events: [{ title, at, state: 'done'|'current'|'upcoming', note }], invoices: [{ id, type, title, amount, status, dueAt, paidAt }], canCancel, cancelPolicy, resultsPublishedAt, registrationClosesAt, decisionNote }`
 - `POST /applications/{id}/cancel` `{ reason? }`
 - `GET /students/me/roommate-invitation` → `{ invitation: { id, fromName, expiresAt, termName, stayStart, stayEnd, roomTypeName, roomClassName, surchargeRate, termPrice, deposit, depositWindowHours, registrationClosesAt } | null }`
 - `POST /roommate-invitations/{id}/respond` `{ accept }` → `{ applicationId, depositInvoiceId }`

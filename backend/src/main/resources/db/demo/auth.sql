@@ -23,6 +23,19 @@ ON CONFLICT (user_id) DO UPDATE
 SET handles = EXCLUDED.handles,
     on_duty = EXCLUDED.on_duty;
 
+-- Default weekly shifts (campus time) so the scenario Staff work inside their shift (ShiftGate): 01 and 02 by day,
+-- 03 in the afternoon and evening, 04 at night (outside its shift by day, to show the gate). Only for staff with no
+-- shift yet: shifts a Manager set are kept, and the clear leaves shifts alone.
+INSERT INTO auth_staff_shift (user_id, weekday, start_time, end_time)
+SELECT u.id, d.weekday,
+       CASE WHEN u.email ~ '^staff[a-h]0[12]@' THEN TIME '07:00' WHEN u.email ~ '^staff[a-h]03@' THEN TIME '13:00'
+            ELSE TIME '22:00' END,
+       CASE WHEN u.email ~ '^staff[a-h]0[12]@' THEN TIME '19:00' WHEN u.email ~ '^staff[a-h]03@' THEN TIME '22:00'
+            ELSE TIME '07:00' END
+FROM auth_user u CROSS JOIN generate_series(1, 7) AS d(weekday)
+WHERE u.demo AND u.role = 'STAFF' AND u.email ~ '^staff[a-h]0[1-4]@fpt\.edu\.vn$'
+  AND NOT EXISTS (SELECT 1 FROM auth_staff_shift s WHERE s.user_id = u.id);
+
 INSERT INTO auth_reconciliation (term_id, kind, file_name, rows_read, created_by, created_at)
 SELECT t.x_id, 'ENROLLED', 'enrolled-' || lower(t.x_code) || '.csv',
        (SELECT count(*) FROM demo_res) + (SELECT count(*) FROM demo_app) + 1,

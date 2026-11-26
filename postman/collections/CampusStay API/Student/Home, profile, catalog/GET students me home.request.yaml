@@ -4,7 +4,7 @@ method: GET
 url: '{{baseUrl}}/students/me/home?termId={{termId}}'
 order: 1000
 description: |-
-  `GET /students/me/home?termId` → `{ firstName, term, application: { id, status, roomTypeName, roomClassName } | null, allocation: { room, bed, block, floor } | null, checkedIn, dueInvoice: { id, type, title, amount, dueAt } | null, invoices: { due, total }, openRequests }`
+  `GET /students/me/home?termId` → `{ firstName, term, application: { id, status, roomTypeName, roomClassName } | null, allocation: { room, bed, block, floor } | null (`block` is the label "Block A", translated by the client; `floor` is the number), checkedIn, dueInvoice: { id, type, title, amount, dueAt } | null, invoices: { due, total }, openRequests }`
 
   Contract: `tools/postman/api-contract.md` › Student › Home, profile, catalog
 queryParams:
