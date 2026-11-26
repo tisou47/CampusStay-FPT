@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Bed, CalendarCheck, Clock, CreditCard, FileText, LogIn, Wrench } from 'lucide-react'
+import { Bed, CalendarCheck, Clock, CreditCard, FileText, LogIn, LogOut, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { ErrorState, LoadingState } from '@/components/ui/States'
 import { StatusTag } from '@/components/ui/Tag'
 import { daysFromToday, formatDate, formatDateRange, formatDateTime, formatVnd, greeting as greet } from '@/lib/format'
-import { DormitoryBoard } from './board'
+import { BoardPanel, PeriodStrip } from './board'
 import { NextAction, StatusCard, StatusList, StatusRow } from './shared'
 import { t, tr } from '@/i18n'
 
@@ -44,6 +44,9 @@ const dueIn = (iso) => {
 const range = (a, b) => (a ? formatDateRange(a, b ?? a) : '—')
 
 function HomeContent({ home }) {
+  // The check-out stays reachable after it is done (the page says it is completed).
+  const checkOut = useQuery(['check-out-furniture', 'mine'], ({ signal }) => api.checkOutFurniture.mine(undefined, { signal }))
+  const checkedOut = !!checkOut.data?.checkedOutAt
   const stage = stageOf(home)
   const { term, application: app, allocation, dueInvoice } = home
   const payLink = dueInvoice ? `/student/invoices/${dueInvoice.id}/pay` : '/student/invoices'
@@ -153,6 +156,9 @@ function HomeContent({ home }) {
     )
   }
 
+  // Nothing to do (a room, nothing due): the next step is only a line beside the greeting on a computer.
+  const allSet = stage === 'allocated' && allocation && !dueInvoice
+
   const cards = {
     application: app
       ? { value: app.status, note: [app.id, tr(app.roomTypeName), tr(app.roomClassName)].filter(Boolean).join(' · '), to: `/student/applications/${app.id}` }
@@ -172,19 +178,13 @@ function HomeContent({ home }) {
 
   return (
     <>
-      <div className="flex shrink-0 flex-col gap-0.5 max-lg:sr-only lg:flex-row lg:items-baseline lg:justify-between lg:gap-4">
+      <div className="flex shrink-0 flex-col gap-0.5 max-lg:sr-only lg:flex-row lg:items-center lg:justify-between lg:gap-4">
         <h1 className="sr-only text-h1 font-semibold text-fg lg:not-sr-only">{greeting(home.firstName)}</h1>
-        <p className="text-base text-fg-secondary">{subtitle}</p>
+        {!allSet && <p className="text-base text-fg-secondary">{subtitle}</p>}
       </div>
 
-      {next}
+      {allSet ? <div className="lg:hidden">{next}</div> : next}
 
-      <section aria-label={t('Overview')} className="hidden shrink-0 grid-cols-2 gap-3 sm:grid lg:grid-cols-4 lg:gap-4">
-        <StatusCard icon={FileText} label="Application" {...cards.application} />
-        <StatusCard icon={Bed} label="My room" {...cards.room} />
-        <StatusCard icon={CreditCard} label="Payments" {...cards.payments} />
-        <StatusCard icon={Wrench} label="Requests" value={t('{n} open', { n: home.openRequests ?? 0 })} note="Maintenance and room-change requests" to="/student/requests" />
-      </section>
 
       <StatusList className="sm:hidden">
         <StatusRow icon={Bed} value={cards.room.value} note={cards.room.note} to={cards.room.to} />
@@ -202,11 +202,28 @@ function HomeContent({ home }) {
         {allocation && term?.checkInStart && !home.checkedIn && (
           <StatusRow icon={LogIn} value="Check-in" note={[range(term.checkInStart, term.checkInEnd), tr(allocation.block)].filter(Boolean).join(' · ')} to="/student/room" />
         )}
+        {((allocation && home.checkedIn) || checkedOut) && (
+          <StatusRow icon={LogOut} value="Check-out" note={checkedOut ? 'Check-out completed' : 'Photograph your items and meters before you leave'} to="/student/room/check-out" />
+        )}
         <StatusRow icon={CreditCard} value={`${t('Payments')} · ${cards.payments.value}`} note={cards.payments.note} to={cards.payments.to} />
         <StatusRow icon={Wrench} value={`${t('Requests')} · ${t('{n} open', { n: home.openRequests ?? 0 })}`} note="Maintenance and room-change requests" to="/student/requests" />
       </StatusList>
 
-      <DormitoryBoard />
+      {/* The board is the page; the four status cards stand beside it (above it on a tablet, a list on a phone). */}
+      {/* One screen on a computer: the period and, under it, the board on the left, as wide as each other; the four status cards
+          share the height of the right column. Nothing scrolls but the list of notices. */}
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-5">
+        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 max-sm:order-last">
+          <PeriodStrip />
+          <BoardPanel className="lg:flex-1" />
+        </div>
+        <section aria-label={t('Overview')} className="hidden grid-cols-2 gap-3 sm:grid lg:min-h-0 lg:grid-cols-1 lg:grid-rows-4">
+          <StatusCard icon={FileText} label="Application" {...cards.application} />
+          <StatusCard icon={Bed} label="My room" {...cards.room} />
+          <StatusCard icon={CreditCard} label="Payments" {...cards.payments} />
+          <StatusCard icon={Wrench} label="Requests" value={t('{n} open', { n: home.openRequests ?? 0 })} note="Maintenance and room-change requests" to="/student/requests" />
+        </section>
+      </div>
 
       <LatestNotification />
     </>

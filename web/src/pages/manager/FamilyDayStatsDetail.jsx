@@ -49,7 +49,6 @@ export default function FamilyDayStatsDetail() {
         breadcrumb={<Breadcrumb items={[{ label: 'Family Day statistics', to: `${base}/family-day-stats` }, { label: s?.title ?? '…' }]} />}
         title={s?.title ?? 'Family Day statistics'}
         badge={s && <StatusTag status={s.status}>{familyDayStatusLabel(s.status)}</StatusTag>}
-        description={s ? t('Block {block} · {area} · {from} – {to}', { block: s.block, area: s.area, from: formatDateTime(s.startsAt), to: formatTime(s.endsAt) }) : undefined}
       />
       <QueryState query={query} isEmpty={() => false}>
         {(d) => (

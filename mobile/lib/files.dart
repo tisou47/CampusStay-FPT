@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -61,8 +62,10 @@ const maxUploadBytes = 5 * 1024 * 1024;
 bool _fits(({String name, String path}) f) {
   if (File(f.path).lengthSync() <= maxUploadBytes) return true;
   toast(
-    t('{name} is larger than 5 MB. Take the photo again at a lower resolution.', '{name} lớn hơn 5 MB. Hãy chụp lại ở độ phân giải thấp hơn.')
-        .replaceAll('{name}', f.name),
+    t(
+      '{name} is larger than 5 MB. Take the photo again at a lower resolution.',
+      '{name} lớn hơn 5 MB. Hãy chụp lại ở độ phân giải thấp hơn.',
+    ).replaceAll('{name}', f.name),
     error: true,
   );
   return false;
@@ -77,12 +80,30 @@ Future<List<Picked>> pickImages(int max) async {
   ].take(max).toList();
 }
 
+/// Opens the back camera for one photo (the check-in inventory: the item or the meter as it is in the Room, like the
+/// web's `capture="environment"`); null when the student closes the camera. The photo is scaled down and saved as a
+/// JPEG (an image type the API accepts), and kept under the upload limit.
+Future<Picked?> takePhoto() async {
+  try {
+    final shot = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.rear,
+      maxWidth: 2048,
+      maxHeight: 2048,
+      imageQuality: 85,
+    );
+    if (shot == null) return null;
+    final photo = (name: shot.name, path: shot.path);
+    return _fits(photo) ? photo : null;
+  } catch (_) {
+    toast(t('Could not open the camera.', 'Không mở được camera.'), error: true);
+    return null;
+  }
+}
+
 /// Lets the student pick one document: an image or a PDF (late check-in evidence).
 Future<Picked?> pickDocument() async {
-  final f = await FilePicker.pickFile(
-    type: FileType.custom,
-    allowedExtensions: [..._imageTypes, 'pdf'],
-  );
+  final f = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: [..._imageTypes, 'pdf']);
   final path = f?.path;
   return path == null || !_fits((name: f!.name, path: path)) ? null : (name: f.name, path: path);
 }

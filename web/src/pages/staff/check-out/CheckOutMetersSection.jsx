@@ -7,7 +7,7 @@ import { t } from '@/i18n'
 import { readingError, readingUsage } from './checkOutShared'
 
 export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
-  { d, done, electricity, setElectricity, water, setWater },
+  { d, done, electricity, setElectricity, water, setWater, children },
   ref,
 ) {
   const hasMeters = electricity !== '' && water !== ''
@@ -101,6 +101,7 @@ export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
           )}
         </div>
       )}
+      {children}
     </section>
   )
 })

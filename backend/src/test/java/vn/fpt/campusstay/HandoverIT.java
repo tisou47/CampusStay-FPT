@@ -530,6 +530,56 @@ class HandoverIT {
     }
 
     /**
+     * TC-ASG-077: a student who does not agree with the charges says which items and why; they cannot agree until the
+     * Staff member checks again and answers (a reason is required on both sides); then they agree.
+     */
+    @Test
+    void aStudentDisputesTheChargesAndStaffAnswer() throws Exception {
+        long allocation = newcomer(38, "A-209", "A");
+        jdbc.sql("""
+                UPDATE asg_allocation SET resident_at = now(), code_released_at = now(), checked_in_at = now()
+                WHERE id = :id
+                """).param("id", allocation).update();
+        jdbc.sql("""
+                INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, room_id, bed_id)
+                SELECT 'DESK-TEST-A209A', t.id, 'IN_USE', r.id, b.id
+                FROM inv_furniture_type t, inv_room r JOIN inv_bed b ON b.room_id = r.id AND b.label = 'A'
+                WHERE t.code = 'DESK' AND r.code = 'A-209'
+                """).update();
+        String itemId = jdbc.sql("SELECT 'furniture-' || id FROM inv_furniture_item WHERE asset_code = 'DESK-TEST-A209A'")
+                .query(String.class).single();
+        String staff = bearer(mvc, STAFF_A);
+        String student = bearer(mvc, StayFlow.student(38));
+        send(put("/check-outs/" + allocation + "/furniture"), staff,
+                "{\"items\":[{\"itemId\":\"" + itemId + "\",\"condition\":\"Damaged\"}],\"studentPresent\":true}")
+                .andExpect(status().isOk());
+
+        send(post("/students/me/check-out/dispute"), student, "{\"itemIds\":[\"" + itemId + "\"],\"reason\":\" \"}")
+                .andExpect(status().isBadRequest());
+        send(post("/students/me/check-out/dispute"), student,
+                "{\"itemIds\":[\"" + itemId + "\"],\"reason\":\"The desk was scratched at check-in.\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dispute.status").value("Open"))
+                .andExpect(jsonPath("$.dispute.itemIds[0]").value(itemId));
+        send(post("/students/me/check-out/agree"), student, "").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DISPUTE_OPEN"));
+        mvc.perform(get("/check-outs/" + allocation + "/furniture").header(HttpHeaders.AUTHORIZATION, staff))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dispute.reason").value("The desk was scratched at check-in."));
+
+        // Staff check again: the desk was only worn; they record it and answer.
+        send(put("/check-outs/" + allocation + "/furniture"), staff,
+                "{\"items\":[{\"itemId\":\"" + itemId + "\",\"condition\":\"Worn\"}],\"studentPresent\":true}")
+                .andExpect(status().isOk());
+        send(post("/check-outs/" + allocation + "/dispute/answer"), staff, "{\"answer\":\"\"}")
+                .andExpect(status().isBadRequest());
+        send(post("/check-outs/" + allocation + "/dispute/answer"), staff, "{\"answer\":\"Only worn: charged as Worn.\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dispute.status").value("Answered"));
+        send(post("/check-outs/" + allocation + "/dispute/answer"), staff, "{\"answer\":\"Again\"}")
+                .andExpect(status().isConflict());
+        send(post("/students/me/check-out/agree"), student, "").andExpect(status().isOk())
+                .andExpect(jsonPath("$.agreedAt").isNotEmpty());
+    }
+
+    /**
      * TC-ASG-059: damage to a shared item is charged only once the student acknowledges it; a declined one is not.
      */
     @Test

@@ -155,7 +155,29 @@ export function useCheckOutWorkspace(allocationId) {
     [allocationId],
   )
 
-  const s = d?.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
+  // The settlement follows the readings typed (estimated by the server a moment after typing stops, nothing saved).
+  const [typed, setTyped] = useState(null)
+  useEffect(() => {
+    const e = parseReading(electricity)
+    const w = parseReading(water)
+    const ok = e != null && w != null && !Number.isNaN(e) && !Number.isNaN(w)
+    const handle = setTimeout(() => setTyped(ok ? { electricity: e, water: w } : null), 400)
+    return () => clearTimeout(handle)
+  }, [electricity, water])
+  const estimateQuery = useQuery(
+    ['check-out', 'estimate', allocationId, typed?.electricity, typed?.water],
+    ({ signal }) => api.desk.checkOutEstimate(allocationId, typed, { signal }),
+    { enabled: Boolean(allocationId && typed && !done) },
+  )
+  const s = (!done && typed && estimateQuery.data?.settlement) || d?.settlement || { held: 0, share: 0, unpaid: 0, damage: 0 }
+  const estimating = Boolean(typed && !done && estimateQuery.loading)
+  const usage =
+    d?.previousReading && typed
+      ? {
+          kwh: Math.max(0, typed.electricity - Number(d.previousReading.electricity ?? 0)),
+          m3: Math.max(0, typed.water - Number(d.previousReading.water ?? 0)),
+        }
+      : null
   const byCondition = Boolean(fData?.saved)
   const damageAmount = done ? s.damage ?? 0 : condition === 'good' ? 0 : liveFurnitureTotal || (byCondition ? fData.total : 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
@@ -238,6 +260,8 @@ export function useCheckOutWorkspace(allocationId) {
     fData,
     done,
     s,
+    estimating,
+    usage,
     electricity,
     setElectricity,
     water,

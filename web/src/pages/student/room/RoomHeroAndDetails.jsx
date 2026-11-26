@@ -1,17 +1,18 @@
 import { useState } from 'react'
-import { AlertTriangle, Bed, ClipboardEdit, Package, Wrench } from 'lucide-react'
+import { AlertTriangle, Bed, BedDouble, CalendarCheck, ClipboardEdit, Clock, Gem, KeyRound, Package, Users, Wrench } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation } from '@/api/hooks'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
-import { Alert, Avatar, Card, Facts, Note } from '@/components/ui/Display'
+import { Alert, Avatar, Card } from '@/components/ui/Display'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Overlay'
 import { LoadingState } from '@/components/ui/States'
 import { StatusTag, Tag } from '@/components/ui/Tag'
-import { Tooltip } from '@/components/ui/Tooltip'
+import { InfoTip, Tooltip } from '@/components/ui/Tooltip'
 import { conditionName, conditionOptions, conditionTone, countLines, typeName } from '@/lib/furniture'
-import { formatDate, formatDateRange } from '@/lib/format'
+import { cx } from '@/lib/cx'
+import { formatDate } from '@/lib/format'
 import { t, tr, tx } from '@/i18n'
 
 function groupFurniture(items) {
@@ -79,67 +80,99 @@ function itemOptions(items) {
   })
 }
 
+/** One fact of the room: an icon, a small label and its value. */
+function Fact({ icon: Glyph, label, children }) {
+  return (
+    <div className="flex min-w-0 items-start gap-3 rounded-lg bg-subtle/60 px-3 py-2.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface text-fg-brand">
+        <Glyph size={16} aria-hidden="true" />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-xs text-fg-tertiary">{label}</span>
+        <span className="text-base font-medium text-fg tabular">{children}</span>
+      </span>
+    </div>
+  )
+}
+
 export function RoomHeroCard({ data, furnitureItems }) {
-  const { allocation: a, term: tm } = data
-  const detailItems = [
-    ['Block', a.blockLabel ?? a.block ?? '—'],
-    ['Floor', a.floor ?? '—'],
-    ['Room type', a.roomTypeName ?? '—'],
-    ['Room tier', a.roomClassName ?? '—'],
-    ['Furniture', <FurnitureSummaryValue key="furniture" allocationFurniture={a.furniture} furnitureItems={furnitureItems} />],
-    ['Allocated on', formatDate(a.allocatedAt)],
-    ...(data.stay
-      ? [
-          ['Stay length', t('{n} terms', { n: data.stay.committedTerms })],
-          ['Terms used', data.stay.termsUsed],
-        ]
-      : data.stayTerms
-        ? [['Stay length', t('{n} terms', { n: data.stayTerms })]]
-        : []),
-    ...(a.residentSince ? [['Resident since', formatDate(a.residentSince)]] : []),
-  ]
+  const { allocation: a, roommates = [], roommateCapacity } = data
+  // The beds of the room: yours, your roommates' (names only), and the ones still free.
+  const others = roommates.map((r) => ({ bed: r.bed, name: r.name }))
+  const free = Math.max(0, (roommateCapacity ?? others.length) - others.length)
+  const beds = [{ bed: a.bed, you: true }, ...others].sort((x, y) => String(x.bed).localeCompare(String(y.bed)))
 
   return (
     <Card padding="none" className="flex shrink-0 flex-col overflow-hidden">
-      <div className="flex flex-col items-start justify-between gap-3 border-b border-line bg-brand-subtle p-5 sm:flex-row sm:items-center lg:px-6 lg:py-5">
-        <div className="flex min-w-0 items-center gap-4">
-          <span className="hidden size-14 shrink-0 items-center justify-center rounded-full bg-surface text-fg-brand shadow-card sm:flex">
-            <Bed size={28} aria-hidden="true" />
-          </span>
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <p className="text-h1 font-semibold text-fg tabular">
-                <span className="max-lg:hidden">{t('Room')} </span>
-                {a.room} · {t('Bed {bed}', { bed: a.bed })}
-              </p>
-              <StatusTag status={a.status ?? 'Allocated'} />
-            </div>
-            <p className="text-base text-fg-secondary lg:text-lg">
-              {[tr(a.block), a.floor != null && t('Floor {n}', { n: a.floor }), tr(a.roomTypeName), tr(a.roomClassName)].filter(Boolean).join(' · ')}
-            </p>
-          </div>
+      <div className="flex items-center gap-4 border-b border-line bg-brand-subtle px-5 py-4 lg:px-6">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-surface text-fg-brand shadow-card">
+          <Bed size={28} aria-hidden="true" />
+        </span>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <p className="text-h1 font-semibold text-fg tabular">
+            {t('Room')} {a.room} · {t('Bed {bed}', { bed: a.bed })}
+          </p>
+          <p className="text-base text-fg-secondary">{[a.blockLabel ?? (a.block && t('Block {code}', { code: a.block })), a.floor != null && t('Floor {n}', { n: a.floor })].filter(Boolean).join(' · ')}</p>
         </div>
+        <span className="ml-auto shrink-0">
+          <StatusTag status={a.status ?? 'Allocated'} />
+        </span>
       </div>
 
-      <div className="flex flex-col gap-4 p-5 lg:px-6 lg:py-5">
-        <h2 className="text-h3 font-semibold text-fg max-lg:hidden">{t('Details')}</h2>
-        {tm && (
-          <Facts
-            className="lg:hidden"
-            items={[
-              ['Term', tm.name],
-              ...(tm.stayStart ? [['Stay', formatDateRange(tm.stayStart, tm.stayEnd)]] : []),
-            ]}
-          />
-        )}
-        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {detailItems.map(([label, value]) => (
-            <div key={label} className="flex min-w-0 items-start justify-between gap-4 sm:flex-col sm:justify-start sm:gap-1">
-              <dt className="shrink-0 text-sm text-fg-tertiary">{tx(label)}</dt>
-              <dd className="min-w-0 text-right text-base font-medium text-fg tabular sm:text-left">{typeof value === 'string' || typeof value === 'number' ? tx(value) : value}</dd>
-            </div>
-          ))}
+      <div className="flex flex-col gap-5 p-5 lg:px-6">
+        <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+          <Fact icon={BedDouble} label={t('Room type')}>
+            {tr(a.roomTypeName) || '—'}
+          </Fact>
+          <Fact icon={Gem} label={t('Room tier')}>
+            {tr(a.roomClassName) || '—'}
+          </Fact>
+          <Fact icon={Package} label={t('Furniture')}>
+            <FurnitureSummaryValue allocationFurniture={a.furniture} furnitureItems={furnitureItems} />
+          </Fact>
+          <Fact icon={CalendarCheck} label={t('Allocated on')}>
+            {formatDate(a.allocatedAt)}
+          </Fact>
+          <Fact icon={KeyRound} label={t('Resident since')}>
+            {a.residentSince ? formatDate(a.residentSince) : t('Not yet')}
+          </Fact>
+          <Fact icon={Clock} label={t('Terms of stay')}>
+            {data.stay ? t('{used} of {total} terms', { used: data.stay.termsUsed, total: data.stay.committedTerms }) : data.stayTerms ? t('{n} terms', { n: data.stayTerms }) : '—'}
+          </Fact>
         </dl>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
+            {t('Beds in the room')}
+            <InfoTip label={t('Only names are shared. Contact details stay private; you meet your roommates at check-in.')} />
+          </h2>
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+            {beds.map((x) => (
+              <li
+                key={x.bed}
+                className={cx('flex min-w-0 items-center gap-2.5 rounded-lg border px-3 py-2', x.you ? 'border-primary bg-primary-subtle/50' : 'border-line')}
+              >
+                {x.you ? (
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-fg-on-brand">{x.bed}</span>
+                ) : (
+                  <Avatar name={x.name} />
+                )}
+                <span className="flex min-w-0 flex-col">
+                  <span className={cx('truncate text-sm font-medium', x.you ? 'text-fg-brand' : 'text-fg')}>{x.you ? t('You') : x.name}</span>
+                  <span className="text-xs text-fg-tertiary">{t('Bed {bed}', { bed: x.bed })}</span>
+                </span>
+              </li>
+            ))}
+            {Array.from({ length: free }, (_, n) => (
+              <li key={`free-${n}`} className="flex items-center gap-2.5 rounded-lg border border-dashed border-line px-3 py-2 text-sm text-fg-tertiary">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-subtle">
+                  <Bed size={15} aria-hidden="true" />
+                </span>
+                {t('Free bed')}
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </Card>
   )
@@ -147,9 +180,13 @@ export function RoomHeroCard({ data, furnitureItems }) {
 
 export function RoommatesCard({ roommates = [], capacity, roomCode }) {
   return (
-    <Card padding="lg" className="flex shrink-0 flex-col gap-4">
+    <Card className="flex shrink-0 flex-col gap-2.5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-h3 font-semibold text-fg">{t('Roommates')}</h2>
+        <h2 className="flex items-center gap-2 text-base font-semibold text-fg">
+          <Users size={17} aria-hidden="true" className="text-fg-brand" />
+          {t('Roommates')}
+          <InfoTip label={t('Only names are shared. Contact details stay private; you meet your roommates at check-in.')} />
+        </h2>
         {capacity != null && (
           <span className="text-sm font-medium text-fg-tertiary tabular">
             {t('{n} of {total}', { n: roommates.length, total: capacity })}
@@ -157,7 +194,7 @@ export function RoommatesCard({ roommates = [], capacity, roomCode }) {
         )}
       </div>
       {roommates.length ? (
-        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-1">
+        <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-1">
           {roommates.map((p) => (
             <li key={`${p.bed}-${p.name}`} className="min-w-0">
               <Tooltip
@@ -170,7 +207,7 @@ export function RoommatesCard({ roommates = [], capacity, roomCode }) {
               >
                 <div
                   tabIndex={0}
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-subtle px-3.5 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-subtle px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <Avatar name={p.name} />
@@ -185,14 +222,13 @@ export function RoommatesCard({ roommates = [], capacity, roomCode }) {
           ))}
         </ul>
       ) : (
-        <p className="text-base text-fg-secondary">{t('No roommates assigned yet.')}</p>
+        <p className="text-sm text-fg-secondary">{t('No roommates assigned yet.')}</p>
       )}
-      <Note>Only names are shared. Contact details stay private; you meet your roommates at check-in.</Note>
     </Card>
   )
 }
 
-export function FurnitureCard({ furnitureQuery }) {
+export function FurnitureCard({ furnitureQuery, myBed }) {
   const { notify, notifyError } = useToast()
   const [declareOpen, setDeclareOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState('')
@@ -232,14 +268,13 @@ export function FurnitureCard({ furnitureQuery }) {
   }
 
   // Students only see furniture categories, quantities, and status counts (never internal assetCode).
-  const groups = groupFurniture(items)
 
   return (
     <Card padding="lg" className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
         <div className="flex items-center gap-2">
           <h2 className="text-h3 font-semibold text-fg">{t('Furniture & equipment')}</h2>
-          <span className="text-sm font-medium text-fg-tertiary tabular">({items.length})</span>
+          <span className="text-sm font-medium text-fg-tertiary tabular">({items.filter((i) => !i.personal || !myBed || i.bed === myBed).length})</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {reportableItems.length > 0 && (
@@ -247,11 +282,12 @@ export function FurnitureCard({ furnitureQuery }) {
               {t('Declare damaged / missing')}
             </Button>
           )}
-          <Button variant="primary" icon={Wrench} to="/student/requests/maintenance/new">
+            <Button variant="primary" icon={Wrench} to="/student/requests/maintenance/new">
             {t('Report broken equipment')}
           </Button>
         </div>
       </div>
+
 
       {reportedItems.length > 0 && (
         <Alert type="warning" title={t('Declared furniture issues during stay ({n})', { n: reportedItems.length })}>
@@ -262,9 +298,7 @@ export function FurnitureCard({ furnitureQuery }) {
                   <span className="font-medium text-fg">
                     {typeName(i)} · {i.personal && i.bed ? t('Bed {bed}', { bed: i.bed }) : t('Shared')}
                   </span>
-                  <Tag tone={conditionTone[i.reportedCondition] ?? 'warning'}>
-                    {conditionName(i.reportedCondition)}
-                  </Tag>
+                  <Tag tone={conditionTone[i.reportedCondition] ?? 'warning'}>{conditionName(i.reportedCondition)}</Tag>
                   {i.reportedNote && <span className="text-fg-secondary">— {i.reportedNote}</span>}
                 </div>
                 <Button size="sm" variant="text" onClick={() => openModalFor(i)}>
@@ -277,51 +311,68 @@ export function FurnitureCard({ furnitureQuery }) {
       )}
 
       {items.length ? (
-        <ul className="grid min-h-0 flex-1 grid-cols-1 content-start gap-3.5 overflow-y-auto sm:grid-cols-2 lg:grid-cols-4" aria-label={t('Furniture')}>
-          {groups.map((g) => {
-            const statusCounts = g.items.reduce((acc, item) => {
-              const st = item.status || 'In use'
-              acc[st] = (acc[st] ?? 0) + 1
-              return acc
-            }, {})
-            const groupReported = g.items.filter((i) => i.reportedCondition)
-            return (
-              <li key={g.name} className="flex flex-col justify-between gap-3 rounded-lg bg-subtle p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-fg-brand">
-                      <Package size={18} aria-hidden="true" />
-                    </span>
-                    <span className="text-base font-semibold text-fg">{g.name}</span>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-surface px-2.5 py-0.5 text-sm font-semibold text-fg-brand tabular">
-                    {`× ${g.items.length}`}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  {Object.entries(statusCounts).map(([status, count]) => (
-                    <span key={status} className="inline-flex items-center gap-1.5 text-sm text-fg-secondary tabular">
-                      <StatusTag status={status} />
-                      {Object.keys(statusCounts).length > 1 && <span className="font-medium">({count})</span>}
-                    </span>
-                  ))}
-                  {groupReported.map((ri) => (
-                    <Tag key={ri.itemId} tone={conditionTone[ri.reportedCondition] ?? 'warning'}>
-                      <AlertTriangle size={12} aria-hidden="true" />
-                      {t('Declared: {c}', { c: conditionName(ri.reportedCondition) })}
-                    </Tag>
-                  ))}
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto" aria-label={t('Furniture')}>
+          {[
+            // Personal: only the items of the student's own bed (the roommates' sets are theirs).
+            {
+              key: 'personal',
+              title: t('Personal furniture'),
+              hint: myBed ? t('Your Bed {bed}', { bed: myBed }) : t('One set per bed'),
+              list: items.filter((i) => i.personal && (!myBed || i.bed === myBed)),
+            },
+            { key: 'shared', title: t('Shared furniture'), hint: t('Used by the whole room'), list: items.filter((i) => !i.personal) },
+          ]
+            .filter((section) => section.list.length)
+            .map((section) => (
+              <section key={section.key} className="flex flex-col gap-2.5">
+                <h3 className="text-base font-semibold text-fg">{section.title}</h3>
+                <ul className="grid grid-cols-1 content-start gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+                  {groupFurniture(section.list).map((g) => {
+                    const statusCounts = g.items.reduce((acc, item) => {
+                  const st = item.status || 'In use'
+                  acc[st] = (acc[st] ?? 0) + 1
+                  return acc
+                }, {})
+                const groupReported = g.items.filter((i) => i.reportedCondition)
+                return (
+                  <li key={g.name} className="flex flex-col justify-between gap-3 rounded-lg bg-subtle p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-fg-brand">
+                          <Package size={18} aria-hidden="true" />
+                        </span>
+                        <span className="text-base font-semibold text-fg">
+                          {g.name}
+                          {/* The bed the item belongs to (from the item itself); its asset code is never shown to students. */}
+                          {section.key === 'personal' && g.items[0]?.bed ? ` ${g.items[0].bed}` : ''}
+                        </span>
+                      </div>
+                      {g.items.length > 1 && <span className="shrink-0 rounded-full bg-surface px-2.5 py-0.5 text-sm font-semibold text-fg-brand tabular">{`× ${g.items.length}`}</span>}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {Object.entries(statusCounts).map(([status, count]) => (
+                        <span key={status} className="inline-flex items-center gap-1.5 text-sm text-fg-secondary tabular">
+                          <StatusTag status={status} />
+                          {Object.keys(statusCounts).length > 1 && <span className="font-medium">({count})</span>}
+                        </span>
+                      ))}
+                      {groupReported.map((ri) => (
+                        <Tag key={ri.itemId} tone={conditionTone[ri.reportedCondition] ?? 'warning'}>
+                          <AlertTriangle size={12} aria-hidden="true" />
+                          {t('Declared: {c}', { c: conditionName(ri.reportedCondition) })}
+                        </Tag>
+                      ))}
+                    </div>
+                  </li>
+                )
+                  })}
+                </ul>
+              </section>
+            ))}
+        </div>
       ) : (
         <p className="text-base text-fg-secondary">{t('No furniture recorded in this room.')}</p>
       )}
-      <Note className="shrink-0">
-        {t('You can declare worn, damaged or missing furniture during your stay so Staff can verify it when you check out.')}
-      </Note>
 
       <Modal
         open={declareOpen}

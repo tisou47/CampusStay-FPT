@@ -40,7 +40,6 @@ export default function TermDashboard() {
       <PageHeader
         title={t('{name} dashboard', { name: d.term.name })}
         badge={<Tag tone={termTone[d.term.status] ?? 'neutral'}>{d.term.status}</Tag>}
-        description={`${formatDateRange(d.stayStart, d.stayEnd)}${d.requestCode ? ` · ${t('opened from {code}', { code: d.requestCode })}` : ''}`}
         actions={
           <Select
             aria-label={t('Term')}

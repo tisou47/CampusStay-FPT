@@ -1564,4 +1564,14 @@ export default {
   "Check-out charges to decide": "Phí trả phòng chờ quyết định",
   "Final reports": "Tổng hợp Report",
   "Room transfers": "Điều chuyển phòng",
+  // #61 (student check-out and room pages)
+  "Used by": "Phạm vi dùng",
+  "since": "từ",
+  "Check-out steps": "Các bước trả phòng",
+  "Previous photo": "Ảnh trước",
+  "Next photo": "Ảnh sau",
+  "Open photo {n}": "Mở ảnh {n}",
+  "Shared furniture": "Nội thất dùng chung",
+  "Photo {n} of {total}": "Ảnh {n} / {total}",
+  "Furniture · Room {room}": "Nội thất · Phòng {room}",
 }

@@ -585,12 +585,22 @@ public class DeskService {
 
     @Transactional(readOnly = true)
     public CheckOutDetail checkOutDetail(String allocationId) {
+        return checkOutDetail(allocationId, null, null);
+    }
+
+    /**
+     * The check-out of an Allocation; with both readings given (typed at the desk, not saved yet) its settlement is
+     * estimated from them, so the desk sees the final Utility share before saving.
+     */
+    @Transactional(readOnly = true)
+    public CheckOutDetail checkOutDetail(String allocationId, BigDecimal electricity, BigDecimal water) {
         currentUser.require(Permission.DESK);
         Placed p = checkOutTarget(allocationId, false);
         OutRecord record = outRecord(p.alloc().id()).orElse(null);
         CheckOutRow row = row(p, users.studentProfile(p.alloc().studentId()).orElse(null), names(),
                 today().isAfter(checkOutBy(term(p.alloc().termId()))));
-        Reading reading = record == null || record.electricity() == null ? null
+        Reading reading = electricity != null && water != null ? new Reading(electricity, water)
+                : record == null || record.electricity() == null ? null
                 : new Reading(record.electricity(), record.water());
         SettlementView settlement;
         String refundStatus = null;

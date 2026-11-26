@@ -301,6 +301,8 @@ export const api = {
     checkOutList: g('/check-out'),
     /** By Allocation id: the student code is personal data and never goes into a URL. */
     checkOutDetail: (allocationId, opts) => http.get(`/check-out/${allocationId}`, undefined, opts),
+    /** The same detail with the settlement estimated from readings typed at the desk ({ electricity, water }), not saved. */
+    checkOutEstimate: (allocationId, readings, opts) => http.get(`/check-out/${allocationId}`, readings, opts),
     checkOut: (allocationId, body) => http.post(`/check-out/${allocationId}`, body),
     /** Final meter readings Room by Room (spec §6.16): { items: [{ room, students, electricity, water }] }. */
     roomReadings: g('/check-out/readings'),
@@ -647,12 +649,20 @@ export const api = {
     view: (allocationId, opts) => http.get(`/check-outs/${allocationId}/furniture`, undefined, opts),
     /** { items: [{ itemId, condition, note, amount, overrideReason, managerReview }], studentPresent }. */
     record: (allocationId, body) => http.put(`/check-outs/${allocationId}/furniture`, body),
+    /** Staff answer a student's disagreement after checking again: { answer }; the student is asked to agree. */
+    answerDispute: (allocationId, body) => http.post(`/check-outs/${allocationId}/dispute/answer`, body),
     reviews: g('/check-out-reviews'),
     decide: (allocationId, itemId, body) => http.post(`/check-out-reviews/${allocationId}/${itemId}`, body),
     /** Shared damage the student declined (owner decision 25/11/2026): { keep, note }. */
     decideClaim: (claimId, body) => http.post(`/check-out-reviews/claims/${claimId}`, body),
     mine: g('/students/me/check-out'),
     agree: () => http.post('/students/me/check-out/agree'),
+    /** The student's meter readings before check-out: { electricity, water } (a photo of the meters first, taken in the app). */
+    saveMeters: (body) => http.put('/students/me/check-out/meters', body),
+    /** Submits the check-out declaration: every item and the meters with a photo; final after this. */
+    submit: () => http.post('/students/me/check-out/submit'),
+    /** The student does not agree: { itemIds, reason }; the Staff member who recorded the charges answers. */
+    dispute: (body) => http.post('/students/me/check-out/dispute', body),
     answerClaim: (id, body) => http.post(`/students/me/damage-claims/${id}`, body),
   },
 

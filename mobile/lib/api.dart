@@ -58,6 +58,8 @@ class Api {
 
   static Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) => _call('PUT', path, body);
 
+  static Future<Map<String, dynamic>> delete(String path) => _call('DELETE', path);
+
   /// The query string of [params] (nulls and blanks left out), with the leading `?`.
   static String query(Map<String, Object?> params) {
     final kept = {

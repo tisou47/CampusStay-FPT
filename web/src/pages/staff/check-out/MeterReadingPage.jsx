@@ -6,6 +6,7 @@ import { Field, Input } from '@/components/ui/Field'
 import { ErrorState, LoadingState } from '@/components/ui/States'
 import { formatDate, formatNumber } from '@/lib/format'
 import { t } from '@/i18n'
+import { DisputeCard, StudentDeclaration, StudentMeters } from './StudentDeclaration'
 import {
   CheckOutHeaderCard,
   CheckOutTopBar,
@@ -25,7 +26,7 @@ export default function MeterReadingPage() {
   if (ws.detailQuery.error && !ws.d) return <ErrorState error={ws.detailQuery.error} onRetry={ws.detailQuery.reload} />
   if (!ws.d) return null
 
-  const { d, s, done, electricity, setElectricity, water, setWater, readingsInvalid, submit } = ws
+  const { d, s, done, electricity, setElectricity, water, setWater, readingsInvalid, submit, furnitureQuery } = ws
 
   return (
     <div className="flex flex-col gap-5">
@@ -96,6 +97,15 @@ export default function MeterReadingPage() {
             )}
           </Field>
         </div>
+
+        <StudentMeters
+          data={furnitureQuery?.data}
+          disabled={done}
+          onUse={(e, w) => {
+            setElectricity(String(e))
+            setWater(String(w))
+          }}
+        />
 
         {d.previousReading && (electricity || water) && (
           <div className="flex flex-wrap items-center gap-4 rounded-lg border border-line bg-subtle/50 px-4 py-3 text-sm text-fg-secondary">

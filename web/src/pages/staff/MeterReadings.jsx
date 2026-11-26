@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowRight, Building, Check, CircleHelp, Download, FileSpreadsheet, Gauge, PanelRightOpen, RotateCcw, TriangleAlert, Upload, X } from 'lucide-react'
+import { Building, Check, Download, Gauge, PanelRightOpen, RotateCcw, TriangleAlert, Upload } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { invalidate, useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -38,50 +38,7 @@ const statusTone = { Entered: 'success', Confirmed: 'info', Missing: 'warning', 
 const asText = (v) => (v == null ? '' : String(v))
 const parse = (v) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Number(v))
 const SAVE_DELAY = 500
-const GUIDE_KEY = 'meterGuideDismissed'
-
-function guideDismissed() {
-  try {
-    return localStorage.getItem(GUIDE_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-function rememberGuide(dismissed) {
-  try {
-    if (dismissed) localStorage.setItem(GUIDE_KEY, '1')
-    else localStorage.removeItem(GUIDE_KEY)
-  } catch {
-    // Storage unavailable: the choice lasts until the page is closed.
-  }
-}
-
-/* ---------------------------------------------------------------- guide and summary */
-
-const GUIDE = [
-  'Download the template: one line per room with last month’s values.',
-  'Fill the electricity and water columns in Excel; leave rooms you have not read blank.',
-  'Upload it (XLSX or CSV). Every line is checked before any is saved.',
-]
-
-function GuideBanner({ onDismiss }) {
-  return (
-    <div className="flex h-9 shrink-0 items-center gap-2 rounded-lg border border-line bg-surface pr-1 pl-3 text-sm text-fg-secondary">
-      <FileSpreadsheet size={16} aria-hidden="true" className="shrink-0 text-fg-brand" />
-      <ol className="flex min-w-0 flex-1 items-center gap-2">
-        {GUIDE.map((step, i) => (
-          <li key={step} className="flex min-w-0 flex-1 items-center gap-2">
-            {i > 0 && <ArrowRight size={14} aria-hidden="true" className="shrink-0 text-fg-tertiary" />}
-            <Truncate tip={`${i + 1}. ${t(step)}`}>
-              <strong className="font-medium text-fg">{i + 1}.</strong> {t(step)}
-            </Truncate>
-          </li>
-        ))}
-      </ol>
-      <IconButton icon={X} size="sm" iconSize={14} aria-label={t('Hide the guide')} onClick={onDismiss} />
-    </div>
-  )
-}
+/* ---------------------------------------------------------------- summary */
 
 function Segment({ tip, children, className }) {
   return (
@@ -562,7 +519,6 @@ export default function MeterReadings() {
   const [pageSize, setPageSize] = useState(50)
   const [openRoom, setOpenRoom] = useState(null)
   const [closing, setClosing] = useState(false)
-  const [guideHidden, setGuideHidden] = useState(guideDismissed)
 
   // The rows ('meter-rows') reload only when the filters change or after an upload or a close; a reading saved in a
   // row patches that row and refreshes the summary ('meters'), so the rows being typed in never jump.
@@ -642,10 +598,6 @@ export default function MeterReadings() {
     setStatus(next)
     setPage(1)
   }
-  const toggleGuide = (hidden) => {
-    rememberGuide(hidden)
-    setGuideHidden(hidden)
-  }
   // Below 1440 px the outline buttons show their icon only; the tooltip names them.
   const narrowLabel = 'max-[1439px]:sr-only'
 
@@ -693,9 +645,6 @@ export default function MeterReadings() {
             <Button icon={Download} iconSize={16} tip="Download template" className="max-[1439px]:px-2" onClick={() => template.run()} disabled={!activePeriod || template.pending}>
               <span className={narrowLabel}>{t('Download template')}</span>
             </Button>
-            {guideHidden && (
-              <IconButton icon={CircleHelp} variant="outline" iconSize={16} aria-label={t('Show the guide')} onClick={() => toggleGuide(false)} />
-            )}
             <Button icon={Upload} iconSize={16} tip="Upload filled file" className="max-[1439px]:px-2" onClick={() => fileInput.current?.click()} disabled={closed || !activePeriod || importCsv.pending}>
               <span className={narrowLabel}>{t('Upload filled file')}</span>
             </Button>
@@ -716,8 +665,6 @@ export default function MeterReadings() {
           </>
         }
       />
-
-      {!closed && activePeriod && !guideHidden && <GuideBanner onDismiss={() => toggleGuide(true)} />}
 
       {closed && (
         <Alert type="success" title={t('{period} is closed', { period: tr(period.label) })} className="shrink-0 py-2">

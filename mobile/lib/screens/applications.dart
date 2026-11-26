@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../common.dart';
+import '../links.dart';
+import 'activity.dart';
 import 'apply.dart';
 import 'payments.dart';
 import 'refund.dart';
@@ -77,7 +79,7 @@ class ApplicationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SubPage(
-      title: id,
+      title: t('Application $id', 'Đơn $id'),
       body: Loader<Json>(
         fetch: () => Api.get('/applications/${Uri.encodeComponent(id)}'),
         builder: (context, app, reload) => _Detail(app: app, reload: reload),
@@ -244,11 +246,74 @@ class _Detail extends StatelessWidget {
     final allocation = app.obj('allocation');
     final events = app.objects('events');
     final description = joinDot([app.str('id'), label(app.str('roomTypeName')), label(app.str('roomClassName'))]);
+    final done = events.where((e) => e.str('state') == 'done').length;
+    final rate = app.number('surchargeRate');
 
     Future<void> open(Widget page) async {
       await push(context, page);
       await reload();
     }
+
+    Widget chip(IconData icon, {Color bg = Tokens.brandSubtle, Color fg = Tokens.fgBrand}) => Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      child: Icon(icon, size: 16, color: fg),
+    );
+
+    Widget spec(IconData icon, String name, String value, [String? badge]) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(color: Tokens.subtle.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        spacing: 10,
+        children: [
+          chip(icon),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 1,
+              children: [
+                Text(name, style: const TextStyle(fontSize: 12, color: Tokens.fgTertiary)),
+                Wrap(
+                  spacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(value, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                    if (badge != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(999)),
+                        child: Text(badge, style: const TextStyle(fontSize: 11.5, color: Tokens.fgSecondary)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // A help card at the end (web "Need to change something?" / "Need a different room?").
+    Widget help(String title, String text, Widget action) => Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 10,
+        children: [
+          Row(
+            spacing: 8,
+            children: [
+              chip(Icons.help_outline),
+              Expanded(
+                child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          Text(text, style: const TextStyle(fontSize: 13.5, color: Tokens.fgSecondary)),
+          action,
+        ],
+      ),
+    );
 
     return Cards(
       children: [
@@ -273,24 +338,40 @@ class _Detail extends StatelessWidget {
               ? FilledButton(
                   onPressed: () => open(InvoiceScreen(id: unpaid.text('id'))),
                   child: Text(
-                    unpaid.str('type') == 'deposit' ? t('Pay deposit', 'Đặt cọc') : t('Pay now', 'Thanh toán'),
+                    unpaid.str('type') == 'deposit'
+                        ? t('Pay deposit', 'Đóng tiền đặt cọc')
+                        : t('Pay now', 'Thanh toán ngay'),
                   ),
                 )
               : null,
         ),
         Section(
-          title: t('Progress', 'Tiến trình'),
+          title: t('Progress', 'Tiến độ'),
+          trailing: events.isEmpty
+              ? null
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                  decoration: BoxDecoration(color: Tokens.subtle, borderRadius: BorderRadius.circular(999)),
+                  child: Text(
+                    '$done/${events.length}',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Tokens.fgSecondary),
+                  ),
+                ),
           children: [
             if (events.isEmpty)
-              Text(t('No events yet.', 'Chưa có sự kiện.'), style: const TextStyle(color: Tokens.fgSecondary))
+              Text(t('No events yet.', 'Chưa có sự kiện nào.'), style: const TextStyle(color: Tokens.fgSecondary))
             else
-              Timeline(
+              Milestones(
                 items: [
                   for (final e in events)
                     (
-                      label(e.str('title')),
-                      e.str('note') ?? (e.str('at') != null ? moment(e.str('at')) : null),
-                      e.text('state'),
+                      title: label(e.str('title')),
+                      text: '',
+                      time: e.str('note') != null
+                          ? label(e.str('note'))
+                          : (e.str('at') != null ? moment(e.str('at')) : null),
+                      done: e.str('state') == 'done',
+                      current: e.str('state') == 'current',
                     ),
                 ],
               ),
@@ -298,86 +379,91 @@ class _Detail extends StatelessWidget {
         ),
         Section(
           title: t('Room preference', 'Nguyện vọng phòng'),
+          trailing: app.str('termName') == null ? null : Tag(app.text('termName'), dot: false),
           children: [
-            Line(
-              t('Room Type', 'Loại phòng'),
+            spec(
+              Icons.bed_outlined,
+              t('Room type', 'Loại phòng'),
               label(app.str('roomTypeName')).isEmpty ? '—' : label(app.str('roomTypeName')),
             ),
-            Line(
-              t('Room Class', 'Hạng phòng'),
-              app.str('roomClassName') == null
-                  ? '—'
-                  : '${label(app.str('roomClassName'))}${app.number('surchargeRate') != null ? ' (${surcharge(app.number('surchargeRate'))})' : ''}',
+            spec(
+              Icons.auto_awesome_outlined,
+              t('Room tier', 'Hạng phòng'),
+              app.str('roomClassName') == null ? '—' : label(app.str('roomClassName')),
+              rate == null ? null : surcharge(rate),
             ),
-            Line(t('Roommate', 'Bạn cùng phòng'), _roommate()),
-            Line(t('Stay length', 'Thời gian ở'), terms(app.number('stayTerms'))),
-            Line(
-              t('Room and Bed', 'Phòng và giường'),
-              allocation != null
-                  ? '${roomBed(allocation.str('room'), allocation.str('bed'))} · ${label(allocation.str('block'))}'
-                  : t('Assigned after review', 'Xếp sau khi xét duyệt'),
+            spec(Icons.date_range_outlined, t('Stay length', 'Thời gian ở'), terms(app.number('stayTerms') ?? 1)),
+            spec(Icons.people_outline, t('Roommate', 'Bạn cùng phòng'), _roommate()),
+            Container(
+              padding: const EdgeInsets.fromLTRB(10, 10, 6, 10),
+              decoration: BoxDecoration(
+                color: allocation != null ? Tokens.brandSubtle : Tokens.subtle.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                spacing: 10,
+                children: [
+                  chip(
+                    Icons.place_outlined,
+                    bg: allocation != null ? Tokens.primary : Tokens.surface,
+                    fg: allocation != null ? Colors.white : Tokens.fgTertiary,
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 1,
+                      children: [
+                        Text(
+                          t('Room and Bed', 'Phòng và giường'),
+                          style: const TextStyle(fontSize: 12, color: Tokens.fgTertiary),
+                        ),
+                        Text(
+                          allocation != null
+                              ? '${roomBed(allocation.str('room'), allocation.str('bed'))} · ${label(allocation.str('block'))}'
+                              : t('Assigned after review', 'Được xếp sau khi xét duyệt'),
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: allocation != null ? FontWeight.w600 : FontWeight.w400,
+                            color: allocation != null ? Tokens.fg : Tokens.fgSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (allocation != null)
+                    SmallAction(
+                      t('View My Room', 'Xem phòng của tôi'),
+                      onPressed: () => openLink(context, '/student/room'),
+                    ),
+                ],
+              ),
             ),
           ],
         ),
         Section(
           title: t('Payments', 'Thanh toán'),
+          trailing: SmallAction(t('View invoices', 'Xem hóa đơn'), onPressed: () => open(const PaymentsPage())),
           children: [
             if (invoices.isEmpty)
-              Text(t('No Invoices yet.', 'Chưa có hoá đơn.'), style: const TextStyle(color: Tokens.fgSecondary)),
-            for (final inv in invoices)
-              InkWell(
-                onTap: inv.str('status') == null ? null : () => open(InvoiceDetailScreen(id: inv.text('id'))),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: 2,
-                        children: [
-                          Text(label(inv.str('title')), style: const TextStyle(fontWeight: FontWeight.w500)),
-                          Text(
-                            joinDot([
-                              inv.str('id'),
-                              inv.str('paidAt') != null
-                                  ? t('paid ', 'đã trả ') + day(inv.str('paidAt'))
-                                  : inv.str('dueAt') != null
-                                  ? t('due ', 'hạn ') + moment(inv.str('dueAt'))
-                                  : null,
-                            ]),
-                            style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      spacing: 4,
-                      children: [
-                        Text(money(inv.number('amount')), style: const TextStyle(fontWeight: FontWeight.w500)),
-                        inv.str('status') == null
-                            ? Tag(t('Not issued', 'Chưa phát hành'))
-                            : StatusChip(inv.str('status')),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              Text(t('No Invoices yet.', 'Chưa có hóa đơn.'), style: const TextStyle(color: Tokens.fgSecondary)),
+            for (final inv in invoices) _invoice(inv, open),
           ],
         ),
         if (waitlist != null)
           Section(
             title: t('What would you like to do?', 'Bạn muốn làm gì?'),
             children: [
-              Panel(
+              Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(12)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: 6,
                   children: [
                     Text(
                       offer != null ? t('Take a Round 2 Bed', 'Nhận giường Vòng 2') : t('Keep waiting', 'Tiếp tục chờ'),
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     Text(
                       offer != null
@@ -399,15 +485,20 @@ class _Detail extends StatelessWidget {
                   ],
                 ),
               ),
-              Panel(
+              Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Tokens.subtle.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: 6,
                   children: [
                     Text(
                       t('Withdraw and get the Deposit back', 'Rút đơn và nhận lại tiền cọc'),
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     Text(
                       t(
@@ -450,70 +541,127 @@ class _Detail extends StatelessWidget {
             ],
           ),
         if (allocated)
-          Section(
-            title: t('Need a different Room?', 'Cần phòng khác?'),
-            children: [
-              Text(
-                t(
-                  'Room Type and Room Class are locked for this Term. After check-in you can ask for a room change or swap with another Student.',
-                  'Loại phòng và hạng phòng đã khoá trong kỳ này. Sau khi nhận phòng bạn có thể yêu cầu đổi phòng hoặc đổi chỗ với sinh viên khác.',
-                ),
-                style: const TextStyle(color: Tokens.fgSecondary),
-              ),
-              BusyButton(
-                label: t('New room-change request', 'Yêu cầu đổi phòng'),
-                outlined: true,
-                onPressed: () => open(const NewRoomChangeScreen()),
-              ),
-            ],
+          help(
+            t('Need a different Room?', 'Cần phòng khác?'),
+            t(
+              'Room Type and Room tier are locked for this Term. After check-in you can ask for a Room change or swap with another student.',
+              'Loại phòng và hạng phòng đã khóa cho học kỳ này. Sau khi nhận phòng, bạn có thể yêu cầu đổi phòng hoặc hoán đổi với sinh viên khác.',
+            ),
+            OutlinedButton(
+              onPressed: () => open(const NewRoomChangeScreen()),
+              child: Text(t('New room-change request', 'Yêu cầu đổi phòng mới')),
+            ),
           )
         else if (app.flag('canCancel'))
-          Column(
-            spacing: 6,
-            children: [
-              Note(
-                t(
-                  'To change the Room Type or Class, cancel and apply again.',
-                  'Muốn đổi loại hoặc hạng phòng, hãy huỷ đơn và đăng ký lại.',
-                ),
-              ),
-              BusyButton(
-                label: t('Cancel application', 'Huỷ đơn'),
-                outlined: true,
-                danger: true,
-                onPressed: () async {
-                  final reason = TextEditingController();
-                  final ok = await confirmWithRefundAccount(
-                    context,
-                    title: t('Cancel this Application?', 'Huỷ đơn này?'),
-                    body: [
-                      description,
-                      if (app.str('cancelPolicy') != null) label(app.str('cancelPolicy')),
-                    ].join('\n\n'),
-                    extra: Input(controller: reason, label: t('Reason (optional)', 'Lý do (không bắt buộc)'), lines: 2),
-                    yes: t('Cancel application', 'Huỷ đơn'),
-                    no: t('Keep application', 'Giữ đơn'),
-                    needsAccount: refundable,
-                    action: () async {
-                      final text = reason.text.trim();
-                      await Api.post('/applications/${Uri.encodeComponent(app.text('id'))}/cancel', {
-                        if (text.isNotEmpty) 'reason': text,
-                      });
-                      toast(
-                        t(
-                          'Application cancelled. Any deposit refund follows the dormitory refund rules.',
-                          'Đã huỷ đơn. Việc hoàn cọc (nếu có) theo quy định hoàn tiền của KTX.',
-                        ),
-                      );
-                    },
-                  );
-                  reason.dispose();
-                  if (ok && context.mounted) Navigator.pop(context);
-                },
-              ),
-            ],
+          help(
+            t('Need to change something?', 'Cần thay đổi?'),
+            app.str('registrationClosesAt') != null
+                ? t(
+                    'Room Type and Room tier are locked. Cancel to apply again before ${moment(app.str('registrationClosesAt'))}; the deposit refund follows the dormitory refund rules.',
+                    'Loại phòng và hạng phòng đã khóa. Hãy hủy đơn để đăng ký lại trước ${moment(app.str('registrationClosesAt'))}; tiền đặt cọc được hoàn theo quy định hoàn tiền của ký túc xá.',
+                  )
+                : t(
+                    'Room Type and Room tier are locked. Cancel to apply again; the deposit refund follows the dormitory refund rules.',
+                    'Loại phòng và hạng phòng đã khóa. Hãy hủy đơn để đăng ký lại; tiền đặt cọc được hoàn theo quy định hoàn tiền của ký túc xá.',
+                  ),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(foregroundColor: Tone.error.fg),
+              onPressed: () async {
+                final reason = TextEditingController();
+                final ok = await confirmWithRefundAccount(
+                  context,
+                  title: t('Cancel this Application?', 'Huỷ đơn này?'),
+                  body: [description, if (app.str('cancelPolicy') != null) label(app.str('cancelPolicy'))].join('\n\n'),
+                  extra: Input(controller: reason, label: t('Reason (optional)', 'Lý do (không bắt buộc)'), lines: 2),
+                  yes: t('Cancel application', 'Hủy đơn'),
+                  no: t('Keep application', 'Giữ đơn'),
+                  needsAccount: refundable,
+                  action: () async {
+                    final text = reason.text.trim();
+                    await Api.post('/applications/${Uri.encodeComponent(app.text('id'))}/cancel', {
+                      if (text.isNotEmpty) 'reason': text,
+                    });
+                    toast(
+                      t(
+                        'Application cancelled. Any deposit refund follows the dormitory refund rules.',
+                        'Đã huỷ đơn. Việc hoàn cọc (nếu có) theo quy định hoàn tiền của KTX.',
+                      ),
+                    );
+                  },
+                );
+                reason.dispose();
+                if (ok && context.mounted) Navigator.pop(context);
+              },
+              child: Text(t('Cancel application', 'Hủy đơn')),
+            ),
           ),
       ],
+    );
+  }
+
+  /// One Invoice of the Application (web payments card): green when paid, orange-tinted when due with "Pay now".
+  Widget _invoice(Json inv, Future<void> Function(Widget page) open) {
+    final paid = inv.str('status') == 'Paid';
+    final due = inv.str('status') == 'Unpaid' || inv.str('status') == 'Overdue';
+    return Material(
+      color: paid ? Tone.success.bg : (due ? Tokens.brandSubtle : Tokens.subtle.withValues(alpha: 0.6)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: paid ? BorderSide(color: Tone.success.mark.withValues(alpha: 0.3)) : BorderSide.none,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: inv.str('status') == null ? null : () => open(InvoiceDetailScreen(id: inv.text('id'))),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Column(
+            spacing: 8,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label(inv.str('title')), style: const TextStyle(fontWeight: FontWeight.w600)),
+                        Text(inv.text('id'), style: const TextStyle(fontSize: 12, color: Tokens.fgTertiary)),
+                      ],
+                    ),
+                  ),
+                  Text(money(inv.number('amount')), style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+              const Divider(height: 1),
+              Row(
+                spacing: 6,
+                children: [
+                  const Icon(Icons.schedule, size: 13, color: Tokens.fgTertiary),
+                  Expanded(
+                    child: Text(
+                      inv.str('paidAt') != null
+                          ? t('paid ${day(inv.str('paidAt'))}', 'đã thanh toán ${day(inv.str('paidAt'))}')
+                          : inv.str('dueAt') != null
+                          ? t('due ${moment(inv.str('dueAt'))}', 'hạn ${moment(inv.str('dueAt'))}')
+                          : '—',
+                      style: const TextStyle(fontSize: 12.5, color: Tokens.fgSecondary),
+                    ),
+                  ),
+                  inv.str('status') == null ? Tag(t('Not issued', 'Chưa phát hành')) : StatusChip(inv.str('status')),
+                ],
+              ),
+              if (due)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => open(InvoiceScreen(id: inv.text('id'))),
+                    child: Text(t('Pay now', 'Thanh toán ngay')),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

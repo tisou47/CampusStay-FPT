@@ -1546,6 +1546,208 @@ class Timeline extends StatelessWidget {
   }
 }
 
+/// One tab of a [TabStrip]: its key, text, icon, an optional count and an attention dot.
+typedef TabItem = ({String key, String text, IconData icon, int? count, bool dot});
+
+/// The web's segmented tabs (My Room, Invoices) sized for a phone: equal cells in a white strip, the icon over the
+/// text, the selected cell orange with white text; a count after the text, a dot when the tab needs attention.
+class TabStrip extends StatelessWidget {
+  const TabStrip({super.key, required this.items, required this.value, required this.onChanged});
+
+  final List<TabItem> items;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: Tokens.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Tokens.line),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 5,
+          children: [
+            for (final item in items)
+              Expanded(
+                child: Semantics(
+                  selected: item.key == value,
+                  button: true,
+                  child: Material(
+                    color: item.key == value ? Tokens.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => onChanged(item.key),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: 4,
+                          children: [
+                            Badge(
+                              isLabelVisible: item.dot && item.key != value,
+                              smallSize: 8,
+                              backgroundColor: Tone.warning.mark,
+                              child: Icon(
+                                item.icon,
+                                size: 20,
+                                color: item.key == value ? Colors.white : Tokens.fgTertiary,
+                              ),
+                            ),
+                            Text(
+                              item.count == null ? item.text : '${item.text} (${item.count})',
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                height: 1.25,
+                                fontWeight: item.key == value ? FontWeight.w600 : FontWeight.w500,
+                                color: item.key == value ? Colors.white : Tokens.fgSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// An icon, a small name and its value under it (web `InfoRow`).
+class InfoRow extends StatelessWidget {
+  const InfoRow({super.key, required this.icon, required this.name, required this.value});
+
+  final IconData icon;
+  final String name;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 10,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, size: 17, color: Tokens.fgSecondary),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 1,
+            children: [
+              Text(name, style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary)),
+              Text(
+                value,
+                style: const TextStyle(fontWeight: FontWeight.w500, color: Tokens.fg),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One step of [Milestones]: its title, the text under it, a time, and whether it is done or the current one.
+typedef Milestone = ({String title, String text, String? time, bool done, bool current});
+
+/// Steps on a rail (web `StayActivityLogCard`): a green tick when done, an orange ring on the current one, a grey dot
+/// for those ahead; the rail is green after a done step.
+class Milestones extends StatelessWidget {
+  const Milestones({super.key, required this.items});
+
+  final List<Milestone> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < items.length; i++)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: items[i].done
+                            ? Tone.success.mark
+                            : items[i].current
+                            ? Tokens.brandSubtle
+                            : Tokens.subtle,
+                        border: items[i].done
+                            ? null
+                            : Border.all(color: items[i].current ? Tokens.primary : Tokens.lineStrong, width: 2),
+                      ),
+                      child: items[i].done
+                          ? const Icon(Icons.check, size: 15, color: Colors.white)
+                          : items[i].current
+                          ? Center(
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(color: Tokens.primary, shape: BoxShape.circle),
+                              ),
+                            )
+                          : null,
+                    ),
+                    if (i < items.length - 1)
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          margin: const EdgeInsets.symmetric(vertical: 3),
+                          color: items[i].done ? Tone.success.mark.withValues(alpha: 0.5) : Tokens.line,
+                        ),
+                      ),
+                  ],
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 2,
+                      children: [
+                        Text(
+                          items[i].title,
+                          style: TextStyle(
+                            fontWeight: items[i].done || items[i].current ? FontWeight.w600 : FontWeight.w500,
+                            color: items[i].current ? Tokens.fgBrand : (items[i].done ? Tokens.fg : Tokens.fgSecondary),
+                          ),
+                        ),
+                        if (items[i].time != null)
+                          Text(items[i].time!, style: const TextStyle(fontSize: 12, color: Tokens.fgTertiary)),
+                        if (items[i].text.isNotEmpty)
+                          Text(items[i].text, style: const TextStyle(fontSize: 13.5, color: Tokens.fgSecondary)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 /// A segmented switch (web `Tabs` on a phone, Activity › Segmented).
 class Segments extends StatelessWidget {
   const Segments({super.key, required this.items, required this.value, required this.onChanged});

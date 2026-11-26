@@ -21,6 +21,8 @@ import { parseReading } from '@/lib/numbers'
 import { DetailFacts } from '@/components/ui/DetailFacts'
 import { DeskModeSwitch } from './CheckInDesk'
 import { FurnitureConditions } from './check-out/FurnitureConditions'
+import { DisputeCard, StudentDeclaration, StudentMeters } from './check-out/StudentDeclaration'
+
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-12 Check-out Desk (Figma 95:3876)
@@ -437,6 +439,8 @@ export function CheckOutPanel({ d, embedded = false }) {
 
       {/* 2. SCROLLABLE BODY: Active Step Content */}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
+        {/* The student's disagreement with the charges, whichever step is open. */}
+        <DisputeCard allocationId={d.allocationId} data={fData} />
         {/* Step 1: Final Meter Reading */}
         {step === 1 && (
           <>
@@ -528,6 +532,14 @@ export function CheckOutPanel({ d, embedded = false }) {
                   </span>
                 </div>
               )}
+              <StudentMeters
+                data={fData}
+                disabled={done}
+                onUse={(e, w) => {
+                  setElectricity(String(e))
+                  setWater(String(w))
+                }}
+              />
               <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
                 {!done && (
                   <Button size="sm" onClick={() => submit.run(true)} disabled={submit.pending || readingsInvalid}>
@@ -547,6 +559,7 @@ export function CheckOutPanel({ d, embedded = false }) {
 
         {/* Step 2: Room Condition & Automatic Furniture Calculation (kept mounted to preserve unsaved item state across steps) */}
         <div className={step === 2 ? 'flex flex-col gap-3' : 'hidden'}>
+          <StudentDeclaration data={fData} />
           <FurnitureConditions
             allocationId={d.allocationId}
             query={furnitureQuery}

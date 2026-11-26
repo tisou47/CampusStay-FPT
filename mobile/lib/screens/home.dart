@@ -7,7 +7,9 @@ import '../links.dart';
 import '../session.dart';
 import 'applications.dart';
 import 'apply.dart';
+import 'checkout.dart';
 import 'family_day.dart';
+import 'handover.dart';
 import 'notifications.dart';
 import 'payments.dart';
 import 'registration.dart';
@@ -42,6 +44,9 @@ class HomeScreen extends StatelessWidget {
     _optional('/registration-periods/current'),
     _optional('/students/me/roommate-invitation'),
     _optional('/notifications?limit=1'),
+    _optional('/students/me/handover'),
+    _optional('/students/me/check-out'),
+    _optional('/students/me/allocation'),
   ]);
 
   @override
@@ -59,6 +64,38 @@ class HomeScreen extends StatelessWidget {
         final requests = (home.number('openRequests') ?? 0).toInt();
         final left = timeLeft(card?.str('countdownTo'));
         final app = home.obj('application');
+        // Check-in and Check-out are always there (before a Room, during the stay and after the check-out); their
+        // notes say what each asks now.
+        final handover = data[5];
+        final checkIn = handover?.str('status');
+        final checkInTodo = switch (checkIn) {
+          'Ready' || 'Draft' => 1,
+          'Verifying' when handover!.flag('toAgree') => 1,
+          _ => 0,
+        };
+        final checkInNote = switch (checkIn) {
+          'Waiting' => t('Not yet', 'Chưa đến lúc'),
+          'Ready' => t('You can receive it', 'Có thể nhận phòng'),
+          'Draft' => t('Due ${day(handover!.str('dueAt'))}', 'Hạn ${day(handover.str('dueAt'))}'),
+          'Submitted' => t('With Staff', 'Đang chờ nhân viên'),
+          'Verifying' => handover!.flag('toAgree') ? t('Agree now', 'Cần đồng ý') : t('Room visit', 'Hẹn kiểm tra'),
+          'Final' => t('Final', 'Đã chốt'),
+          _ => null,
+        };
+        // At check-out (the stay ends: a termination or no Bed next Term; or Staff recorded the furniture charges, or
+        // ask to confirm damage) the tile becomes Check-out.
+        final checkOut = data[6];
+        final stay = data.length > 7 ? data[7] : null;
+        final claims = checkOut?.objects('claims').where((c) => c.str('status') == 'Pending').length ?? 0;
+        final leaving = stay?.obj('termination') != null || stay?.obj('nextTerm')?.str('state') == 'Not continuing';
+        // Check-in and Check-out are two tiles of their own: Check-out shows for a student with a Room, at check-out,
+        // and after it (the page then says the check-out is done).
+        final checkedOut = checkOut?.str('checkedOutAt') != null;
+        final toAgree =
+            !checkedOut &&
+            (checkOut?.flag('saved') ?? false) &&
+            checkOut?.str('agreedAt') == null &&
+            checkOut?.obj('dispute')?.str('status') != 'Open';
 
         Future<void> open(Widget page) async {
           await push(context, page);
@@ -124,6 +161,30 @@ class HomeScreen extends StatelessWidget {
             FeatureSection(
               title: t('Dormitory life', 'Sinh hoạt KTX'),
               tiles: [
+                FeatureTile(
+                  icon: Icons.vpn_key_rounded,
+                  color: const Color(0xFFF97316),
+                  label: t('Check-in', 'Nhận phòng'),
+                  badge: checkInTodo,
+                  note: checkInNote,
+                  onTap: () => open(const HandoverScreen()),
+                ),
+                FeatureTile(
+                  icon: Icons.logout_rounded,
+                  color: const Color(0xFFEF4444),
+                  label: t('Check-out', 'Trả phòng'),
+                  badge: claims + (toAgree ? 1 : 0),
+                  note: checkedOut
+                      ? t('Checked out', 'Đã trả phòng')
+                      : claims > 0 || toAgree
+                      ? t('Answer now', 'Cần trả lời')
+                      : checkOut?.str('agreedAt') != null
+                      ? t('Agreed', 'Đã đồng ý')
+                      : leaving
+                      ? t('Check-out period', 'Kỳ trả phòng')
+                      : null,
+                  onTap: () => open(const CheckOutScreen()),
+                ),
                 FeatureTile(
                   icon: Icons.build_rounded,
                   color: const Color(0xFF10B981),
@@ -255,15 +316,15 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// The dormitory board (spec §6.5, A-30): pinned and recent announcements, one compact row each; tapping one opens it
-/// in a sheet and marks it read; a change announcement lists its old → new values.
+// The dormitory board (spec §6.5, A-30, web `DormitoryBoard`): pinned and recent announcements, one row each with its
+/// category; tapping one opens it in place and marks it read; a change announcement lists what changed, before and now.
 class _Board extends StatefulWidget {
   const _Board({required this.board, required this.reload, this.all = false});
 
   final Json board;
   final Future<void> Function() reload;
 
-  /// Every announcement (the board's page) instead of the newest two.
+  /// Every announcement (the board's page) instead of the newest three.
   final bool all;
 
   @override
@@ -273,6 +334,7 @@ class _Board extends StatefulWidget {
 class _BoardState extends State<_Board> {
   late bool _all = widget.all;
   final Set<String> _read = {};
+  final Set<String> _open = {};
 
   /// Web `categoryTone`.
   static Tone _tone(String? category) => switch (category) {
@@ -284,19 +346,21 @@ class _BoardState extends State<_Board> {
 
   bool _isRead(Json item) => item.flag('read') || _read.contains(item.str('id'));
 
-  Future<void> _open(Json item) async {
+  void _toggle(Json item) {
     final id = item.text('id');
-    if (!_isRead(item)) {
-      setState(() => _read.add(id));
-      Api.post('/notifications/${Uri.encodeComponent(id)}/read').ignore();
-    }
-    await showAnnouncement(context, item, reload: widget.reload);
+    setState(() {
+      if (!_open.remove(id)) _open.add(id);
+      if (!_isRead(item)) {
+        _read.add(id);
+        Api.post('/notifications/${Uri.encodeComponent(id)}/read').ignore();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final items = widget.board.objects('items');
-    final shown = _all ? items : items.take(2).toList();
+    final shown = _all ? items : items.take(3).toList();
     final unread = items.where((i) => !_isRead(i)).length;
     return Panel(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
@@ -306,10 +370,10 @@ class _BoardState extends State<_Board> {
           Row(
             spacing: 8,
             children: [
-              const Icon(Icons.campaign_outlined, size: 20, color: Tokens.fg),
+              const Icon(Icons.campaign_outlined, size: 20, color: Tokens.fgBrand),
               Expanded(
                 child: Text(
-                  t('Dormitory board', 'Bảng tin KTX'),
+                  t('Dormitory board', 'Bảng tin ký túc xá'),
                   style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -321,14 +385,14 @@ class _BoardState extends State<_Board> {
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
-                t('No announcements right now.', 'Hiện chưa có thông báo.'),
+                t('No announcements right now.', 'Hiện chưa có tin.'),
                 style: const TextStyle(color: Tokens.fgTertiary),
               ),
             ),
           for (var i = 0; i < shown.length; i++) ...[if (i > 0) const Divider(height: 1), _row(shown[i])],
-          if (items.length > 2)
+          if (items.length > 3)
             LinkButton(
-              _all ? t('Show fewer', 'Thu gọn') : t('Show all ${items.length}', 'Xem tất cả ${items.length}'),
+              _all ? t('Show fewer', 'Thu gọn') : t('Show all ${items.length}', 'Xem cả ${items.length}'),
               icon: _all ? Icons.expand_less : Icons.expand_more,
               onPressed: () => setState(() => _all = !_all),
             ),
@@ -339,57 +403,90 @@ class _BoardState extends State<_Board> {
 
   Widget _row(Json item) {
     final read = _isRead(item);
-    return InkWell(
-      onTap: () => _open(item),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 10,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 7),
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: read ? Colors.transparent : Tokens.primary),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 3,
-                children: [
-                  Text(
-                    item.text('title'),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 15, fontWeight: read ? FontWeight.w400 : FontWeight.w600),
-                  ),
-                  Row(
-                    spacing: 6,
+    final open = _open.contains(item.str('id'));
+    final link = item.str('link');
+    final changes = item.objects('changes');
+    final body = item.text('body');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => _toggle(item),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 10,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 7),
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: read ? Colors.transparent : Tokens.primary),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 4,
                     children: [
-                      if (item.flag('pinned')) const Icon(Icons.push_pin, size: 13, color: Tokens.fgBrand),
-                      if (item.str('category') != null)
-                        Text(
-                          label(item.str('category')),
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: _tone(item.str('category')).fg,
-                          ),
-                        ),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (item.flag('pinned')) const Icon(Icons.push_pin, size: 14, color: Tokens.fgBrand),
+                          if (item.str('category') != null)
+                            Tag(label(item.str('category')), tone: _tone(item.str('category')), dot: false),
+                        ],
+                      ),
                       Text(
-                        moment(item.str('shownFrom') ?? item.str('createdAt')).split(' ').first,
+                        item.text('title'),
+                        maxLines: open ? null : 2,
+                        overflow: open ? null : TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 15, fontWeight: read ? FontWeight.w400 : FontWeight.w600),
+                      ),
+                      Text(
+                        moment(item.str('shownFrom') ?? item.str('createdAt')),
                         style: const TextStyle(fontSize: 12.5, color: Tokens.fgTertiary),
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                Icon(open ? Icons.expand_less : Icons.expand_more, color: Tokens.fgSecondary),
+              ],
             ),
-            const Icon(Icons.chevron_right, color: Tokens.fgTertiary),
-          ],
+          ),
         ),
-      ),
+        if (open)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 0, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 8,
+              children: [
+                if (changes.isNotEmpty) ...[
+                  ChangesTable(changes: changes),
+                  // The lines of the text that are not the changes themselves (the reason for the change).
+                  if (body.contains('\n'))
+                    Text(
+                      body.split('\n').where((l) => !l.startsWith('•')).skip(1).join('\n'),
+                      style: const TextStyle(fontSize: 12.5, color: Tokens.fgTertiary),
+                    ),
+                ] else
+                  Text(body, style: const TextStyle(fontSize: 14, color: Tokens.fgSecondary)),
+                if (link != null && link != '/student')
+                  LinkButton(
+                    t('Open', 'Mở'),
+                    icon: Icons.chevron_right,
+                    onPressed: () async {
+                      await openLink(context, link);
+                      await widget.reload();
+                    },
+                  ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -408,76 +505,178 @@ class _BoardState extends State<_Board> {
   }
 }
 
+/// What a change announcement changed (web board table): one row per value, before and now.
+class ChangesTable extends StatelessWidget {
+  const ChangesTable({super.key, required this.changes});
+
+  final List<Json> changes;
+
+  @override
+  Widget build(BuildContext context) {
+    const head = TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Tokens.fgTertiary);
+    return Table(
+      columnWidths: const {0: FlexColumnWidth(1.2), 1: FlexColumnWidth(1), 2: FlexColumnWidth(1)},
+      defaultVerticalAlignment: TableCellVerticalAlignment.top,
+      children: [
+        TableRow(
+          children: [
+            for (final text in [t('What changed', 'Mục thay đổi'), t('Before', 'Trước'), t('Now', 'Bây giờ')])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4, right: 8),
+                child: Text(text, style: head),
+              ),
+          ],
+        ),
+        for (final c in changes)
+          TableRow(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Tokens.line)),
+            ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 5, 8, 5),
+                child: Text(label(c.str('field')), style: const TextStyle(fontSize: 13)),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 5, 8, 5),
+                child: Text(
+                  _BoardState._value(c.str('type'), c['before']),
+                  style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Text(
+                  _BoardState._value(c.str('type'), c['after']),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
 /// Opens an announcement of the dormitory board in a sheet (the board's rows and the notifications that are
 /// announcements): its category, date and title, the old → new values of a change announcement or its text, and
 /// "Open" when it links to another screen. [reload] runs after that screen is closed.
 Future<void> showAnnouncement(BuildContext context, Json item, {Future<void> Function()? reload}) async {
   final link = item.str('link');
   final changes = item.objects('changes');
+  final body = item.text('body');
+  final tone = _BoardState._tone(item.str('category'));
+  final icon = switch (item.str('category')) {
+    'Registration' => Icons.how_to_reg_outlined,
+    'Finance' => Icons.payments_outlined,
+    'Rules' => Icons.gavel_outlined,
+    _ => Icons.campaign_outlined,
+  };
   await showModalBottomSheet<void>(
     context: context,
-    showDragHandle: true,
     isScrollControlled: true,
-    builder: (sheet) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 10,
-          children: [
-            Wrap(
-              spacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (item.flag('pinned')) const Icon(Icons.push_pin, size: 16, color: Tokens.fgBrand),
-                if (item.str('category') != null)
-                  Tag(label(item.str('category')), tone: _BoardState._tone(item.str('category')), dot: false),
-                Text(
-                  moment(item.str('shownFrom') ?? item.str('createdAt')),
-                  style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
+    useSafeArea: true,
+    showDragHandle: true,
+    backgroundColor: Tokens.surface,
+    // Full width on every phone (Material 3 otherwise sizes the sheet to its content).
+    constraints: const BoxConstraints(minWidth: double.infinity),
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (sheet) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      minChildSize: 0.35,
+      maxChildSize: 0.95,
+      builder: (context, scroll) => ListView(
+        controller: scroll,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        children: [
+          Row(
+            spacing: 12,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: tone == Tone.neutral ? Tokens.brandSubtle : tone.bg,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
-            Text(item.text('title'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-            for (final c in changes)
-              Panel(
-                padding: const EdgeInsets.all(12),
+                child: Icon(icon, size: 22, color: tone == Tone.neutral ? Tokens.fgBrand : tone.fg),
+              ),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: 4,
                   children: [
-                    Text(label(c.str('field')), style: const TextStyle(color: Tokens.fgTertiary)),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: _BoardState._value(c.str('type'), c['before']),
-                            style: const TextStyle(decoration: TextDecoration.lineThrough, color: Tokens.fgSecondary),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (item.str('category') != null) Tag(label(item.str('category')), tone: tone, dot: false),
+                        if (item.flag('pinned'))
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 3,
+                            children: [
+                              const Icon(Icons.push_pin, size: 14, color: Tokens.fgBrand),
+                              Text(t('Pinned', 'Đã ghim'), style: const TextStyle(fontSize: 12, color: Tokens.fgBrand)),
+                            ],
                           ),
-                          const TextSpan(text: '  →  '),
-                          TextSpan(
-                            text: _BoardState._value(c.str('type'), c['after']),
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
+                      ],
+                    ),
+                    Text(
+                      moment(item.str('shownFrom') ?? item.str('createdAt')),
+                      style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
                     ),
                   ],
                 ),
               ),
-            if (changes.isEmpty)
-              Text(item.text('body'), style: const TextStyle(color: Tokens.fgSecondary, fontSize: 15)),
-            if (link != null && link != '/student')
-              BusyButton(
-                label: t('Open', 'Mở'),
-                onPressed: () async {
-                  Navigator.pop(sheet);
-                  await openLink(context, link);
-                  await reload?.call();
-                },
+              IconButton(
+                tooltip: t('Close', 'Đóng'),
+                onPressed: () => Navigator.pop(sheet),
+                icon: const Icon(Icons.close, color: Tokens.fgSecondary),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            item.text('title'),
+            style: const TextStyle(fontSize: 21, height: 1.3, fontWeight: FontWeight.w700, color: Tokens.fg),
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 14),
+          if (changes.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Tokens.subtle, borderRadius: BorderRadius.circular(12)),
+              child: ChangesTable(changes: changes),
+            ),
+            // The lines of the text that are not the changes themselves (the reason for the change).
+            if (body.contains('\n')) ...[
+              const SizedBox(height: 12),
+              Text(
+                body.split('\n').where((l) => !l.startsWith('•')).skip(1).join('\n'),
+                style: const TextStyle(fontSize: 14, height: 1.5, color: Tokens.fgSecondary),
+              ),
+            ],
+          ] else
+            Text(body, style: const TextStyle(fontSize: 15.5, height: 1.55, color: Tokens.fg)),
+          const SizedBox(height: 24),
+          if (link != null && link != '/student') ...[
+            BusyButton(
+              label: t('Open', 'Mở'),
+              icon: Icons.open_in_new,
+              onPressed: () async {
+                Navigator.pop(sheet);
+                await openLink(context, link);
+                await reload?.call();
+              },
+            ),
+            const SizedBox(height: 8),
           ],
-        ),
+          BusyButton(label: t('Close', 'Đóng'), outlined: true, onPressed: () => Navigator.pop(sheet)),
+        ],
       ),
     ),
   );
@@ -496,10 +695,7 @@ class BoardScreen extends StatelessWidget {
         builder: (context, board, reload) => Cards(
           children: [
             if (board.objects('items').isEmpty)
-              EmptyState(
-                icon: Icons.campaign_outlined,
-                title: t('No announcements right now.', 'Hiện chưa có thông báo.'),
-              )
+              EmptyState(icon: Icons.campaign_outlined, title: t('No announcements right now.', 'Hiện chưa có tin.'))
             else
               _Board(board: board, reload: reload, all: true),
           ],

@@ -301,4 +301,18 @@
     max-height: none;
     overflow: visible;
   }
+  /* A report longer than one page (the check-in inventory) goes on as many pages as it needs. */
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .print-area {
+    width: 100%;
+  }
+}
+@page {
+  size: A4;
+  margin: 12mm;
 }

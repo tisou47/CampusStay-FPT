@@ -12,11 +12,19 @@ import '../common.dart';
 import '../files.dart';
 import 'refund.dart';
 
-//// Payments (web SCR-BIL-01 My Invoices, phone MOB-BIL-01), kept short for a phone: what to pay now with one button,
-/// the Invoices to pay, then those paid; the refunds and the refund account are one row away.
+/// Payments (web SCR-BIL-01 `MyInvoices`, phone MOB-BIL-01): the Utility debt warning and the transfers waiting for a
+/// Manager, three summary tiles (outstanding, paid this Term, next Invoice), the refund account, then two tabs like the
+/// web's: Invoices & fees (each opens its detail, where it is paid) and Refund items (what comes back, by which rule).
 /// `GET /students/me/invoices`, `GET /students/me/refunds` (A-39, A-66, R-24).
-class PaymentsScreen extends StatelessWidget {
+class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
+
+  @override
+  State<PaymentsScreen> createState() => _PaymentsScreenState();
+}
+
+class _PaymentsScreenState extends State<PaymentsScreen> {
+  String _tab = 'invoices';
 
   static Future<(Json, Json?)> _fetch() async {
     final invoices = await Api.get('/students/me/invoices?pageSize=100');
@@ -29,7 +37,12 @@ class PaymentsScreen extends StatelessWidget {
     return (invoices, refunds);
   }
 
-  static bool _open(Json inv) => const ['Unpaid', 'Overdue', 'Awaiting confirmation'].contains(inv.str('status'));
+  // Approved and Paid both read as good news for the student (money is coming back), so both are green.
+  static Tone _refundTone(String? status) => switch (status) {
+    'Approved' || 'Paid' => Tone.success,
+    'Rejected' => Tone.error,
+    _ => Tone.warning,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -40,130 +53,185 @@ class PaymentsScreen extends StatelessWidget {
         final summary = d.obj('summary');
         final warning = summary?.obj('warning');
         final items = d.objects('items');
-        final toPay = items.where(_open).toList();
-        final others = items.where((i) => !_open(i)).toList();
-        final first = toPay.where((i) => i.str('status') != 'Awaiting confirmation').firstOrNull;
-        final upcoming = summary?.obj('upcoming');
+        final refundItems = refunds?.objects('items') ?? const <Json>[];
         final pending = refunds?.number('pendingAmount') ?? 0;
+        final due = (summary?.number('dueCount') ?? 0).toInt();
+        final awaiting = (summary?.number('awaitingCount') ?? 0).toInt();
 
         Future<void> open(Widget page) async {
           await push(context, page);
           await reload();
         }
 
-        Widget row(Json inv) => StatusRow(
-          icon: Icons.receipt_long_outlined,
-          title: label(inv.str('title') ?? inv.str('typeLabel')),
-          note: inv.str('status') == 'Paid'
-              ? t('Paid ', 'Đã trả ') + day(inv.str('paidAt'))
-              : t('Due ', 'Hạn ') + day(inv.str('dueAt')),
-          trailing: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            spacing: 4,
-            children: [
-              Text(money(inv.number('amount')), style: const TextStyle(fontWeight: FontWeight.w600)),
-              StatusChip(inv.str('status')),
-            ],
-          ),
-          onTap: () => open(InvoiceDetailScreen(id: inv.text('id'))),
-        );
-
         return Cards(
           children: [
+            _Hero(summary: summary, pending: pending),
             if (warning != null)
               Alert(
                 tone: warning.str('level') == 'Final warning' ? Tone.error : Tone.warning,
                 title: warning.str('level') == 'Final warning'
-                    ? t(
-                        'Final warning: Utility debt ${money(warning.number('debt'))}',
-                        'Cảnh báo cuối: nợ điện nước ${money(warning.number('debt'))}',
-                      )
-                    : t(
-                        'Utility overdue: ${money(warning.number('debt'))}',
-                        'Nợ điện nước: ${money(warning.number('debt'))}',
-                      ),
+                    ? t('Final warning: Utility debt', 'Cảnh báo cuối: nợ tiền điện nước')
+                    : t('Utility overdue', 'Tiền điện nước quá hạn'),
                 body: warning.str('level') == 'Final warning'
                     ? t(
-                        'Pay before ${day(warning.str('terminateOn'))} or your stay ends.',
-                        'Trả trước ${day(warning.str('terminateOn'))}, nếu không sẽ phải rời KTX.',
+                        'You owe ${money(warning.number('debt'))} for Utility. Pay everything before ${day(warning.str('terminateOn'))}, or your stay will be terminated.',
+                        'Bạn đang nợ ${money(warning.number('debt'))} tiền điện nước. Hãy thanh toán hết trước ${day(warning.str('terminateOn'))}, nếu không hợp đồng ở sẽ bị chấm dứt.',
                       )
-                    : t('Unpaid Utility can end your stay.', 'Nợ điện nước có thể khiến bạn phải rời KTX.'),
-              ),
-            if (summary != null)
-              HeroCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 4,
-                  children: [
-                    Text(t('Outstanding', 'Cần thanh toán'), style: HeroCard.soft.copyWith(fontSize: 14)),
-                    Text(money(summary.number('outstanding')), style: HeroCard.strong.copyWith(fontSize: 30)),
-                    Text(
-                      (summary.number('dueCount') ?? 0) > 0
-                          ? t(
-                              '${summary.number('dueCount')} Invoices · next due ${day(summary.str('nextDueAt'))}',
-                              '${summary.number('dueCount')} hoá đơn · hạn gần nhất ${day(summary.str('nextDueAt'))}',
-                            )
-                          : t('Nothing to pay right now', 'Hiện không có khoản nào cần trả'),
-                      style: HeroCard.soft.copyWith(fontSize: 14),
-                    ),
-                    if ((summary.number('awaitingCount') ?? 0) > 0)
-                      Text(
-                        t(
-                          '${summary.number('awaitingCount')} transfers wait for a Manager; their deadlines are paused.',
-                          '${summary.number('awaitingCount')} khoản chuyển đang chờ Quản lý xác nhận; hạn tạm dừng.',
-                        ),
-                        style: HeroCard.soft,
+                    : t(
+                        'You owe ${money(warning.number('debt'))} for Utility. Pay it now: unpaid Utility can end your stay.',
+                        'Bạn đang nợ ${money(warning.number('debt'))} tiền điện nước. Hãy thanh toán ngay: nợ tiền điện nước có thể chấm dứt hợp đồng ở.',
                       ),
-                    if (first != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: FilledButton(
-                          style: HeroCard.button,
-                          onPressed: () => open(InvoiceScreen(id: first.text('id'))),
-                          child: Text(
-                            '${t('Pay', 'Thanh toán')} ${label(first.str('title') ?? first.str('typeLabel'))}',
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
               ),
-            if (items.isEmpty)
-              EmptyState(
-                icon: Icons.receipt_long_outlined,
-                title: t('No invoices', 'Chưa có hoá đơn'),
+            if (awaiting > 0)
+              Alert(
+                tone: Tone.info,
+                title: t('Transfers waiting for a Manager', 'Khoản chuyển đang chờ Quản lý'),
                 body: t(
-                  'The deposit Invoice is issued when you submit an Application.',
-                  'Hoá đơn tiền cọc được phát hành khi bạn gửi đơn.',
+                  '$awaiting of your transfers wait for confirmation. Their deadlines are paused.',
+                  '$awaiting khoản chuyển của bạn đang chờ xác nhận. Hạn thanh toán của chúng được tạm dừng.',
                 ),
               ),
-            if (toPay.isNotEmpty) ...[
-              Heading(t('To pay', 'Cần trả')),
-              StatusList(children: [for (final inv in toPay) row(inv)]),
-            ],
-            if (others.isNotEmpty) ...[
-              Heading(
-                t('History', 'Lịch sử'),
-                trailing: Text(
-                  '${t('Paid', 'Đã trả')} ${money(summary?.number('paidTotal'))}',
-                  style: const TextStyle(color: Tokens.fgSecondary, fontSize: 13),
+            RefundAccountCard(pendingAmount: pending),
+            TabStrip(
+              value: _tab,
+              onChanged: (v) => setState(() => _tab = v),
+              items: [
+                (
+                  key: 'invoices',
+                  text: t('Invoices & fees', 'Hóa đơn & Tiền phí'),
+                  icon: Icons.receipt_long_outlined,
+                  count: (d.number('total') ?? items.length).toInt(),
+                  dot: due > 0,
                 ),
-              ),
-              StatusList(children: [for (final inv in others) row(inv)]),
-            ],
-            if (upcoming != null)
-              Note(
-                t(
-                  'Next: ${label(upcoming.str('typeLabel'))} ${money(upcoming.number('amount'))} · ${label(upcoming.str('note'))}',
-                  'Sắp tới: ${label(upcoming.str('typeLabel'))} ${money(upcoming.number('amount'))} · ${label(upcoming.str('note'))}',
+                (
+                  key: 'refunds',
+                  text: t('Refund items', 'Mục hoàn tiền'),
+                  icon: Icons.undo,
+                  count: refunds == null ? null : refundItems.length,
+                  dot: pending > 0,
                 ),
-              ),
-            LinkBar(
-              icon: Icons.undo,
-              text: t('Refunds and refund account', 'Hoàn tiền và tài khoản nhận'),
-              note: pending > 0 ? money(pending) : null,
-              onTap: () => open(RefundsScreen(refunds: refunds)),
+              ],
             ),
+            if (pending > 0 && _tab != 'refunds')
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ActionChip(
+                  avatar: Icon(Icons.schedule, size: 16, color: Tone.warning.fg),
+                  label: Text(
+                    t('${money(pending)} on its way to you', '${money(pending)} đang được hoàn cho bạn'),
+                    style: TextStyle(color: Tone.warning.fg, fontWeight: FontWeight.w500),
+                  ),
+                  backgroundColor: Tone.warning.bg,
+                  side: BorderSide.none,
+                  shape: const StadiumBorder(),
+                  onPressed: () => setState(() => _tab = 'refunds'),
+                ),
+              ),
+            if (_tab == 'invoices')
+              _Part(
+                children: [
+                  if (items.isEmpty)
+                    EmptyState(
+                      icon: Icons.receipt_long_outlined,
+                      title: t('No invoices', 'Chưa có hóa đơn'),
+                      body: t(
+                        'The deposit Invoice is issued when you submit an Application.',
+                        'Hóa đơn tiền đặt cọc được phát hành khi bạn nộp đơn.',
+                      ),
+                    )
+                  else
+                    for (final inv in items)
+                      _Row(
+                        icon: _typeIcon(inv.str('type') ?? inv.str('typeLabel')),
+                        title: label(inv.str('typeLabel') ?? inv.str('title')),
+                        amount: money(inv.number('amount')),
+                        paid: inv.str('status') == 'Paid',
+                        note:
+                            '${inv.text('id')} · ${inv.str('status') == 'Paid' ? t('paid ${day(inv.str('paidAt'))}', 'đã thanh toán ${day(inv.str('paidAt'))}') : t('due ${day(inv.str('dueAt'))}', 'hạn ${day(inv.str('dueAt'))}')}',
+                        tag: inv.str('status') == 'Upcoming'
+                            ? Tag(t('Upcoming', 'Sắp tới'))
+                            : StatusChip(inv.str('status')),
+                        onTap: () => open(InvoiceDetailScreen(id: inv.text('id'))),
+                      ),
+                ],
+              )
+            else
+              _Part(
+                icon: Icons.undo,
+                title: t('Refund items', 'Mục hoàn tiền'),
+                text: t(
+                  'Money the dormitory returns to you, the rule behind it, and where each refund stands.',
+                  'Khoản tiền ký túc xá hoàn lại cho bạn, quy định áp dụng và trạng thái của từng khoản.',
+                ),
+                aside: pending > 0
+                    ? Tag(
+                        t('${money(pending)} on its way to you', '${money(pending)} đang được hoàn cho bạn'),
+                        tone: Tone.warning,
+                      )
+                    : null,
+                children: [
+                  if (refundItems.isEmpty)
+                    EmptyState(
+                      icon: Icons.undo,
+                      title: t('No refunds yet', 'Chưa có khoản hoàn nào'),
+                      body: t(
+                        'Deposit and Utility settlements appear here when your stay ends or an Application is cancelled.',
+                        'Các khoản hoàn cọc và quyết toán điện nước sẽ hiển thị tại đây khi kết thúc lưu trú hoặc hủy đơn.',
+                      ),
+                    )
+                  else
+                    for (final r in refundItems)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 4,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: 8,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    label(r.str('reason')),
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                                StatusChip(r.str('status'), tone: _refundTone(r.str('status'))),
+                              ],
+                            ),
+                            if (r.str('rule') != null)
+                              Text(
+                                label(r.str('rule')),
+                                style: const TextStyle(fontSize: 13.5, color: Tokens.fgSecondary),
+                              ),
+                            if (r.str('note') != null)
+                              Text(
+                                label(r.str('note')),
+                                style: const TextStyle(fontSize: 13.5, color: Tokens.fgTertiary),
+                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${t('Paid', 'Đã thanh toán')} ${money(r.number('paid'))} · '
+                                    '${r.number('percent') != null ? '${r.number('percent')}%' : '—'}\n'
+                                    '${t('Requested', 'Đã yêu cầu')} ${day(r.str('createdAt'))}',
+                                    style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
+                                  ),
+                                ),
+                                Text(
+                                  money(r.number('amount')),
+                                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                ],
+              ),
           ],
         );
       },
@@ -171,52 +239,244 @@ class PaymentsScreen extends StatelessWidget {
   }
 }
 
-/// The refunds (not Invoices, R-24) and the bank account they are paid to (A-62).
-class RefundsScreen extends StatelessWidget {
-  const RefundsScreen({super.key, this.refunds});
+/// A section of Payments (web `SectionHeader` and its card): a glyph, the title and a line under it, then the rows
+/// divided by hairlines.
+class _Part extends StatelessWidget {
+  const _Part({this.icon, this.title, this.text, required this.children, this.aside});
 
-  final Json? refunds;
+  final IconData? icon;
+  final String? title;
+  final String? text;
+  final Widget? aside;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    final items = refunds?.objects('items') ?? const <Json>[];
-    return SubPage(
-      title: t('Refunds', 'Hoàn tiền'),
-      body: Cards(
+    return Panel(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const RefundAccountCard(),
-          if (items.isEmpty)
-            EmptyState(icon: Icons.undo, title: t('No refunds', 'Chưa có khoản hoàn tiền'))
-          else ...[
-            if ((refunds?.number('pendingAmount') ?? 0) > 0)
-              Text(
-                t(
-                  '${money(refunds!.number('pendingAmount'))} on its way to you',
-                  '${money(refunds!.number('pendingAmount'))} đang được chuyển cho bạn',
-                ),
-                style: const TextStyle(color: Tokens.fgSecondary),
-              ),
-            StatusList(
-              children: [
-                for (final r in items)
-                  StatusRow(
-                    icon: Icons.undo,
-                    title:
-                        '${money(r.number('amount'))}${r.number('percent') != null ? ' · ${r.number('percent')}%' : ''}',
-                    note: joinDot([label(r.str('reason')), day(r.str('createdAt')), r.str('note')]),
-                    trailing: StatusChip(
-                      r.str('status'),
-                      tone: switch (r.str('status')) {
-                        'Approved' => Tone.info,
-                        'Paid' => Tone.success,
-                        'Rejected' => Tone.error,
-                        _ => Tone.warning,
-                      },
-                    ),
+          if (title != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 10,
+                children: [
+                  Row(
+                    spacing: 12,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(10)),
+                        child: Icon(icon ?? Icons.receipt_long_outlined, size: 20, color: Tokens.fgBrand),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 2,
+                          children: [
+                            Text(title!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            Text(text ?? '', style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                  ?aside,
+                ],
+              ),
+            ),
+          for (final (n, child) in children.indexed) ...[if (title != null || n > 0) const Divider(height: 1), child],
+        ],
+      ),
+    );
+  }
+}
+
+/// The glyph of an Invoice type.
+IconData _typeIcon(String? type) => switch ((type ?? '').toLowerCase()) {
+  final x when x.contains('deposit') && x.contains('utility') => Icons.bolt_outlined,
+  final x when x.contains('deposit') => Icons.savings_outlined,
+  final x when x.contains('utility') => Icons.bolt_outlined,
+  final x when x.contains('damage') => Icons.handyman_outlined,
+  final x when x.contains('balance') || x.contains('fee') || x.contains('room') => Icons.bed_outlined,
+  _ => Icons.receipt_long_outlined,
+};
+
+/// One Invoice in [_Part]: its type with a glyph, the amount on the right, the code and date, and its status.
+class _Row extends StatelessWidget {
+  const _Row({
+    required this.icon,
+    required this.title,
+    required this.amount,
+    required this.paid,
+    required this.note,
+    required this.tag,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String amount;
+  final bool paid;
+  final String note;
+  final Widget tag;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+        child: Row(
+          spacing: 12,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: paid ? Tone.success.bg : Tokens.brandSubtle,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 20, color: paid ? Tone.success.fg : Tokens.fgBrand),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 3,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(note, style: const TextStyle(fontSize: 12.5, color: Tokens.fgTertiary)),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              spacing: 4,
+              children: [
+                Text(
+                  amount,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: paid ? Tokens.fgSecondary : Tokens.fg,
+                  ),
+                ),
+                tag,
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The top of Payments: what is left to pay, large, on the brand colour (green when everything is paid), with what
+/// was paid and the next Invoice under it, and money on its way back.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.summary, required this.pending});
+
+  final Json? summary;
+  final num pending;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = summary;
+    final outstanding = s?.number('outstanding') ?? 0;
+    final due = (s?.number('dueCount') ?? 0).toInt();
+    final paid = s?.number('paidTotal') ?? 0;
+    final payments = (s?.number('paidCount') ?? 0).toInt();
+    final upcoming = s?.obj('upcoming');
+    final clear = outstanding <= 0;
+    final colors = clear ? const [Color(0xFF15803D), Color(0xFF16A34A)] : const [Color(0xFFC2410C), Color(0xFFEA580C)];
+    const white70 = Color(0xB3FFFFFF);
+
+    Widget stat(String name, String value, String note) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 2,
+        children: [
+          Text(name, style: const TextStyle(fontSize: 12, color: white70)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+          Text(
+            note,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11.5, color: white70),
+          ),
+        ],
+      ),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 6,
+        children: [
+          Row(
+            spacing: 8,
+            children: [
+              Icon(clear ? Icons.verified_outlined : Icons.payments_outlined, size: 18, color: Colors.white),
+              Text(
+                clear ? t('All paid', 'Đã thanh toán đủ') : t('Left to pay', 'Còn phải trả'),
+                style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
+          ),
+          Text(
+            money(outstanding),
+            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white),
+          ),
+          Text(
+            clear
+                ? (pending > 0
+                      ? t('${money(pending)} is on its way back to you.', '${money(pending)} đang được hoàn cho bạn.')
+                      : t('Nothing to pay right now.', 'Hiện chưa có khoản cần trả.'))
+                : t(
+                    '$due Invoices to pay · next due ${day(s?.str('nextDueAt'))}. Transfer, then press I have transferred.',
+                    '$due hóa đơn cần trả · hạn gần nhất ${day(s?.str('nextDueAt'))}. Chuyển khoản rồi bấm Tôi đã chuyển khoản.',
+                  ),
+            style: const TextStyle(fontSize: 13, color: white70),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              spacing: 12,
+              children: [
+                stat(
+                  t('Paid', 'Đã trả'),
+                  money(paid),
+                  payments > 0 ? t('$payments payments', '$payments lần thanh toán') : t('No payments yet', 'Chưa có'),
+                ),
+                Container(width: 1, height: 36, color: Colors.white24),
+                stat(
+                  t('Next invoice', 'Hóa đơn tiếp theo'),
+                  upcoming == null ? '—' : money(upcoming.number('amount')),
+                  upcoming == null
+                      ? t('None this Term', 'Kỳ này chưa có')
+                      : joinDot([label(upcoming.str('typeLabel')), label(upcoming.str('note'))]),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -559,7 +819,64 @@ class _InvoiceScreenState extends State<InvoiceScreen> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
-    return SubPage(title: t('Pay Invoice', 'Thanh toán hoá đơn'), body: _body());
+    final title = label(_data?.obj('invoice')?.str('title'));
+    return SubPage(title: title.isNotEmpty ? title : t('Pay invoice', 'Thanh toán hóa đơn'), body: _body());
+  }
+
+  /// Asks the student to check the amount and the transfer content before reporting the transfer (web modal
+  /// "Confirm transfer submission"); then sends the claim.
+  Future<void> _claim(Json invoice, String content) async {
+    final reference = _reference.text.trim();
+    final ok = await confirm(
+      context,
+      title: t('Confirm transfer submission', 'Xác nhận đã chuyển khoản'),
+      yes: t('Yes, I have transferred', 'Đúng, tôi đã chuyển khoản'),
+      no: t('Check again', 'Kiểm tra lại'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 12,
+        children: [
+          Text(
+            t(
+              'Did you transfer exactly this amount and transfer content?',
+              'Bạn đã chuyển khoản chính xác số tiền và nội dung chuyển khoản dưới đây chưa?',
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Tokens.subtle, borderRadius: BorderRadius.circular(10)),
+            child: Column(
+              spacing: 6,
+              children: [
+                Line(t('Amount', 'Số tiền'), money(invoice.number('amount')), strong: true),
+                Line(t('Transfer content', 'Nội dung chuyển khoản'), content, strong: true),
+                if (reference.isNotEmpty) Line(t('Bank reference', 'Mã giao dịch ngân hàng'), reference),
+              ],
+            ),
+          ),
+          Alert(
+            tone: Tone.warning,
+            title: t('Important note', 'Lưu ý quan trọng'),
+            body: t(
+              'Reporting a transfer before paying or with incorrect content may lead to rejection and losing your Bed reservation. A report rejected too often cancels a Deposit, a Balance or a next-Term fee.',
+              'Khai báo đã chuyển khoản khi chưa thực hiện hoặc sai nội dung có thể khiến yêu cầu bị từ chối và mất giữ chỗ phòng. Bị từ chối quá số lần cho phép sẽ huỷ tiền cọc, tiền phòng hoặc phí kỳ sau.',
+            ),
+          ),
+        ],
+      ),
+    );
+    if (!ok) return;
+    await _run(() async {
+      await Api.post('$_path/claim', reference.isEmpty ? {} : {'reference': reference});
+      toast(
+        t(
+          'Transfer reported. A Manager will check it; the deadline is paused until then.',
+          'Đã báo chuyển khoản. Quản lý sẽ kiểm tra; hạn thanh toán tạm dừng trong lúc chờ.',
+        ),
+      );
+      await _load();
+    });
   }
 
   Widget _body() {
@@ -586,115 +903,271 @@ class _InvoiceScreenState extends State<InvoiceScreen> with WidgetsBindingObserv
         : '${(left ~/ 60).toString().padLeft(2, '0')}:${(left % 60).toString().padLeft(2, '0')}';
     final rejection = !paid && !waiting && claim?.str('status') == 'Rejected' ? claim?.obj('lastRejection') : null;
     final image = _image;
+    final open = !paid && !waiting;
+
+    Widget chip(IconData icon, {Color bg = Tokens.brandSubtle, Color fg = Tokens.fgBrand, double size = 32}) =>
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(size / 4)),
+          child: Icon(icon, size: size * 0.53, color: fg),
+        );
+
     return RefreshIndicator(
       onRefresh: _load,
       child: Cards(
         children: [
+          // The VietQR card: what to scan, the amount, and the bank details to type by hand.
           Panel(
             child: Column(
-              spacing: 10,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 14,
               children: [
-                Text(
-                  paid
-                      ? t('Payment confirmed', 'Đã xác nhận thanh toán')
-                      : waiting
-                      ? t('Transfer reported', 'Đã báo chuyển khoản')
-                      : qr != null
-                      ? t('Scan with any banking app', 'Quét bằng ứng dụng ngân hàng bất kỳ')
-                      : t('Transfer to the dormitory', 'Chuyển khoản cho KTX'),
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 10,
+                  children: [
+                    Row(
+                      spacing: 8,
+                      children: [
+                        chip(Icons.qr_code_2),
+                        Expanded(
+                          child: Text(
+                            paid
+                                ? t('Payment confirmed', 'Đã xác nhận thanh toán')
+                                : waiting
+                                ? t('Transfer reported', 'Đã báo chuyển khoản')
+                                : qr != null
+                                ? t('Scan with any banking app', 'Quét bằng ứng dụng ngân hàng bất kỳ')
+                                : t('Transfer to the dormitory', 'Chuyển khoản cho ký túc xá'),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (open && expiresAt != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: mmss != null && left! > 60 ? Tokens.brandSubtle : Tone.error.bg,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          spacing: 5,
+                          children: [
+                            Icon(
+                              Icons.schedule,
+                              size: 14,
+                              color: mmss != null && left! > 60 ? Tokens.fgBrand : Tone.error.fg,
+                            ),
+                            Text(
+                              mmss != null
+                                  ? t('QR expires in $mmss', 'Mã QR hết hạn sau $mmss')
+                                  : t('QR expired', 'Mã QR đã hết hạn'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: mmss != null && left! > 60 ? Tokens.fgBrand : Tone.error.fg,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-                if (paid || waiting)
-                  Column(
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Tokens.subtle.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    spacing: 10,
+                    children: [
+                      Container(
+                        width: 208,
+                        height: 208,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Tokens.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Tokens.line),
+                        ),
+                        alignment: Alignment.center,
+                        child: paid || waiting
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                spacing: 8,
+                                children: [
+                                  Icon(
+                                    paid ? Icons.check_circle_outline : Icons.hourglass_top,
+                                    size: 48,
+                                    color: paid ? Tone.success.mark : Tone.info.mark,
+                                  ),
+                                  Text(
+                                    paid
+                                        ? t(
+                                            'Paid ${day(invoice.str('paidAt'))}',
+                                            'Đã thanh toán ${day(invoice.str('paidAt'))}',
+                                          )
+                                        : t('Waiting for confirmation', 'Chờ xác nhận'),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: paid ? Tone.success.fg : Tone.info.fg,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : image != null && !expired
+                            ? Image.memory(image, semanticLabel: 'VietQR')
+                            : Text(
+                                expired
+                                    ? t('QR expired', 'Mã QR đã hết hạn')
+                                    : bank != null
+                                    ? t('QR code unavailable', 'Không có mã QR')
+                                    : t(
+                                        'Ask the dormitory office for the bank account to transfer to.',
+                                        'Hãy hỏi văn phòng ký túc xá tài khoản ngân hàng để chuyển khoản.',
+                                      ),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
+                              ),
+                      ),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _copy('${invoice.number('amount')?.round() ?? 0}'),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          spacing: 6,
+                          children: [
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  money(invoice.number('amount')),
+                                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.copy, size: 16, color: Tokens.fgSecondary),
+                          ],
+                        ),
+                      ),
+                      if (qr != null)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: 8,
+                          children: [
+                            const Tag('VietQR', tone: Tone.info, dot: false),
+                            Text(
+                              t('Bank transfer · NAPAS 247', 'Chuyển khoản · NAPAS 247'),
+                              style: const TextStyle(fontSize: 12.5, color: Tokens.fgTertiary),
+                            ),
+                          ],
+                        ),
+                      if (open && expired)
+                        BusyButton(
+                          label: t('Refresh QR', 'Làm mới mã QR'),
+                          icon: Icons.refresh,
+                          busy: _busy,
+                          onPressed: () => _run(() async {
+                            await Api.post('$_path/payment/refresh');
+                            _imageUrl = null;
+                            _image = null;
+                            await _load();
+                          }),
+                        )
+                      else if (open && image != null)
+                        OutlinedButton.icon(
+                          onPressed: _openQr,
+                          icon: const Icon(Icons.download, size: 18),
+                          label: Text(t('Download QR', 'Tải mã QR')),
+                        ),
+                    ],
+                  ),
+                ),
+                if (open && bank != null) ...[
+                  Row(
                     spacing: 6,
                     children: [
-                      Icon(
-                        paid ? Icons.check_circle : Icons.hourglass_top,
-                        size: 48,
-                        color: paid ? Tone.success.mark : Tone.info.mark,
-                      ),
+                      const Icon(Icons.apartment_outlined, size: 15, color: Tokens.fgTertiary),
                       Text(
-                        paid
-                            ? t('Paid ', 'Đã trả ') + day(invoice.str('paidAt'))
-                            : t('Waiting for confirmation', 'Đang chờ xác nhận'),
-                        style: TextStyle(color: paid ? Tone.success.fg : Tone.info.fg, fontWeight: FontWeight.w500),
+                        t('Or transfer manually', 'Hoặc chuyển khoản thủ công').toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.6,
+                          color: Tokens.fgTertiary,
+                        ),
                       ),
                     ],
-                  )
-                else if (image != null && !expired)
-                  Image.memory(image, width: 240, height: 240, semanticLabel: 'VietQR')
-                else if (qr == null)
-                  Text(
-                    bank != null
-                        ? t('QR code unavailable', 'Không có mã QR')
-                        : t(
-                            'Ask the dormitory office for the bank account to transfer to.',
-                            'Hãy hỏi văn phòng KTX số tài khoản để chuyển khoản.',
-                          ),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Tokens.fgSecondary),
                   ),
-                Text(
-                  money(invoice.number('amount')),
-                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
-                ),
-                if (qr != null && !paid && !waiting)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    spacing: 8,
+                  Column(
                     children: [
-                      const Tag('VietQR', tone: Tone.info, dot: false),
-                      Text(
-                        t('Bank transfer · NAPAS 247', 'Chuyển khoản · NAPAS 247'),
-                        style: const TextStyle(color: Tokens.fgSecondary),
-                      ),
+                      _CopyLine(t('Bank', 'Ngân hàng'), bank.text('name'), null),
+                      const Divider(height: 1),
+                      _CopyLine(t('Account number', 'Số tài khoản'), bank.text('accountNumber'), _copy, mono: true),
+                      const Divider(height: 1),
+                      _CopyLine(t('Account name', 'Tên tài khoản'), bank.text('accountName'), _copy),
                     ],
                   ),
-                if (!paid && !waiting && expiresAt != null)
-                  Text(
-                    mmss != null
-                        ? t('QR expires in $mmss', 'Mã QR hết hạn sau $mmss')
-                        : t('QR expired', 'Mã QR đã hết hạn'),
-                    style: TextStyle(color: mmss != null ? Tokens.fgSecondary : Tone.error.fg),
+                  if (content.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+                      decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(12)),
+                      child: Row(
+                        spacing: 8,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: 2,
+                              children: [
+                                Text(
+                                  t('Transfer content', 'Nội dung chuyển khoản'),
+                                  style: const TextStyle(fontSize: 12, color: Tokens.fgSecondary),
+                                ),
+                                Text(
+                                  content,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    fontFeatures: [FontFeature.tabularFigures()],
+                                    letterSpacing: 0.5,
+                                    color: Tokens.fgBrand,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => _copy(content),
+                            style: OutlinedButton.styleFrom(backgroundColor: Tokens.surface),
+                            icon: const Icon(Icons.copy, size: 16),
+                            label: Text(t('Copy', 'Sao chép')),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Note(
+                    t(
+                      'Enter the transfer content exactly. It links your payment to this Invoice.',
+                      'Hãy nhập đúng nội dung chuyển khoản. Nội dung này gắn khoản tiền với hóa đơn.',
+                    ),
                   ),
+                ],
               ],
             ),
           ),
-          if (!paid && !waiting) ...[
-            if (expired)
-              BusyButton(
-                label: t('Refresh QR', 'Làm mới mã QR'),
-                icon: Icons.refresh,
-                busy: _busy,
-                onPressed: () => _run(() async {
-                  await Api.post('$_path/payment/refresh');
-                  _imageUrl = null;
-                  _image = null;
-                  await _load();
-                }),
-              )
-            else if (image != null)
-              BusyButton(
-                label: t('Open the QR image', 'Mở ảnh mã QR'),
-                icon: Icons.download,
-                outlined: true,
-                onPressed: _openQr,
-              ),
-            if (content.isNotEmpty)
-              BusyButton(
-                label: t('Copy transfer content', 'Sao chép nội dung chuyển khoản'),
-                icon: Icons.copy,
-                outlined: true,
-                onPressed: () => _copy(content),
-              ),
-          ],
           if (paid)
             Alert(
               tone: Tone.success,
               title: t('Payment received', 'Đã nhận thanh toán'),
               body: t(
-                'This payment was confirmed on ${moment(invoice.str('paidAt'))}. The receipt is on the Invoice.',
-                'Khoản thanh toán được xác nhận lúc ${moment(invoice.str('paidAt'))}. Biên lai có trong hoá đơn.',
+                'This payment was confirmed on ${moment(invoice.str('paidAt'))}. A receipt is available under Payments.',
+                'Khoản thanh toán đã được xác nhận lúc ${moment(invoice.str('paidAt'))}. Biên lai có trong mục Thanh toán.',
               ),
             )
           else if (waiting)
@@ -703,18 +1176,18 @@ class _InvoiceScreenState extends State<InvoiceScreen> with WidgetsBindingObserv
               title: t('Waiting for a Manager', 'Đang chờ Quản lý'),
               body: t(
                 'You reported the transfer on ${moment(claim?.str('claimedAt'))}. The deadline is paused until a Manager confirms or rejects it; you will be notified.',
-                'Bạn đã báo chuyển khoản lúc ${moment(claim?.str('claimedAt'))}. Hạn thanh toán tạm dừng cho tới khi Quản lý xác nhận hoặc từ chối; bạn sẽ được thông báo.',
+                'Bạn đã báo chuyển khoản lúc ${moment(claim?.str('claimedAt'))}. Hạn thanh toán được tạm dừng cho đến khi Quản lý xác nhận hoặc từ chối; bạn sẽ được thông báo.',
               ),
             )
           else ...[
             if (rejection != null)
               Alert(
                 tone: Tone.warning,
-                title: t('Transfer not confirmed', 'Khoản chuyển chưa được xác nhận'),
+                title: t('Transfer not confirmed', 'Chưa xác nhận chuyển khoản'),
                 body: [
                   t(
                     'A Manager could not confirm your transfer: ${rejection.text('reason')}. Check the transfer content and report it again before the deadline.',
-                    'Quản lý chưa xác nhận được khoản chuyển: ${rejection.text('reason')}. Hãy kiểm tra nội dung chuyển khoản và báo lại trước hạn.',
+                    'Quản lý chưa xác nhận được khoản chuyển của bạn: ${rejection.text('reason')}. Hãy kiểm tra nội dung chuyển khoản và báo lại trước hạn.',
                   ),
                   // D4 (BE-APP-BIL-19): the new deadline and how many rejections are left, when the server sends them.
                   if (rejection.str('dueAt') != null)
@@ -728,113 +1201,118 @@ class _InvoiceScreenState extends State<InvoiceScreen> with WidgetsBindingObserv
                     ),
                 ].join(' '),
               ),
-            Section(
-              title: t('Paid already? Tell the dormitory', 'Đã chuyển khoản? Báo cho KTX'),
-              children: [
-                Text(
-                  t(
-                    'After the transfer, press the button; a Manager confirms it.',
-                    'Chuyển khoản xong, bấm nút dưới đây; Quản lý sẽ xác nhận.',
-                  ),
-                  style: const TextStyle(color: Tokens.fgSecondary),
-                ),
-                if (d.flag('canClaim')) ...[
-                  Input(
-                    controller: _reference,
-                    label: t('Bank reference (optional)', 'Mã giao dịch (không bắt buộc)'),
-                    hint: 'FT26300012345',
-                    maxLength: 60,
-                  ),
-                  BusyButton(
-                    label: t('I have transferred', 'Tôi đã chuyển khoản'),
-                    icon: Icons.send,
-                    busy: _busy,
-                    onPressed: () async {
-                      final ok = await confirm(
-                        context,
-                        title: t('Did you transfer the money?', 'Bạn đã chuyển khoản chưa?'),
-                        body: t(
-                          'A Manager checks it against the bank statement. A report rejected too often cancels a Deposit, a Balance or a next-Term fee.',
-                          'Quản lý sẽ đối chiếu với sao kê. Bị từ chối quá số lần cho phép sẽ huỷ tiền cọc, tiền phòng hoặc phí kỳ sau.',
+            Panel(
+              border: Tokens.primary.withValues(alpha: 0.35),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: 12,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 12,
+                    children: [
+                      chip(Icons.verified_user_outlined, size: 40),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 4,
+                          children: [
+                            Text(
+                              t('Paid already? Tell the dormitory', 'Đã chuyển khoản? Hãy báo cho ký túc xá'),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              t(
+                                'Transfer exactly ${money(invoice.number('amount'))} with the transfer content $content, then press I have transferred. A Manager checks the bank account and confirms it.',
+                                'Hãy chuyển đúng ${money(invoice.number('amount'))} với nội dung $content, rồi bấm Tôi đã chuyển khoản. Quản lý sẽ kiểm tra tài khoản ngân hàng và xác nhận.',
+                              ),
+                              style: const TextStyle(fontSize: 13.5, color: Tokens.fgSecondary),
+                            ),
+                          ],
                         ),
-                        yes: t('I have transferred', 'Tôi đã chuyển khoản'),
-                        no: t('Not yet', 'Chưa'),
-                      );
-                      if (!ok) return;
-                      await _run(() async {
-                      final reference = _reference.text.trim();
-                      await Api.post('$_path/claim', reference.isEmpty ? {} : {'reference': reference});
-                      toast(
-                        t(
-                          'Transfer reported. A Manager will check it; the deadline is paused until then.',
-                          'Đã báo chuyển khoản. Quản lý sẽ kiểm tra; hạn thanh toán tạm dừng trong lúc chờ.',
-                        ),
-                      );
-                      await _load();
-                      });
-                    },
+                      ),
+                    ],
                   ),
-                ] else
-                  Alert(
-                    tone: Tone.error,
-                    title: t('The deadline has passed', 'Đã quá hạn'),
-                    body: t(
-                      'This Invoice can no longer be paid by transfer. Contact the dormitory office.',
-                      'Hoá đơn này không còn trả bằng chuyển khoản được. Hãy liên hệ văn phòng KTX.',
-                    ),
-                  ),
-                if ((claim?.number('rejected') ?? 0) > 0)
-                  Note(
-                    claim?.number('rejectionsToCancel') != null
-                        ? t(
-                            'Transfers rejected so far: ${claim!.number('rejected')} of ${claim.number('rejectionsToCancel')} that cancel this Invoice.',
-                            'Số lần bị từ chối: ${claim.number('rejected')}/${claim.number('rejectionsToCancel')} lần thì hoá đơn bị huỷ.',
-                          )
-                        : t(
-                            'Transfers rejected so far: ${claim!.number('rejected')}.',
-                            'Số lần bị từ chối: ${claim.number('rejected')}.',
+                  if (d.flag('canClaim'))
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Tokens.subtle.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        spacing: 10,
+                        children: [
+                          Input(
+                            controller: _reference,
+                            label: t('Bank reference (optional)', 'Mã giao dịch ngân hàng (không bắt buộc)'),
+                            hint: 'FT26300012345',
+                            maxLength: 60,
                           ),
-                  ),
-              ],
+                          BusyButton(
+                            label: t('I have transferred', 'Tôi đã chuyển khoản'),
+                            icon: Icons.send,
+                            busy: _busy,
+                            onPressed: () => _claim(invoice, content),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Alert(
+                      tone: Tone.error,
+                      title: t('The deadline has passed', 'Đã quá hạn'),
+                      body: t(
+                        'This Invoice can no longer be paid by transfer. Contact the dormitory office.',
+                        'Hóa đơn này không còn thanh toán bằng chuyển khoản được. Hãy liên hệ văn phòng ký túc xá.',
+                      ),
+                    ),
+                  if ((claim?.number('rejected') ?? 0) > 0)
+                    Note(
+                      claim?.number('rejectionsToCancel') != null
+                          ? t(
+                              'Transfers rejected so far: ${claim!.number('rejected')} of ${claim.number('rejectionsToCancel')} that cancel this Invoice.',
+                              'Số lần bị từ chối: ${claim.number('rejected')}/${claim.number('rejectionsToCancel')} lần thì hoá đơn bị huỷ.',
+                            )
+                          : t(
+                              'Transfers rejected so far: ${claim!.number('rejected')}.',
+                              'Số lần bị từ chối: ${claim.number('rejected')}.',
+                            ),
+                    ),
+                ],
+              ),
             ),
           ],
-          if (!paid && !waiting && bank != null)
-            Section(
-              title: t('Or transfer manually', 'Hoặc chuyển khoản thủ công'),
+          Panel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 10,
               children: [
-                Line(t('Bank', 'Ngân hàng'), bank.text('name')),
-                _CopyLine(t('Account name', 'Chủ tài khoản'), bank.text('accountName'), _copy),
-                _CopyLine(t('Account number', 'Số tài khoản'), bank.text('accountNumber'), _copy),
-                _CopyLine(
-                  t('Amount', 'Số tiền'),
-                  '${invoice.number('amount')?.round() ?? 0}',
-                  _copy,
-                  display: money(invoice.number('amount')),
+                Row(
+                  spacing: 8,
+                  children: [
+                    chip(Icons.credit_card, bg: Tokens.subtle, fg: Tokens.fgSecondary),
+                    Expanded(
+                      child: Text(
+                        t('Invoice', 'Hóa đơn'),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    StatusChip(invoice.str('status')),
+                  ],
                 ),
-                _CopyLine(t('Transfer content', 'Nội dung chuyển khoản'), content, _copy),
-                Note(
-                  t(
-                    'Enter the transfer content exactly. It links your payment to this Invoice.',
-                    'Hãy nhập đúng nội dung chuyển khoản: nó gắn khoản chuyển với hoá đơn này.',
-                  ),
+                Line(
+                  t('Invoice', 'Hóa đơn'),
+                  joinDot([invoice.str('id'), label(invoice.str('typeLabel') ?? invoice.str('title'))]),
                 ),
+                if (invoice.str('reference') != null) Line(t('For', 'Cho'), label(invoice.str('reference'))),
+                Line(t('Due', 'Hạn'), '${moment(invoice.str('dueAt'))}${open ? _leftText(invoice.str('dueAt')) : ''}'),
+                Line(t('Total', 'Tổng'), money(invoice.number('amount')), strong: true),
+                if (claim?.str('reference') != null)
+                  Line(t('Bank reference', 'Mã giao dịch ngân hàng'), claim!.text('reference')),
               ],
             ),
-          Section(
-            title: t('Invoice', 'Hoá đơn'),
-            children: [
-              Line(
-                t('Invoice', 'Hoá đơn'),
-                joinDot([invoice.str('id'), label(invoice.str('typeLabel') ?? invoice.str('title'))]),
-              ),
-              if (invoice.str('reference') != null) Line(t('For', 'Cho'), label(invoice.str('reference'))),
-              Line(
-                t('Due', 'Hạn'),
-                '${moment(invoice.str('dueAt'))}${!paid && !waiting ? _leftText(invoice.str('dueAt')) : ''}',
-              ),
-              Line(t('Total', 'Tổng'), money(invoice.number('amount')), strong: true),
-              if (claim?.str('reference') != null) Line(t('Bank reference', 'Mã giao dịch'), claim!.text('reference')),
-            ],
           ),
         ],
       ),
@@ -854,36 +1332,45 @@ class _InvoiceScreenState extends State<InvoiceScreen> with WidgetsBindingObserv
   }
 }
 
+/// A name and its value in a row of the manual transfer details, with a copy button when [copy] is given.
 class _CopyLine extends StatelessWidget {
-  const _CopyLine(this.name, this.value, this.copy, {this.display});
+  const _CopyLine(this.name, this.value, this.copy, {this.mono = false});
 
   final String name;
   final String value;
-  final String? display;
-  final Future<void> Function(String) copy;
+  final bool mono;
+  final Future<void> Function(String)? copy;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(name, style: const TextStyle(color: Tokens.fgTertiary)),
-        ),
-        Flexible(
-          flex: 2,
-          child: Text(
-            display ?? value,
-            textAlign: TextAlign.end,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: copy == null ? 12 : 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(name, style: const TextStyle(color: Tokens.fgSecondary)),
           ),
-        ),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          tooltip: t('Copy', 'Sao chép'),
-          onPressed: () => copy(value),
-          icon: const Icon(Icons.copy, size: 18, color: Tokens.link),
-        ),
-      ],
+          Flexible(
+            flex: 2,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: mono ? FontWeight.w600 : FontWeight.w500,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                letterSpacing: mono ? 0.5 : null,
+              ),
+            ),
+          ),
+          if (copy != null)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: t('Copy', 'Sao chép'),
+              onPressed: () => copy!(value),
+              icon: const Icon(Icons.copy, size: 17, color: Tokens.fgSecondary),
+            ),
+        ],
+      ),
     );
   }
 }

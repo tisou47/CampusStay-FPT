@@ -5,7 +5,7 @@ import { Alert } from '@/components/ui/Display'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName } from '@/lib/furniture'
-import { formatVnd } from '@/lib/format'
+import { formatNumber, formatVnd } from '@/lib/format'
 import { t } from '@/i18n'
 import { SettlementRow } from './checkOutShared'
 
@@ -22,36 +22,52 @@ export const CheckOutSettlementSection = forwardRef(function CheckOutSettlementS
     onJumpFurniture,
     onSaveDraft,
     onOpenSummary,
+    estimating = false,
+    usage = null,
+    residents = null,
   },
   ref,
 ) {
+  // A deduction: "− 18.038.000 ₫", or "0 ₫" when there is none.
+  const minus = (amount) => (amount > 0 ? `− ${formatVnd(amount)}` : formatVnd(0))
+  const period = s.periodLabel ? s.periodLabel.replace(/^since /, `${t('since')} `) : null
   return (
-    <section ref={ref} className="flex scroll-mt-16 flex-col gap-5 rounded-lg border border-line bg-surface p-6">
+    <section ref={ref} className="flex scroll-mt-16 flex-col gap-4 rounded-lg border border-line bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
         <div className="flex items-center gap-2">
           <Receipt size={18} strokeWidth={1.5} aria-hidden="true" className="text-fg-brand" />
           <div>
-            <h2 className="text-h3 font-semibold text-fg">{t('3. Settlement & confirm')}</h2>
-            <p className="text-xs text-fg-secondary">
-              {t('Review the utility deposit, unpaid invoices, and any furniture damage charges before confirming check-out.')}
-            </p>
+            <h2 className="text-h3 font-semibold text-fg">{t('Settlement')}</h2>
+            <p className="text-xs text-fg-secondary">{t('Updates as you type the meters and record the furniture.')}</p>
           </div>
         </div>
         {done && <Tag tone="success">{t('Completed')}</Tag>}
       </div>
 
-      <dl className="flex flex-col gap-2 divide-y divide-line/60 rounded-xl border border-line bg-subtle/40 p-5">
+      <dl className="flex flex-col gap-1 divide-y divide-line/60 rounded-xl border border-line bg-subtle/40 px-4 py-3">
         <SettlementRow label="Utility deposit held" strong>
           {formatVnd(s.held)}
         </SettlementRow>
-        <SettlementRow label={`${t('Final utility share')}${s.periodLabel ? ` ${s.periodLabel}` : ''}`}>
-          − {formatVnd(s.share)}
-        </SettlementRow>
-        <SettlementRow label="Unpaid utility invoices">− {formatVnd(s.unpaid)}</SettlementRow>
-        {damageAmount > 0 && (
-          <div className="flex flex-col gap-2 pt-2">
-            <SettlementRow label="Damage charge" tone="text-warning-fg" strong>
-              − {formatVnd(damageAmount)}
+        <div className="flex flex-col py-1">
+          <SettlementRow label="Final utility share">{estimating ? t('Calculating…') : minus(s.share)}</SettlementRow>
+          {(period || usage) && (
+            <span className="text-xs text-fg-tertiary tabular">
+              {[
+                period,
+                usage ? t('{kwh} kWh · {m3} m³ for the Room', { kwh: formatNumber(usage.kwh), m3: formatNumber(usage.m3) }) : null,
+                residents ? t('split ÷ {n} residents', { n: residents }) : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          )}
+          {!usage && !done && <span className="text-xs text-warning-fg">{t('Enter both meter readings to calculate it.')}</span>}
+        </div>
+        {/* Earlier Utility Invoices still unpaid are taken from the deposit too; shown only when there are some. */}
+        {(s.unpaid ?? 0) > 0 && <SettlementRow label="Unpaid utility invoices">{minus(s.unpaid)}</SettlementRow>}
+        <div className="flex flex-col gap-2 py-1">
+            <SettlementRow label="Damage charge" tone={damageAmount > 0 ? 'text-warning-fg' : undefined} strong={damageAmount > 0}>
+              {minus(damageAmount)}
             </SettlementRow>
             {damageLines.length > 0 && (
               <div className="flex flex-col gap-2 border-l-2 border-warning/40 pl-3 text-sm text-fg-secondary">
@@ -78,12 +94,11 @@ export const CheckOutSettlementSection = forwardRef(function CheckOutSettlementS
               </p>
             )}
           </div>
-        )}
       </dl>
 
       <div
         className={cx(
-          'flex items-center justify-between gap-3 rounded-xl p-5',
+          'flex items-center justify-between gap-3 rounded-xl p-4',
           refund >= 0 ? 'border border-success/30 bg-success-bg' : 'border border-error/30 bg-error-bg',
         )}
       >
@@ -116,11 +131,11 @@ export const CheckOutSettlementSection = forwardRef(function CheckOutSettlementS
       )}
 
       {!done && (
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 border-t border-line pt-4">
           <Button icon={Save} disabled={submitPending} onClick={onSaveDraft}>
             {t('Save draft')}
           </Button>
-          <Button variant="primary" disabled={submitPending || !condition} onClick={onOpenSummary}>
+          <Button variant="primary" block disabled={submitPending || !condition} onClick={onOpenSummary}>
             {t('Confirm check-out')}
           </Button>
         </div>

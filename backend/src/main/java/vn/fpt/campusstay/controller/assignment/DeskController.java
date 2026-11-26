@@ -91,9 +91,12 @@ class DeskController {
         return desk.checkOutList(termId, block, q, reason, status, PageQuery.of(page, pageSize));
     }
 
+    /** With {@code electricity} and {@code water}: the settlement is estimated from these readings (not saved). */
     @GetMapping("/check-out/{allocationId}")
-    DeskService.CheckOutDetail checkOutDetail(@PathVariable String allocationId) {
-        return desk.checkOutDetail(allocationId);
+    DeskService.CheckOutDetail checkOutDetail(@PathVariable String allocationId,
+            @RequestParam(required = false) BigDecimal electricity,
+            @RequestParam(required = false) BigDecimal water) {
+        return desk.checkOutDetail(allocationId, electricity, water);
     }
 
     @PostMapping("/check-out/{allocationId}")
