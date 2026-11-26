@@ -33,6 +33,7 @@ export default function FurnitureCheckPage() {
     setCondition,
     setLiveFurnitureTotal,
     setFurnitureSummary,
+    readingsInvalid,
     submit,
   } = ws
 
@@ -77,7 +78,7 @@ export default function FurnitureCheckPage() {
           </Button>
           <div className="flex flex-wrap items-center gap-2">
             {!done && (
-              <Button icon={Save} disabled={submit.pending} onClick={() => submit.run(true)}>
+              <Button icon={Save} disabled={submit.pending || readingsInvalid} onClick={() => submit.run(true)}>
                 {t('Save draft')}
               </Button>
             )}

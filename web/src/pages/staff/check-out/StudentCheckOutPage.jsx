@@ -52,6 +52,7 @@ export default function StudentCheckOutPage() {
     refund,
     damageLines,
     hasSharedSplit,
+    readingsInvalid,
     submit,
   } = ws
 
@@ -98,13 +99,13 @@ export default function StudentCheckOutPage() {
 
         {!done && (
           <div className="flex items-center gap-2">
-            <Button size="sm" icon={Save} disabled={submit.pending} onClick={() => submit.run(true)}>
+            <Button size="sm" icon={Save} disabled={submit.pending || readingsInvalid} onClick={() => submit.run(true)}>
               {t('Save draft')}
             </Button>
             <Button
               size="sm"
               variant="primary"
-              disabled={submit.pending || !condition}
+              disabled={submit.pending || readingsInvalid || !condition}
               onClick={() => setShowSummary(true)}
             >
               {t('Confirm check-out')}
@@ -197,7 +198,7 @@ export default function StudentCheckOutPage() {
         refund={refund}
         damageLines={damageLines}
         hasSharedSplit={hasSharedSplit}
-        submitPending={submit.pending}
+        submitPending={submit.pending || readingsInvalid}
         onJumpFurniture={() => jumpTo('furniture', furnitureRef)}
         onSaveDraft={() => submit.run(true)}
         onOpenSummary={() => setShowSummary(true)}
