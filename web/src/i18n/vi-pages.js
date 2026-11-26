@@ -872,6 +872,7 @@ export default {
   "Fresh system": "Hệ thống mới",
   "Requests window and registration open": "Đang mở cửa sổ yêu cầu và đăng ký",
   "Turnover week": "Tuần chuyển kỳ",
+  "Stage A plus five Family Days of Block A: one whose time slots ended an hour ago (a guest still inside, two never came) for the Manager to close, one whose first time slot is on now for the desk, one open for registration, a Draft and one completed last month.": "Giai đoạn A kèm năm Ngày thăm thân của Tòa A: một ngày đã hết khung giờ từ 1 tiếng trước (một khách còn ở trong, hai khách không đến) để Manager kết thúc, một ngày đang diễn ra khung giờ đầu để quầy tiếp đón quét vé, một ngày đang mở đăng ký, một bản nháp và một ngày đã kết thúc tháng trước.",
   "Type RESET to confirm": "Gõ RESET để xác nhận",
   "Student list to import": "Danh sách sinh viên để nhập",
   "Manager › Students › Import student list: 5 new students and 2 lines with an error.": "Manager › Nhập danh sách sinh viên: 5 sinh viên mới và 2 dòng lỗi.",

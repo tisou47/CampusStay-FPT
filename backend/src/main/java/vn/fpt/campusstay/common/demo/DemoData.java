@@ -14,14 +14,19 @@ public interface DemoData {
     /**
      * The stage loaded and the moment it is loaded for: every date of the demo is relative to {@code now}.
      *
-     * @param code  {@code A} (requests window and registration open), {@code B} (next-Term fees issued, before M7)
-     *              , {@code C} (turnover week) or {@code D} (check-in week of the next Term)
-     * @param today the campus date of {@code now}
+     * @param code       {@code A} (requests window and registration open), {@code B} (next-Term fees issued, before
+     *                   M7), {@code C} (turnover week) or {@code D} (check-in week of the next Term)
+     * @param today      the campus date of {@code now}
+     * @param familyDays stage E: stage A ({@code code} is {@code A}) plus Family Days ready to show
      */
-    record Stage(String code, Instant now, LocalDate today) {
+    record Stage(String code, Instant now, LocalDate today, boolean familyDays) {
+
+        public Stage(String code, Instant now, LocalDate today) {
+            this(code, now, today, false);
+        }
     }
 
-    /** Load order: Settings 10, Inventory 20, Auth 30, Applications 40, Assignment 50, Billing 60, Maintenance 70, Requests 80, Notifications 90. */
+    /** Load order: Settings 10, Inventory 20, Auth 30, Applications 40, Assignment 50, Billing 60, Maintenance 70, Requests 80, Notifications 90, Family Days 95. */
     int order();
 
     /** Deletes the feature's business data (accounts, Buildings, furniture and configuration stay). */

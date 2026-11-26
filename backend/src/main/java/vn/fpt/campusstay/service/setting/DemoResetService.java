@@ -128,7 +128,11 @@ public class DemoResetService {
                     "Term N is over: leavers checked out by its deadline (one is overdue), Staff inspected the Rooms new "
                             + "residents receive and rotated their door codes, and Term N+1's check-in opened three days ago. "
                             + "New residents have their door code and file the check-in inventory by the last check-in day; inventories are drafts, "
-                            + "matching, waiting for Staff, checked in the Room or closed by their deadline."));
+                            + "matching, waiting for Staff, checked in the Room or closed by their deadline."),
+            new StageInfo("E", "Family Day",
+                    "Stage A plus five Family Days of Block A: one whose time slots ended an hour ago (a guest still "
+                            + "inside, two never came) for the Manager to close, one whose first time slot is on now for "
+                            + "the desk, one open for registration, a Draft and one completed last month."));
 
     private final JdbcClient jdbc;
     private final JdbcTemplate template;
@@ -214,7 +218,7 @@ public class DemoResetService {
         }
         FieldErrors errors = new FieldErrors();
         String code = stage == null ? "" : stage.trim().toUpperCase(Locale.ROOT);
-        errors.check(STAGES.stream().anyMatch(s -> s.code().equals(code)), "stage", "Choose stage 0, A, B, C or D.");
+        errors.check(STAGES.stream().anyMatch(s -> s.code().equals(code)), "stage", "Choose stage 0, A, B, C, D or E.");
         errors.check(CONFIRMATION.equals(confirm == null ? null : confirm.trim()), "confirm",
                 "Type RESET to confirm.");
         errors.throwIfAny();
@@ -231,7 +235,10 @@ public class DemoResetService {
         template.execute("SET LOCAL synchronous_commit = off");
 
         Instant now = Instant.now(clock);
-        DemoData.Stage loaded = new DemoData.Stage(code, now, LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE));
+        // Stage E is stage A for every feature, plus the Family Days (VisitorDemoData).
+        boolean familyDays = code.equals("E");
+        DemoData.Stage loaded = new DemoData.Stage(familyDays ? "A" : code, now,
+                LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE), familyDays);
         for (DemoData part : parts.reversed()) {
             part.clear();
         }
