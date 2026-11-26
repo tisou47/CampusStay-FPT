@@ -77,13 +77,6 @@ public class SignInService {
         Instant now = Instant.now(clock);
         limiter.checkAllowed(AuthRateLimiter.Bucket.ACCOUNT_ANY_CLIENT, String.valueOf(user.getId()));
         String accountClient = user.getId() + "|" + client;
-        // The lock holds against the client that caused it: a stranger cannot lock the owner out (BE-AUTH-02).
-        if (user.isLockedAt(now) && (client == null
-                || limiter.count(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient)
-                        >= AuthRateLimiter.Bucket.ACCOUNT_FAILURES.limit)) {
-            throw ApiException.unauthorized("ACCOUNT_LOCKED",
-                    "Too many failed attempts. Try again after " + HH_MM.format(user.getLockedUntil()) + ".");
-        }
         String hash = user.getPasswordHash();
         boolean ok = passwordEncoder.matches(password, hash == null ? dummyHash : hash) && hash != null;
         if (!ok) {
@@ -92,6 +85,14 @@ public class SignInService {
             limiter.record(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient);
             limiter.record(AuthRateLimiter.Bucket.ACCOUNT_ANY_CLIENT, String.valueOf(user.getId()));
             throw ApiException.unauthorized("INVALID_CREDENTIALS", INVALID);
+        }
+        // Only after the right password (BE-AUTH-06): a wrong one never learns that the email exists and is locked.
+        // The lock holds against the client that caused it: a stranger cannot lock the owner out (BE-AUTH-02).
+        if (user.isLockedAt(now) && (client == null
+                || limiter.count(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient)
+                        >= AuthRateLimiter.Bucket.ACCOUNT_FAILURES.limit)) {
+            throw ApiException.unauthorized("ACCOUNT_LOCKED",
+                    "Too many failed attempts. Try again after " + HH_MM.format(user.getLockedUntil()) + ".");
         }
         limiter.clear(AuthRateLimiter.Bucket.ACCOUNT_FAILURES, accountClient);
         checkStatus(user);

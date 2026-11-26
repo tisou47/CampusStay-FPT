@@ -104,4 +104,12 @@ class BlockSettingsIT {
                 .andExpect(jsonPath("$.deskOpens").value("07:30"))
                 .andExpect(jsonPath("$.deskCloses").value("21:00"));
     }
+
+    /** TC-CFG-505: quiet hours cannot start before 21:00, the first time the screen offers (BE-3RD-15). */
+    @Test
+    void quietHoursTooEarlyAreRefused() throws Exception {
+        save(bearer(mvc, MANAGER_A), VALID.replace("\"quiet\":\"23:30\"", "\"quiet\":\"08:00\""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.fields.quiet").value("Quiet hours start at 21:00 at the earliest."));
+    }
 }

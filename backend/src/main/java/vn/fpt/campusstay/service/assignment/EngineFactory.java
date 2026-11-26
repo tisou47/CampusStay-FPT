@@ -146,9 +146,9 @@ class EngineFactory {
     }
 
     /** Lowest-code active Block of each gender: where a placement without a Bed is listed for review. */
-    Map<String, Long> blockForGender() {
+    Map<String, Long> blockForGender(long termId) {
         Map<String, Long> result = new HashMap<>();
-        inventory.assignableBeds().stream()
+        inventory.assignableBeds(termId).stream()
                 .sorted((a, b) -> a.block().compareTo(b.block()))
                 .forEach(b -> result.putIfAbsent(b.gender(), b.buildingId()));
         return result;

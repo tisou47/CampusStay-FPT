@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button, IconButton } from '@/components/ui/Button'
 import { StatStrip } from '@/components/ui/Charts'
 import { Alert, DescriptionList } from '@/components/ui/Display'
-import { Field, Input, SearchInput, Textarea } from '@/components/ui/Field'
+import { Field, Input, SearchInput, Select, Textarea } from '@/components/ui/Field'
 import { Drawer, Modal } from '@/components/ui/Overlay'
 import { Truncate } from '@/components/ui/Tooltip'
 import { Pagination } from '@/components/ui/Pagination'
@@ -58,6 +58,7 @@ function PaidModal({ refund, onClose }) {
       {paid.error && !paid.error.fields?.reference && (
         <Alert type="error" title="Could not mark the refund paid">{paid.error.message}</Alert>
       )}
+      <RefundQr refund={refund} />
       <Field label="Bank transfer reference" required error={paid.error?.fields?.reference}>
         {(id) => <Input id={id} value={reference} maxLength={100} onChange={(e) => setReference(e.target.value)} placeholder="e.g. FT2611210001" />}
       </Field>
@@ -66,11 +67,45 @@ function PaidModal({ refund, onClose }) {
   )
 }
 
-function DecisionModal({ refund, decision, onClose }) {
+/** W3-D4 (BE-APP-BIL-18): scan this VietQR in the bank app; the content names the refund for the reference. */
+function RefundQr({ refund }) {
+  const query = useQuery(['refunds', 'payment', refund.id], ({ signal }) => api.finance.refundPayment(refund.id, { signal }), { retry: false })
+  if (query.error) {
+    return (
+      <Alert type="info" title="No QR for this refund">
+        {query.error.code === 'NO_REFUND_ACCOUNT' ? t('{name} has not entered a bank account from the list yet: remind them, or transfer by hand.', { name: refund.name }) : query.error.message}
+      </Alert>
+    )
+  }
+  const p = query.data
+  if (!p) return null
+  return (
+    <div className="flex items-center gap-4 rounded-lg border border-border p-3">
+      <img src={p.qr.image} alt={t('VietQR for {amount}', { amount: formatVnd(p.amount) })} className="size-36 shrink-0 rounded-md bg-white" />
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        <dt className="text-fg-secondary">{t('Bank')}</dt>
+        <dd>{p.bank.name}</dd>
+        <dt className="text-fg-secondary">{t('Account')}</dt>
+        <dd className="tabular">{p.bank.accountNumber} · {p.bank.holder}</dd>
+        <dt className="text-fg-secondary">{t('Amount')}</dt>
+        <dd className="tabular">{formatVnd(p.amount)}</dd>
+        <dt className="text-fg-secondary">{t('Transfer content')}</dt>
+        <dd className="font-mono">{p.content}</dd>
+      </dl>
+    </div>
+  )
+}
+
+
+function DecisionModal({ refund, decision, ruleOptions = [], onClose }) {
   const { notify } = useToast()
   const [note, setNote] = useState('')
+  const [ruleId, setRuleId] = useState('')
+  // BE-3RD-10: a custom rule the Admin added sets the amount to paid × its percent (not for a Utility Deposit settlement).
+  const canChooseRule = decision === 'Approved' && refund.selectable !== false && ruleOptions.length > 0
+  const chosen = ruleOptions.find((o) => String(o.id) === ruleId)
   const needsNote = decision === 'Rejected' || refund.exception
-  const decide = useMutation(() => api.finance.decideRefund(refund.id, { decision, note: note.trim() || undefined }), {
+  const decide = useMutation(() => api.finance.decideRefund(refund.id, { decision, note: note.trim() || undefined, ruleId: canChooseRule && ruleId ? ruleId : undefined }), {
     invalidates: ['refunds', 'finance', 'approvals', 'dashboard'],
     onSuccess: () => {
       notify({
@@ -92,7 +127,7 @@ function DecisionModal({ refund, decision, onClose }) {
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant={decision === 'Approved' ? 'primary' : 'danger'} disabled={(needsNote && !note.trim()) || decide.pending} onClick={() => decide.run()}>
-            {decision === 'Approved' ? t('Approve {amount}', { amount: formatVnd(refund.amount) }) : t('Reject refund')}
+            {decision === 'Approved' ? t('Approve {amount}', { amount: formatVnd(chosen ? Math.floor((refund.paid * Number(chosen.percent)) / 100) : refund.amount) }) : t('Reject refund')}
           </Button>
         </>
       }
@@ -102,6 +137,18 @@ function DecisionModal({ refund, decision, onClose }) {
         <Alert type="warning" title="This refund is above the rule">
           {tr(refund.rule)}. {t('Your reason is written to the audit log for admin review.')}
         </Alert>
+      )}
+      {canChooseRule && (
+        <Field label="Refund rule" helper={chosen ? t('{percent}% of {paid}', { percent: chosen.percent, paid: formatVnd(refund.paid) }) : t('Keep the rule the refund was opened with, or apply a rule the Admin added.')}>
+          {(id) => (
+            <Select
+              id={id}
+              value={ruleId}
+              onChange={(e) => setRuleId(e.target.value)}
+              options={[{ value: '', label: t('As opened: {rule}', { rule: tr(refund.rule) }) }, ...ruleOptions.map((o) => ({ value: String(o.id), label: `${tr(o.when)} · ${o.percent}%` }))]}
+            />
+          )}
+        </Field>
       )}
       <Field label={decision === 'Approved' ? 'Reason for the exception' : 'Reason shown to the student'} required={needsNote}>
         {(id) => <Textarea id={id} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />}
@@ -290,7 +337,7 @@ function RefundsTab({ scope }) {
           />
         </Drawer>
       )}
-      {deciding && <DecisionModal {...deciding} onClose={() => setDeciding(null)} />}
+      {deciding && <DecisionModal {...deciding} ruleOptions={query.data?.ruleOptions ?? []} onClose={() => setDeciding(null)} />}
       {paying && <PaidModal refund={paying} onClose={() => setPaying(null)} />}
     </>
   )
@@ -340,8 +387,8 @@ function OverdueTab({ scope }) {
                 </span>
               </Td>
               <Td align="right">
-                <Button icon={Bell} disabled={Boolean(o.remindedAt) || remind.pending} onClick={() => remind.run(o)}>
-                  {o.remindedAt ? t('Reminded {date}', { date: formatDate(o.remindedAt) }) : t('Send reminder')}
+                <Button icon={Bell} disabled={remindedToday(o.remindedAt) || remind.pending} title={o.remindedAt ? t('Last reminder {date}', { date: formatDate(o.remindedAt) }) : undefined} onClick={() => remind.run(o)}>
+                  {remindedToday(o.remindedAt) ? t('Reminded {date}', { date: formatDate(o.remindedAt) }) : t('Send reminder')}
                 </Button>
               </Td>
             </Tr>

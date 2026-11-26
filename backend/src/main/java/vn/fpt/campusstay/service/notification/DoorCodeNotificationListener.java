@@ -2,7 +2,6 @@ package vn.fpt.campusstay.service.notification;
 
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.DoorCodeChanged;
@@ -22,21 +21,21 @@ class DoorCodeNotificationListener {
         this.notifier = notifier;
     }
 
-    @EventListener
+    @AfterCommit
     void on(DoorCodeToSet e) {
         for (long staff : e.staffIds()) {
             notifier.notify(staff, "DOOR_CODE_TO_SET", Map.of("room", e.room()), "/staff/door-codes?room=" + e.room());
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(DoorCodeReleased e) {
         for (long student : e.studentIds()) {
             notifier.notify(student, "DOOR_CODE_READY", Map.of("room", e.room()), "/student/room");
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(DoorCodeChanged e) {
         for (long resident : e.residentIds()) {
             notifier.notify(resident, "DOOR_CODE_CHANGED", Map.of("room", e.room()), "/student/room");

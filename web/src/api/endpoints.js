@@ -1,4 +1,4 @@
-import { download, http, recordExport } from './client'
+import { download, http, recordExport, stream } from './client'
 
 /*
  * CampusStay API endpoints used by the web app. Paths are relative to VITE_API_BASE_URL.
@@ -64,6 +64,12 @@ export const api = {
     sendVerification: (body) => http.put('/students/me/verification', body),
     /** { room, status (Ready, Not ready, Not set), note, changedAt }; the code itself only through revealDoorCode. */
     doorCode: g('/students/me/door-code'),
+    /** My data (Decree 13/2023, W3-D3): { noticeVersion, consent, consentCurrent, erasure }. */
+    privacy: g('/students/me/privacy'),
+    acceptPrivacy: (version) => http.post('/students/me/privacy/consent', { version }),
+    exportData: () => download('/students/me/privacy/export', { fallbackName: 'my-data.json' }),
+    /** { reason? } → { id, status }; 409 ERASURE_PENDING. */
+    requestErasure: (body) => http.post('/students/me/privacy/erasure', body),
     /** { room, code, changedAt }; every view is written to the Audit Log. */
     revealDoorCode: () => http.post('/students/me/door-code/reveal'),
     furniture: g('/students/me/furniture'),
@@ -96,6 +102,8 @@ export const api = {
     assistant: g('/students/me/assistant'),
     /** { messages: [{ role: 'user' | 'assistant', content }] } ending with the question → { reply }. */
     askAssistant: (body) => http.post('/students/me/assistant/chat', body),
+    /** D6: the same question answered as it is written: onEvent(delta {text} | reset | done {reply, signature} | error {code, message}). */
+    streamAssistant: (body, opts) => stream('/students/me/assistant/chat/stream', body, opts),
     /** Family Days of the student's Block (ADR-29, A-69): { resident, items }. */
     familyDays: g('/students/me/family-days'),
     familyDay: (id, opts) => http.get(`/students/me/family-days/${id}`, undefined, opts),
@@ -168,8 +176,6 @@ export const api = {
     issueFees: (body) => http.post('/next-term-fees/issue', body),
     /** Leavers, movers and Rooms whose residents change between two Terms. */
     turnover: g('/turnover'),
-    /** { room, electricity, water } → 204. */
-    meterCut: (body) => http.post('/turnover/meter-cuts', body),
   },
   /** Operational moves during a Term (spec §6.13): nothing is charged. */
   operationalMoves: {
@@ -181,7 +187,7 @@ export const api = {
   /** Enrollment reconciliation of a Term (spec §6.12). */
   reconciliations: {
     overview: g('/reconciliations'),
-    template: (kind) => download('/reconciliations/template', { query: { kind }, fallbackName: `${kind}-template.xlsx` }),
+    template: (kind) => download('/reconciliations/template', { query: { kind }, fallbackName: `${kind}-template.csv` }),
     /** Multipart: termId, kind (enrolled | leavers), file → the run with its items. */
     upload: (formData) => http.post('/reconciliations', formData),
     get: (id, opts) => http.get(`/reconciliations/${id}`, undefined, opts),
@@ -300,7 +306,7 @@ export const api = {
     roomReadings: g('/check-out/readings'),
     /** { readings: [{ room, electricity, water }] } → { rooms, students, problems: [{ line, room, message }] }. */
     saveRoomReadings: (scope, body) => http.put(`/check-out/readings?${new URLSearchParams(Object.entries(scope).filter(([, v]) => v != null && v !== ''))}`, body),
-    roomReadingsTemplate: (scope) => download('/check-out/readings/template', { query: scope, fallbackName: 'check-out-readings.xlsx' }),
+    roomReadingsTemplate: (scope) => download('/check-out/readings/template', { query: scope, fallbackName: 'check-out-readings.csv' }),
     /** multipart file (the template filled in, CSV or XLSX) → like saveRoomReadings. */
     uploadRoomReadings: (scope, formData) => http.post(`/check-out/readings?${new URLSearchParams(Object.entries(scope).filter(([, v]) => v != null && v !== ''))}`, formData),
   },
@@ -312,7 +318,7 @@ export const api = {
     save: (periodId, room, body) => http.put(`/meter-periods/${periodId}/readings/${room}`, body),
     confirm: (periodId, room) => http.post(`/meter-periods/${periodId}/readings/${room}/confirm`),
     /** The period's Rooms with their previous values, to fill in Excel (A-59). */
-    template: (periodId, label) => download(`/meter-periods/${periodId}/template`, { fallbackName: `meter-readings-${label ?? periodId}.xlsx` }),
+    template: (periodId, label) => download(`/meter-periods/${periodId}/template`, { fallbackName: `meter-readings-${label ?? periodId}.csv` }),
     /** multipart file: the template filled in (XLSX or CSV) → { imported, skipped }; blank lines are Rooms read later. */
     import: (periodId, formData) => http.post(`/meter-periods/${periodId}/import`, formData),
     close: (periodId) => http.post(`/meter-periods/${periodId}/close`),
@@ -322,10 +328,8 @@ export const api = {
     current: g('/inspection-runs/current'),
     /** ?block → { items: [run view + status Open | Submitted, block, mine, overdue] }: open runs, then the ones sent lately. */
     runs: g('/inspection-runs'),
-    run: (id, opts) => http.get(`/inspection-runs/${id}`, undefined, opts),
     /** multipart: photo, itemId ("furniture-<id>"; none = the meters) → { id, itemId, url }. */
     addPhoto: (runId, room, formData) => http.post(`/inspection-runs/${runId}/rooms/${room}/photos`, formData),
-    removePhoto: (runId, room, photoId) => http.delete(`/inspection-runs/${runId}/rooms/${room}/photos/${photoId}`),
     upcoming: g('/inspection-runs/upcoming'),
     rooms: (runId, query, opts) => http.get(`/inspection-runs/${runId}/rooms`, query, opts),
     saveRoom: (runId, room, body) => http.put(`/inspection-runs/${runId}/rooms/${room}`, body),
@@ -357,6 +361,8 @@ export const api = {
     decideRefund: (id, body) => http.post(`/refunds/${id}/decision`, body),
     /** Approved → Paid after the bank transfer: { reference, note? } (BE-APP-BIL-03). */
     markRefundPaid: (id, body) => http.post(`/refunds/${id}/paid`, body),
+    /** W3-D4: { refundId, amount, status, content, bank: { bin, name, holder, accountNumber }, qr: { image } }; 409 NO_REFUND_ACCOUNT, REFUND_CLOSED. */
+    refundPayment: (id, opts) => http.get(`/refunds/${id}/payment`, undefined, opts),
     /** R-19: in-app and push reminder to enter the refund bank account → { remindedAt }. */
     remindAccount: (id) => http.post(`/refunds/${id}/account-reminder`),
     overdue: g('/finance/overdue'),
@@ -377,9 +383,15 @@ export const api = {
     lock: (id, body) => http.post(`/student-accounts/${id}/lock`, body),
     unlock: (id) => http.post(`/student-accounts/${id}/unlock`),
   },
+  /** Managers: erasure requests (W3-D3). */
+  privacy: {
+    requests: g('/privacy/erasure-requests'),
+    /** { decision: 'Approved'|'Rejected', note } → 204; 409 ERASURE_HAS_ALLOCATION / ERASURE_OPEN_INVOICE / ERASURE_OPEN_REFUND. */
+    decide: (id, body) => http.post(`/privacy/erasure-requests/${id}/decision`, body),
+  },
   studentImports: {
     history: g('/student-imports'),
-    template: () => download('/student-imports/template', { fallbackName: 'student-list-template.xlsx' }),
+    template: () => download('/student-imports/template', { fallbackName: 'student-list-template.csv' }),
     /** Multipart file (CSV or XLSX) → the preview. */
     upload: (formData) => http.post('/student-imports', formData),
     get: (id, query, opts) => http.get(`/student-imports/${id}`, query, opts),
@@ -422,7 +434,6 @@ export const api = {
     work: (id, opts) => http.get(`/block-staff/${id}/work`, undefined, opts),
     /** { items: [{ type, id }], toStaffId, note } → { moved }: all or none. */
     reassign: (id, body) => http.post(`/block-staff/${id}/work/reassign`, body),
-    requestAccount: (body) => http.post('/staff-account-requests', body),
   },
   routing: {
     get: g('/routing-rules'),
@@ -494,6 +505,8 @@ export const api = {
   banks: g('/banks'),
   /** Back-office search in the top bar: { q } → { q, items: [{ kind, id, title, detail }] } (spec §11.3). */
   search: (q, opts) => http.get('/search', { q }, opts),
+  /** The work waiting for the caller, most urgent first: { at, items: [{ kind, link, count, overdue, dueSoon, oldestAt }] }. */
+  workSummary: (opts) => http.get('/work/summary', undefined, opts),
   dashboards: {
     staff: g('/dashboards/staff'),
     manager: g('/dashboards/manager'),
@@ -554,6 +567,8 @@ export const api = {
       preview: (body) => http.post('/admin/matching/preview', body),
     },
     system: { get: g('/admin/system-parameters'), save: (body) => http.put('/admin/system-parameters', body) },
+    /** D2: { checkedAt, jobs: [{ job, lastStartedAt, lastFinishedAt, ok, running, errorClass, errorCode, failedLast24h }], serverErrorsLastHour, uploads: { files, bytes }, emailOutbox: { pending, failed, oldestPendingAt } }. */
+    health: g('/admin/system/health'),
     /** Demo servers only (DEMO_TOOLS=true): reset to a stage, sample files made from the stage loaded now. */
     demo: {
       status: g('/admin/demo'),
@@ -597,7 +612,6 @@ export const api = {
       list: g('/admin/room-class-requirements'),
       save: (roomClassId, body) => http.put(`/admin/room-class-requirements/${roomClassId}`, body),
     },
-    /** Replacement prices of furniture types per Room Class (check-out charges): PUT { items: [{ typeId, roomClassId, price }] }. */
     users: {
       list: g('/admin/users'),
       invite: (body) => http.post('/admin/users', body),
@@ -633,9 +647,10 @@ export const api = {
     view: (allocationId, opts) => http.get(`/check-outs/${allocationId}/furniture`, undefined, opts),
     /** { items: [{ itemId, condition, note, amount, overrideReason, managerReview }], studentPresent }. */
     record: (allocationId, body) => http.put(`/check-outs/${allocationId}/furniture`, body),
-    claim: (allocationId, body) => http.post(`/check-outs/${allocationId}/damage-claims`, body),
     reviews: g('/check-out-reviews'),
     decide: (allocationId, itemId, body) => http.post(`/check-out-reviews/${allocationId}/${itemId}`, body),
+    /** Shared damage the student declined (owner decision 25/11/2026): { keep, note }. */
+    decideClaim: (claimId, body) => http.post(`/check-out-reviews/claims/${claimId}`, body),
     mine: g('/students/me/check-out'),
     agree: () => http.post('/students/me/check-out/agree'),
     answerClaim: (id, body) => http.post(`/students/me/damage-claims/${id}`, body),

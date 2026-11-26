@@ -55,6 +55,9 @@ public interface FeePolicy {
 
     Optional<RefundRule> refundRule(String triggerCode);
 
+    /** The active refund rules the Admin added (trigger {@code CUSTOM}): a Manager applies one to a refund. */
+    java.util.List<RefundRule> customRules();
+
     /** Every refund rule (inactive ones too, so old refunds still name their rule), by id. */
     Map<Long, RefundRule> refundRules();
 

@@ -190,6 +190,19 @@ class FamilyDays {
                 """).param("d", dayId).param("s", visitorStatus).query(Long.class).single();
     }
 
+    /** {@link #count} for several Family Days in one query; days without such guests are left out. */
+    Map<Long, Long> counts(java.util.Collection<Long> dayIds, String visitorStatus) {
+        if (dayIds.isEmpty()) {
+            return Map.of();
+        }
+        return jdbc.sql("""
+                SELECT r.family_day_id, count(*) AS n FROM vis_visitor v JOIN vis_registration r ON r.id = v.registration_id
+                WHERE r.family_day_id IN (:d) AND v.status = :s GROUP BY r.family_day_id
+                """).param("d", java.util.List.copyOf(dayIds)).param("s", visitorStatus)
+                .query((rs, i) -> Map.entry(rs.getLong(1), rs.getLong(2))).list().stream()
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
     // ---------------------------------------------------------------- labels
 
     /**

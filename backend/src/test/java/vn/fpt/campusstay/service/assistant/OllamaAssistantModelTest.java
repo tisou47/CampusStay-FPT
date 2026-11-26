@@ -63,6 +63,36 @@ class OllamaAssistantModelTest {
         server.verify();
     }
 
+    /**
+     * TC-AST-500: streamed, the chat is posted with {@code stream: true}; each line's text is passed on as it comes and
+     * the whole answer is returned (BE-PLT-26).
+     */
+    @Test
+    void streamsTheAnswerLineByLine() {
+        OllamaAssistantModel model = model("");
+        server.expect(requestTo(CHAT))
+                .andExpect(jsonPath("$.stream").value(true))
+                .andExpect(jsonPath("$.options.temperature").value(0))
+                .andRespond(withSuccess("""
+                        {"message":{"role":"assistant","content":"Bạn ở "},"done":false}
+                        {"message":{"role":"assistant","content":"phòng B-509."},"done":false}
+
+                        {"message":{"role":"assistant","content":""},"done":true,"prompt_eval_count":120}
+                        """, MediaType.parseMediaType("application/x-ndjson")));
+        List<String> chunks = new java.util.ArrayList<>();
+
+        String answer = model.stream(List.of(new AssistantModel.Message("user", "Phòng mình?")), chunks::add);
+
+        assertThat(chunks).containsExactly("Bạn ở ", "phòng B-509.");
+        assertThat(answer).isEqualTo("Bạn ở phòng B-509.");
+        server.verify();
+
+        server.reset();
+        server.expect(requestTo(CHAT)).andRespond(withStatus(HttpStatus.NOT_FOUND));
+        assertThatThrownBy(() -> model.stream(List.of(new AssistantModel.Message("user", "Hi")), chunks::add))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("ASSISTANT_OFFLINE"));
+    }
+
     /** TC-AST-007: a missing model (404) or an unreachable server answers 503 ASSISTANT_OFFLINE. */
     @Test
     void offlineWhenTheServerFails() {

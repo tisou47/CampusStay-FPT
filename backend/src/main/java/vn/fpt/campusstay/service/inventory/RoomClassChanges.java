@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Inventory public API for the Room Class change of one Room in a coming Term (D-04, spec §6.11), used by Requests
+ * Inventory public API for the Room Class change of one Room in a coming Term (D-04, spec §6.11). Only the turnover
+ * reads it today ({@code classOf}, {@code conforms}, {@code changingClass}); {@code check}, {@code apply} and {@code setBack}
+ * have no caller yet: the consent flow in Requests is planned after the defense (BE-3RD-11). Intended use: by Requests
  * once every continuing resident consented: the furniture check, setting the class (the consent replaces the lock
  * of {@code ROOM_CLASS_LOCKED}) with the store items it needs reserved, and setting it back. Also the furniture
  * conformance of Rooms for the turnover (spec §6.11 step 6).

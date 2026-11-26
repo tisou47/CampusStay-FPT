@@ -242,6 +242,26 @@ public class MaintenanceService {
                 r.reporterId() == me);
     }
 
+    /**
+     * Resolved requests the student never confirmed close after {@code maintenance.auto_close_days} days, with a
+     * "Closed automatically" event (BE-OPS-15). @return how many closed
+     */
+    @Transactional
+    public int closeResolved() {
+        Instant now = Instant.now(clock);
+        int days = Math.max(1, parameters.intValue("maintenance.auto_close_days"));
+        List<Long> closed = jdbc.sql("""
+                UPDATE mnt_request SET status = 'CLOSED', closed_at = :now, version = version + 1
+                WHERE status = 'RESOLVED' AND resolved_at < :before
+                RETURNING id
+                """).param("now", Timestamp.from(now))
+                .param("before", Timestamp.from(now.minus(java.time.Duration.ofDays(days))))
+                .query(Long.class).list();
+        closed.forEach(id -> requests.event(id, null, "SYSTEM", "Closed automatically",
+                "Closed automatically " + days + (days == 1 ? " day" : " days") + " after it was resolved.", false, now));
+        return closed.size();
+    }
+
     /** The student confirms the fix (closed) or says it is not fixed (back to the assignee). */
     @Transactional
     public void confirm(String idOrCode, Boolean fixed, String comment) {

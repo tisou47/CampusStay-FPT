@@ -15,8 +15,11 @@ import englishOne from './en-plurals'
  * (PUT /auth/me/locale), so notifications, push and emails follow it. Changing it rebuilds the screens
  * (LanguageScope) with the data they show, so nothing loads again on screen.
  *
- * The screens' Vietnamese texts (./vi-pages.js, the largest file of the app) are a chunk of their own, loaded by
- * loadLanguage('vi') before the app renders in Vietnamese or switches to it; English never downloads them.
+ * The screens' Vietnamese texts are chunks of their own, never downloaded in English (WEB-ADM-32):
+ *  - ./vi-pages.js, what every portal may show (sign-in, shared components, API texts), loaded by loadLanguage('vi')
+ *    before the app renders in Vietnamese or switches to it;
+ *  - ./vi-student.js and ./vi-office.js, loaded by loadPortalTexts(portal) when a portal opens (the router waits
+ *    for them), and again on a switch to Vietnamese for the portals already opened.
  */
 
 export const LANGUAGES = [
@@ -42,31 +45,46 @@ export const getLang = () => current
 
 // Shell texts first, the screens' texts merged in later: the screens' entries win, as when they were one object.
 const vi = { ...shell }
-let pagesLoaded = null
+const CHUNKS = {
+  pages: () => import('./vi-pages'),
+  student: () => import('./vi-student'),
+  office: () => import('./vi-office'),
+}
+const loaded = {}
+const portals = new Set()
 
-/** Loads what `lang` needs before it is shown. A failed load resolves too: the screens then show English. */
-export function loadLanguage(lang) {
-  if (lang !== 'vi') return Promise.resolve()
-  pagesLoaded ??= import('./vi-pages').then(
-    ({ default: pages }) => {
-      Object.assign(vi, pages)
+/** Loads one chunk once; a failed load resolves too (the screens then show English) and is tried again next time. */
+function loadChunk(name) {
+  loaded[name] ??= CHUNKS[name]().then(
+    ({ default: texts }) => {
+      Object.assign(vi, texts)
       patterns = null
     },
     () => {
-      pagesLoaded = null
+      loaded[name] = null
     },
   )
-  return pagesLoaded
+  return loaded[name]
+}
+
+/** Loads what `lang` needs before it is shown: the common texts and those of the portals opened so far. */
+export function loadLanguage(lang) {
+  if (lang !== 'vi') return Promise.resolve()
+  return Promise.all(['pages', ...portals].map(loadChunk))
+}
+
+/** The texts of a portal ('student' or 'office'), before its first page shows; nothing to load in English. */
+export function loadPortalTexts(portal) {
+  portals.add(portal)
+  return current === 'vi' || requested === 'vi' ? loadLanguage('vi') : Promise.resolve()
 }
 
 if (current === 'vi') loadLanguage('vi')
 
 if (import.meta.hot) {
-  import.meta.hot.accept('./vi-pages', (mod) => {
-    if (mod?.default) {
-      Object.assign(vi, mod.default)
-      patterns = null
-    }
+  import.meta.hot.accept(['./vi-pages', './vi-student', './vi-office'], (mods) => {
+    for (const mod of mods) if (mod?.default) Object.assign(vi, mod.default)
+    patterns = null
   })
 }
 

@@ -70,7 +70,11 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
   // Every slot is as wide as the widest page number, so the strip keeps one width while paging
   // (5 → 10 → 14 no longer shifts the buttons and the arrows under the pointer).
   const cellWidth = `max(2rem, calc(${String(pages).length}ch + 1rem))`
-
+  // A page past the end (its last row left the filter) moves back to the last page (WEB-ADM-29). A total of 0 may be
+  // a list still loading, so it is left alone.
+  useEffect(() => {
+    if (total > 0 && page > pages) onChange?.(pages)
+  }, [total, page, pages, onChange])
   return (
     <nav aria-label={t('Pagination')} className={cx('flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-2', className)}>
       {/* Range summary: what this page shows out of how many. */}

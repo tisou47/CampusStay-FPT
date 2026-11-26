@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card, Steps } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
-import { STEPS } from './TermWizard'
+import { STEPS } from './termSteps'
 import { t } from '@/i18n'
 import { DatePicker } from '@/components/ui/date-time'
 

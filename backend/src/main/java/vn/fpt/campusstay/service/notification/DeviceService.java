@@ -9,25 +9,31 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.security.CurrentUser;
+import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.exception.FieldErrors;
 import vn.fpt.campusstay.security.Tokens;
 
 /**
  * FCM device tokens of the signed-in user (A-05, A-06). A token is looked up
- * by its hash; a token that moves to another account (sign-in as someone else
- * on the same phone) follows the newest sign-in.
+ * by its hash; a token moves to another account (sign-in as someone else on
+ * the same phone) only once its owner let it go: unregistered it, or has no
+ * live session left (BE-PLT-20). Otherwise whoever learnt a token could take
+ * over its owner's pushes.
  */
 @Service
 public class DeviceService {
 
     private final JdbcClient jdbc;
     private final CurrentUser currentUser;
+    private final UserDirectory users;
     private final Clock clock;
 
-    public DeviceService(JdbcClient jdbc, CurrentUser currentUser, Clock clock) {
+    public DeviceService(JdbcClient jdbc, CurrentUser currentUser, UserDirectory users, Clock clock) {
         this.jdbc = jdbc;
         this.currentUser = currentUser;
+        this.users = users;
         this.clock = clock;
     }
 
@@ -43,6 +49,14 @@ public class DeviceService {
         if (!kind.equals("ANDROID") && !kind.equals("WEB")) {
             throw FieldErrors.single("platform", "Use android.");
         }
+        String hash = Tokens.sha256Hex(value);
+        jdbc.sql("SELECT user_id FROM ntf_device WHERE token_hash = :hash AND disabled_at IS NULL FOR UPDATE")
+                .param("hash", hash).query(Long.class).optional()
+                .filter(owner -> owner != me && users.signedIn(owner))
+                .ifPresent(owner -> {
+                    throw ApiException.conflict("DEVICE_IN_USE",
+                            "This device still receives another account's notifications. Sign out of that account first.");
+                });
         Timestamp now = Timestamp.from(Instant.now(clock));
         jdbc.sql("""
                 INSERT INTO ntf_device (user_id, token, token_hash, platform, created_at, last_seen_at)
@@ -50,7 +64,7 @@ public class DeviceService {
                 ON CONFLICT (token_hash) DO UPDATE SET user_id = EXCLUDED.user_id, platform = EXCLUDED.platform,
                        last_seen_at = EXCLUDED.last_seen_at, disabled_at = NULL
                 """)
-                .param("user", me).param("token", value).param("hash", Tokens.sha256Hex(value)).param("platform", kind)
+                .param("user", me).param("token", value).param("hash", hash).param("platform", kind)
                 .param("now", now).update();
     }
 

@@ -48,6 +48,9 @@ public interface UserDirectory {
 
     Map<Long, String> displayNames(Collection<Long> userIds);
 
+    /** Whether the account has a live session on some device (not signed out, not expired). */
+    boolean signedIn(long userId);
+
     /** The account's language for notifications, push and emails: {@code vi} or {@code en} (ADR-25); {@code vi} if unknown. */
     String locale(long userId);
 

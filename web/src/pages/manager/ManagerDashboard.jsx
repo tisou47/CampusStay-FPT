@@ -6,6 +6,7 @@ import { MANAGER_STAGES } from '@/app/managerFlow'
 import { useScopeQuery, useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { stageSteps } from '@/components/layout/FlowTrail'
+import { WorkInboxPanel } from '@/components/layout/WorkInbox'
 import { Button } from '@/components/ui/Button'
 import { KpiTile, Meter } from '@/components/ui/Charts'
 import { Card } from '@/components/ui/Display'
@@ -404,6 +405,9 @@ export default function ManagerDashboard() {
           )}
         </KpiTile>
       </div>
+
+      {/* Work inbox (#69): check-out charges to decide and requests nobody has taken */}
+      <WorkInboxPanel className="shrink-0" />
 
       <div className="grid min-h-0 flex-1 grid-cols-12 gap-4">
         <DashCard title={t('Action required')} badge={items.length > 0 ? <Tag tone="warning">{items.length}</Tag> : null} className="col-span-5" bodyClassName="-mr-2 overflow-y-auto pr-2">

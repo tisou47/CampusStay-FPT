@@ -3,7 +3,6 @@ package vn.fpt.campusstay.service.notification;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.config.TimeConfig;
@@ -13,7 +12,7 @@ import vn.fpt.campusstay.event.FamilyDayPublished;
 import vn.fpt.campusstay.event.FamilyDayRegistered;
 import vn.fpt.campusstay.event.FamilyDayRegistrationCancelled;
 
-/** Family Day notices for residents (ADR-29): in the same transaction as the change they announce. */
+/** Family Day notices for residents (ADR-29): after the change they announce committed ({@link AfterCommit}). */
 @Component
 class FamilyDayNotificationListener {
 
@@ -32,7 +31,7 @@ class FamilyDayNotificationListener {
         return "/student/family-days/" + familyDayId;
     }
 
-    @EventListener
+    @AfterCommit
     void on(FamilyDayPublished e) {
         Map<String, String> values = Map.of("title", e.title(), "block", e.block(), "area", e.area(),
                 "date", DAY.format(e.startsAt()), "closes", WHEN.format(e.registrationClosesAt()));
@@ -41,26 +40,26 @@ class FamilyDayNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(FamilyDayRegistered e) {
         notifier.notify(e.studentId(), "FAMILY_DAY_REGISTERED",
                 Map.of("title", e.title(), "guests", String.valueOf(e.guests()), "slot", e.slot()),
                 link(e.familyDayId()));
     }
 
-    @EventListener
+    @AfterCommit
     void on(FamilyDayRegistrationCancelled e) {
         notifier.notify(e.studentId(), "FAMILY_DAY_REGISTRATION_CANCELLED",
                 Map.of("title", e.title(), "reason", e.reason()), link(e.familyDayId()));
     }
 
-    @EventListener
+    @AfterCommit
     void on(FamilyDayGuestsOverdue e) {
         notifier.notify(e.studentId(), "FAMILY_DAY_GUESTS_OVERDUE", Map.of("title", e.title(), "guests",
                 String.join(", ", e.guests()), "ends", WHEN.format(e.endsAt())), link(e.familyDayId()));
     }
 
-    @EventListener
+    @AfterCommit
     void on(FamilyDayCancelled e) {
         Map<String, String> values = Map.of("title", e.title(), "reason", e.reason(),
                 "date", e.startsAt() == null ? "" : DAY.format(e.startsAt()));

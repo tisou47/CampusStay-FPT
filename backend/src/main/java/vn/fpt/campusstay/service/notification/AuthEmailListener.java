@@ -11,7 +11,7 @@ import vn.fpt.campusstay.config.TimeConfig;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 
 /**
- * Synchronous listener: runs in the publisher's transaction, so the outbox row
+ * Synchronous listener (kept in the publisher's transaction on purpose): the outbox row
  * commits together with the one-time token (no lost or orphan emails).
  */
 @Component

@@ -7,13 +7,14 @@ import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { KpiTile, Meter } from '@/components/ui/Charts'
-import { Card } from '@/components/ui/Display'
+import { Alert, Card } from '@/components/ui/Display'
 import { QueryState, StaleNotice } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatCompactVnd, formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { COLLECTED_RULE, collectedNote } from '@/lib/money'
 import { t, tr } from '@/i18n'
+import { WorkInboxPanel } from '@/components/layout/WorkInbox'
 
 // SCR-HOME-04 Admin Dashboard (Figma 63:1768)
 // GET /dashboards/admin?termId → { term: { name, statusLabel, endsAt }, nextTerm: { name, registrationOpensAt } | null,
@@ -40,6 +41,12 @@ function TermSetupFlow({ checks }) {
         <h2 id="term-setup" className="text-h3 font-semibold text-fg">{t('Set up a term')}</h2>
         <span className="text-sm text-fg-tertiary">{t('In the order it happens. Each stage opens its screen.')}</span>
       </div>
+      {requests.error && (
+        // Without the requests the "Take a manager's request" stage cannot be told (WEB-ADM-12).
+        <Alert type="error" title="Could not load the term requests" action={<Button size="sm" onClick={requests.reload}>Retry</Button>}>
+          {requests.error.message}
+        </Alert>
+      )}
       <ol className="grid grid-cols-5 gap-3">
         {stages.map((s, i) => {
           // One focus: the first stage to do is "now"; another that is also open reads "Next" and stays quiet.
@@ -142,6 +149,8 @@ export default function AdminDashboard() {
           note={k ? t('{s} students · {st} staff · {m} managers', { s: formatNumber(k.students), st: formatNumber(k.staff), m: formatNumber(k.managers) }) : null}
         />
       </div>
+
+      <WorkInboxPanel className="shrink-0" />
 
       <div className="grid min-h-72 flex-1 grid-cols-[minmax(0,1fr)_420px] grid-rows-[minmax(0,1fr)_auto] gap-4">
         <Card className="row-span-2 flex min-h-0 flex-col gap-2.5">

@@ -16,7 +16,8 @@ import { t } from '@/i18n'
 
 const iso = (local) => (local ? fromDateTimeInput(local) : null)
 const pad = (n) => String(n).padStart(2, '0')
-const plusHours = (h, n) => (h ? `${pad(Math.min(23, Number(h.slice(0, 2)) + n))}:00` : '')
+// Capped at the To picker's last time; the From picker stops an hour earlier so a slot always has an end (WEB-OPS-36).
+const plusHours = (h, n) => (h ? `${pad(Math.min(22, Number(h.slice(0, 2)) + n))}:00` : '')
 
 // Where families are received: one of the three common areas of a Block, never the Rooms. The text is stored on the
 // Family Day as chosen. A Family Day saved earlier with another text keeps it as an extra choice ("other").
@@ -207,7 +208,7 @@ export function FamilyDayFormModal({ open, day, onClose, onSave, saving, error }
                   id={id}
                   value={s.start}
                   minTime="06:00"
-                  maxTime="22:00"
+                  maxTime="21:00"
                   // On the day registration closes, the hours before it are off.
                   disabledTimes={(h) => Boolean(closesTime) && s.date === closesDay && h < closesTime}
                   placeholder="--:--"

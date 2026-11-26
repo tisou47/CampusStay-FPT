@@ -33,7 +33,14 @@ class StaticRegressionIT {
         for (int i = 0; i < deps.length; i++) {
             Class<?> type = ctor.getParameterTypes()[i];
             deps[i] = org.mockito.Mockito.mock(type);
-            if (type.getSimpleName().equals("DoorCodeRelease")) {
+            if (type == vn.fpt.campusstay.common.job.ScheduledJobs.class) { // the job lock (D1) runs the work as is
+                var lock = (vn.fpt.campusstay.common.job.ScheduledJobs) deps[i];
+                org.mockito.Mockito.when(lock.run(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any()))
+                        .thenAnswer(inv -> {
+                            inv.<Runnable>getArgument(1).run();
+                            return true;
+                        });
+            } else if (type.getSimpleName().equals("DoorCodeRelease")) {
                 release = deps[i];
             } else if (type.getSimpleName().equals("TerminationService")) {
                 terminations = deps[i];

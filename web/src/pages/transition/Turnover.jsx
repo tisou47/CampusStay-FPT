@@ -459,7 +459,7 @@ export default function Turnover({ termId, headerSlot }) {
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-surface">
               <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line px-4 whitespace-nowrap">
                 <h2 className="text-h3 font-semibold text-fg">{t('Rooms to hand over')}</h2>
-                <InfoTip label={t('Rooms whose residents or class change. The meter readings are recorded at each leaver\'s check-out.')} />
+                <InfoTip label={t("Rooms whose residents or class change. The meter readings are recorded at each leaver's check-out.")} />
                 <span className="text-sm text-fg-tertiary tabular">· {t('{n} rooms', { n: formatNumber(rooms.length) })}</span>
                 <span className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2">
                   {d.rooms.some((r) => !r.doorCodeReady) && (

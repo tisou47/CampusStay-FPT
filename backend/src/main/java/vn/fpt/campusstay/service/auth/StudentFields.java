@@ -83,12 +83,21 @@ class StudentFields {
         return studentCode == null || studentCode.length() < 4 ? null : "K" + studentCode.substring(2, 4);
     }
 
+    /** A four-digit year from 1900 to 2100: a spreadsheet day number that small would be a date before 1928. */
+    static boolean bareYear(String value) {
+        String v = value == null ? "" : value.strip();
+        return v.matches("\\d{4}") && Integer.parseInt(v) >= 1900 && Integer.parseInt(v) <= 2100;
+    }
+
     /** {@code YYYY-MM-DD}, {@code dd/MM/yyyy}, or the day number a spreadsheet stores for a date. */
     static Optional<LocalDate> date(String value) {
         if (value == null || value.isBlank()) {
             return Optional.empty();
         }
         String v = value.strip();
+        if (bareYear(v)) {
+            return Optional.empty(); // a year alone is not a date of birth, never a day number (BE-3RD-19)
+        }
         if (v.matches("\\d{4,5}")) {
             return Optional.of(SPREADSHEET_EPOCH.plusDays(Long.parseLong(v)));
         }

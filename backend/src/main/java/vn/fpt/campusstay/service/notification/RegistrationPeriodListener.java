@@ -14,7 +14,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.common.i18n.Locales;
@@ -56,7 +55,7 @@ class RegistrationPeriodListener {
         this.clock = clock;
     }
 
-    @EventListener
+    @AfterCommit
     void on(TermRequestSubmitted e) {
         Map<String, String> values = Map.of("name", e.requesterName(), "term", e.termName(), "code", e.code(),
                 "dates", DAY.format(e.stayStart()) + " – " + DAY.format(e.stayEnd()));
@@ -66,7 +65,7 @@ class RegistrationPeriodListener {
                 "/manager/term-requests?id=" + e.requestId()));
     }
 
-    @EventListener
+    @AfterCommit
     void on(TermRequestCommented e) {
         Map<String, String> values = Map.of("name", e.authorName(), "term", e.termName(), "code", e.code(),
                 "comment", e.comment());
@@ -76,14 +75,14 @@ class RegistrationPeriodListener {
                 "/manager/term-requests?id=" + e.requestId()));
     }
 
-    @EventListener
+    @AfterCommit
     void on(TermRequestDecided e) {
         notifier.notify(e.requesterId(), "TERM_REQUEST_" + e.status(), Map.of("name", e.adminName(), "term",
                 e.termName(), "code", e.code(), "note", e.note() == null ? "" : e.note()),
                 "/manager/term-requests?id=" + e.requestId());
     }
 
-    @EventListener
+    @AfterCommit
     void on(TermPublished e) {
         for (long manager : e.managerIds()) {
             notifier.notify(manager, "TERM_PUBLISHED", Map.of("term", e.termName(), "opensAt",
@@ -105,7 +104,7 @@ class RegistrationPeriodListener {
                 "TERM_PUBLISHED"));
     }
 
-    @EventListener
+    @AfterCommit
     void on(PolicyChanged e) {
         if (e.changes().isEmpty()) {
             return;

@@ -60,14 +60,6 @@ export const MANAGER_STAGES = [
 ]
 
 /**
- * Where a path sits in the Manager's flow ({ stage, screen }), or null for ongoing work outside it. A screen used in
- * two stages (Applications) is placed in the Term's current stage when it belongs there.
- */
-export function managerPosition(pathname, liveStage = -1) {
-  return stagePosition(MANAGER_STAGES, pathname, liveStage)
-}
-
-/**
  * Where a path sits in a role's stages ({ stage, screen }), or null. Screens marked daily are used whatever the
  * stage (payments, maintenance, readings…): the trail shows their stage but no warning when the Term is elsewhere.
  */

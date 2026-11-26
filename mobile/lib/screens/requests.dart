@@ -1,5 +1,6 @@
 import 'dart:io';
 
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -624,7 +625,7 @@ class _MaintenanceFormState extends State<_MaintenanceForm> {
                       style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
                       onPressed: () async {
                         final picked = await pickImages(_maxPhotos - _photos.length);
-                        setState(() => _photos.addAll(picked));
+                        if (mounted) setState(() => _photos.addAll(picked));
                       },
                       child: const Icon(Icons.add_a_photo_outlined),
                     ),
@@ -1115,6 +1116,9 @@ class _SwapBoardState extends State<_SwapBoard> {
                   value: _block ?? '',
                   onChanged: (v) => setState(() => _block = v == null || v.isEmpty ? null : v),
                 ),
+                // MOB-33: without the catalog the lists below are empty; say why and offer a retry.
+                if (catalog == null)
+                  RetryRow(what: t('the Room Types and Classes', 'loại và hạng phòng'), retry: reload),
                 Choice<String>(
                   name: t('Room Type', 'Loại phòng'),
                   values: [for (final r in types) r.text('id')],

@@ -412,6 +412,11 @@ function StudentProfile({ user }) {
                 </QueryState>
               </Panel>
               <ContactPanel address={a ? `${place}, ${a.blockLabel ?? t('Block {code}', { code: a.block })}` : null} />
+              <Panel icon={Users} title="My data" description="Download what CampusStay holds about you, or ask for it to be erased (Decree 13/2023).">
+                <div className="flex justify-end">
+                  <Button to="/student/my-data">{t('Open My data')}</Button>
+                </div>
+              </Panel>
             </>
           )}
 

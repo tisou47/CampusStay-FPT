@@ -1,0 +1,20 @@
+# gitleaks configuration for the secret scan (.github/workflows/secrets.yml): the default rules, plus an allow-list of
+# values that are fictional by design. Add only values that are not secret anywhere (fixed dev/test keys, public demo
+# data); a real key goes out of the repository instead.
+title = "CampusStay FPT"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fictional development and test values"
+regexes = [
+  # Door-code AES keys of the dev and test profiles (base64 of "dev-door-code-key-…" / "test-door-code-key-…");
+  # servers use DOOR_CODE_KEY.
+  '''ZGV2LWRvb3ItY29kZS1rZXktMzItYnl0ZXMtbG9uZyE=''',
+  '''dGVzdC1kb29yLWNvZGUta2V5LTMyLWJ5dGVzLW9rISE=''',
+  # bcrypt hashes of the published demo passwords (backend/CLAUDE.md): test seed, and the dev base data's "123"
+  # (kept until the defence, plan §7 decision 1).
+  '''\$2a\$10\$zoI/Bzs2QVn2P5\.PI7WCr\.Pjmvj33otA/k4qD9T5jCyU9EhR2ox/S''',
+  '''\$2a\$10\$ZnX/vzGmBxfAftho3lPbDOh/77QstH0rKRE5vDVjI5qY5p/VU8K5C''',
+]

@@ -15,7 +15,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { Tooltip, Truncate } from '@/components/ui/Tooltip'
 import { formatDate, formatDateRange, formatNumber, formatPercent } from '@/lib/format'
-import { parseDecimal } from '@/lib/numbers'
+import { parseReading } from '@/lib/numbers'
 import { cx } from '@/lib/cx'
 import { t, tr } from '@/i18n'
 
@@ -409,7 +409,7 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
     setW(r.water?.current == null ? '' : String(r.water.current))
   }, [r])
 
-  const save = useMutation(() => api.meters.save(periodId, room, { electricity: parseDecimal(e), water: parseDecimal(w) }), {
+  const save = useMutation(() => api.meters.save(periodId, room, { electricity: parseReading(e), water: parseReading(w) }), {
     invalidates: ['meters'],
     onSuccess: () => {
       onChanged(room)
@@ -427,8 +427,8 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
   })
 
   // Decimals are kept ("12,5" is 12.5, not 125: WEB-OPS-01); text that is not a number blocks the save.
-  const eNum = parseDecimal(e)
-  const wNum = parseDecimal(w)
+  const eNum = parseReading(e)
+  const wNum = parseReading(w)
   const invalid = eNum == null || wNum == null || Number.isNaN(eNum) || Number.isNaN(wNum)
     || (r && (eNum < r.electricity.previous || wNum < r.water.previous))
 

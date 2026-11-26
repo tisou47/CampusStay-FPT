@@ -237,6 +237,29 @@ class Round2IT {
                 .andExpect(jsonPath("$.items[*].title", hasItem("Your Application is cancelled")));
     }
 
+    /** TC-CFG-503: a Round-2 offer holds at most {@code round2.max_options} Beds, not a fixed 3 (BE-ASG-17). */
+    @Test
+    void offersFollowTheMaxOptionsParameter() throws Exception {
+        String before = jdbc.sql("SELECT value FROM cfg_parameter WHERE key = 'round2.max_options'")
+                .query(String.class).single();
+        jdbc.sql("UPDATE cfg_parameter SET value = '1' WHERE key = 'round2.max_options'").update();
+        try {
+            List<StayFlow.Applied> applied = stay.runRound1("6-bed", "Premium", 20);
+            getAs("/students/me/round2-offer", applied.getFirst().auth())
+                    .andExpect(jsonPath("$.offer.options.length()").value(1));
+        } finally {
+            jdbc.sql("UPDATE cfg_parameter SET value = :v WHERE key = 'round2.max_options'").param("v", before)
+                    .update();
+            // The student leaves the waitlist, so the other tests count only their own students.
+            jdbc.sql("UPDATE app_round2_option SET held = FALSE WHERE held").update();
+            jdbc.sql("UPDATE app_round2_offer SET status = 'WITHDRAWN' WHERE status = 'PENDING'").update();
+            jdbc.sql("""
+                    UPDATE app_application SET status = 'CANCELLED' WHERE status = 'WAITLISTED'
+                      AND student_id = (SELECT id FROM auth_user WHERE email = :e)
+                    """).param("e", StayFlow.student(20)).update();
+        }
+    }
+
     /**
      * TC-APP-024: a Manager runs Round 2 (M8): the Waitlisted students without an open offer get held options on the
      * Term's free Beds, by the rules of the offers made when a Block is approved; students may not run it. The

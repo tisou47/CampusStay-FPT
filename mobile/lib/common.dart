@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 export 'ui.dart';
@@ -29,6 +30,7 @@ const _labels = {
   'Paid – waiting for the door code': 'Đã thanh toán – chờ mã cửa',
   'Resident': 'Đang ở',
   'Submitted': 'Đã gửi',
+  'Verifying': 'Đang kiểm tra',
   'Assigned': 'Đã giao',
   'In progress': 'Đang xử lý',
   'Resolved': 'Đã xử lý',
@@ -117,6 +119,22 @@ String day(String? value) {
   }
   final parsed = DateTime.tryParse(value.length >= 10 ? value.substring(0, 10) : value);
   return parsed == null ? value : _dayOf(parsed);
+}
+
+/// A meter reading typed in Vietnamese (`1.360,5`, `12,5`) or English (`1,360.5`, `12.5`) style (MOB-29), the web's
+/// `parseDecimal` rule: with both separators the last one is the decimal one; a lone one is the decimal one, except
+/// with exactly three digits after it (`1.360` is ambiguous). Null when it is not a number.
+num? meterReading(String text) {
+  final s = text.trim().replaceAll(RegExp(r'\s'), '');
+  final comma = s.lastIndexOf(',');
+  final dot = s.lastIndexOf('.');
+  if ((comma < 0) != (dot < 0) && RegExp(r'^-?\d+[.,]\d{3}$').hasMatch(s) && !RegExp(r'^-?0[.,]').hasMatch(s)) {
+    return null;
+  }
+  final decimal = comma > dot ? ',' : '.';
+  final thousands = decimal == ',' ? '.' : ',';
+  final normal = (comma >= 0 && dot >= 0 ? s.replaceAll(thousands, '') : s).replaceFirst(decimal, '.');
+  return RegExp(r'^-?\d+(\.\d+)?$').hasMatch(normal) ? num.parse(normal) : null;
 }
 
 /// An instant (fields ending in `At`) in campus time (Asia/Ho_Chi_Minh, UTC+7, no daylight saving) with the hour.
@@ -227,6 +245,27 @@ class _LoaderState<T> extends State<Loader<T>> {
     }
     if (_error != null) return ErrorBox(message: '$_error', retry: _reload);
     return const Center(child: CircularProgressIndicator());
+  }
+}
+
+/// One line in place of a card or row whose request failed: "Could not load [what] · Retry" (MOB-18, MOB-33).
+class RetryRow extends StatelessWidget {
+  const RetryRow({super.key, required this.what, required this.retry});
+
+  /// What failed, e.g. "the door code".
+  final String what;
+  final VoidCallback retry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.error_outline, size: 18, color: Theme.of(context).colorScheme.error),
+        const SizedBox(width: 8),
+        Expanded(child: Text(t('Could not load $what.', 'Không tải được $what.'))),
+        TextButton(onPressed: retry, child: Text(t('Retry', 'Thử lại'))),
+      ],
+    );
   }
 }
 

@@ -28,7 +28,7 @@ function Detail({ item }) {
   useEffect(() => {
     setAssigneeId(item.suggestedAssigneeId ?? '')
     setNote('')
-  }, [item])
+  }, [item.id]) // a refetch returns a new object: only another item resets the typed note (WEB-OPS-13)
   const act = useMutation((body) => api.escalations.act(item.id, body), {
     invalidates: ['escalations', 'maintenance', 'dashboard'],
     onSuccess: (_, body) =>

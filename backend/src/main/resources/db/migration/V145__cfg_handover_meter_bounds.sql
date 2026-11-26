@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampusStay FPT — V104 (written as V96 on feat/staff_ui_Loc; renumbered when merged, main has its own V96): bounds of the meter readings of the check-in
+-- CampusStay FPT — V145 (written as V96 on feat/staff_ui_Loc, then V104; renumbered when merged into main, which has its own V96 and V104): bounds of the meter readings of the check-in
 -- inventory. Report 1 (Staff's inspection before arrival) is the Room's
 -- record: meters only go up, so a reading lower than it (beyond a small
 -- misreading allowance) is refused for the student and for Staff's visit,

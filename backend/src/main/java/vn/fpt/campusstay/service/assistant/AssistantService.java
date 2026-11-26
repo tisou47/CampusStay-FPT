@@ -7,14 +7,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.text.Normalizer;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,6 +24,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
 import vn.fpt.campusstay.common.i18n.Locales;
@@ -58,6 +58,20 @@ public class AssistantService {
 
     /** @param signature to send back with this answer as an assistant turn */
     public record Reply(String reply, String signature) {
+    }
+
+    /**
+     * A question checked and counted, with what the model needs, made on the request thread (it reads the student's
+     * data and the request's language); {@code fixed} is an answer given without the model.
+     */
+    public record Prepared(long userId, String locale, List<AssistantModel.Message> messages, String fixed) {
+    }
+
+    /** Where a streamed answer goes: text to show, and {@code reset} to clear it before the model is asked again. */
+    public interface Stream {
+        void delta(String text);
+
+        void reset();
     }
 
     private static final Duration WINDOW = Duration.ofHours(1);
@@ -97,12 +111,13 @@ public class AssistantService {
     private final CurrentUser currentUser;
     private final Clock clock;
     private final Map<String, String> guides = new ConcurrentHashMap<>();
-    private final Map<Long, Deque<Instant>> asked = new ConcurrentHashMap<>();
+    private final JdbcClient jdbc;
     /** Signs the answers of this run of the server; after a restart older answers are simply left out. */
     private final byte[] signingKey = new byte[32];
 
     AssistantService(AssistantModel model, StudentData data, AssistantProperties config,
-            CurrentUser currentUser, Clock clock) {
+            CurrentUser currentUser, JdbcClient jdbc, Clock clock) {
+        this.jdbc = jdbc;
         this.model = model;
         this.data = data;
         this.config = config;
@@ -133,6 +148,33 @@ public class AssistantService {
     }
     /** @param turns the conversation so far, ending with the student's question */
     public Reply chat(List<Turn> turns) {
+        Prepared p = prepare(turns);
+        return answer(p, model::chat, () -> { });
+    }
+
+    /**
+     * The streamed answer (BE-PLT-26) of a {@link #prepare prepared} question, with the rules of {@link #chat}: text
+     * with Chinese script is never passed on; such an answer is cleared ({@link Stream#reset}) and asked once more.
+     * May run off the request thread: it only calls the model.
+     */
+    public Reply stream(Prepared p, Stream out) {
+        if (p.fixed() != null) {
+            out.delta(p.fixed());
+            return answer(p, null, null);
+        }
+        return answer(p, messages -> {
+            boolean[] held = { false };
+            return model.stream(messages, chunk -> {
+                held[0] |= CJK.matcher(chunk).find();
+                if (!held[0]) {
+                    out.delta(chunk);
+                }
+            });
+        }, out::reset);
+    }
+
+    /** Checks the conversation and the role, counts the question and builds the model's messages. */
+    public Prepared prepare(List<Turn> turns) {
         AuthenticatedUser user = currentUser.require(Role.STUDENT);
         if (!config.enabled()) {
             throw OllamaAssistantModel.offline();
@@ -145,7 +187,7 @@ public class AssistantService {
         String question = Normalizer.normalize(turns.getLast().content(), Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
         String locale = locale(user, question);
         if (DOOR_CODE.matcher(question).find()) {
-            return reply(user, DOOR_CODE_ANSWERS.get(locale));
+            return new Prepared(user.userId(), locale, List.of(), DOOR_CODE_ANSWERS.get(locale));
         }
 
         List<AssistantModel.Message> messages = new ArrayList<>();
@@ -156,22 +198,31 @@ public class AssistantService {
         history(genuine)
                 .forEach(t -> messages.add(new AssistantModel.Message(t.role(), t.content().strip())));
         messages.add(messages.size() - 1, new AssistantModel.Message("system", REMINDERS.get(locale)));
+        return new Prepared(user.userId(), locale, List.copyOf(messages), null);
+    }
 
-        String text = model.chat(messages).strip();
+    private Reply answer(Prepared p, java.util.function.Function<List<AssistantModel.Message>, String> ask,
+            Runnable onRetry) {
+        if (p.fixed() != null) {
+            return reply(p.userId(), p.fixed());
+        }
+        List<AssistantModel.Message> messages = new ArrayList<>(p.messages());
+        String text = ask.apply(messages).strip();
         if (CJK.matcher(text).find()) {
+            onRetry.run();
             messages.add(new AssistantModel.Message("assistant", text));
-            messages.add(new AssistantModel.Message("system", RETRIES.get(locale)));
-            text = model.chat(messages).strip();
+            messages.add(new AssistantModel.Message("system", RETRIES.get(p.locale())));
+            text = ask.apply(messages).strip();
         }
         // Never shown to the student: a blank answer, or one still in the wrong script.
         if (text.isEmpty() || CJK.matcher(text).find()) {
             throw ApiException.unavailable("ASSISTANT_NO_ANSWER", "The assistant could not answer. Ask in other words.");
         }
-        return reply(user, text);
+        return reply(p.userId(), text);
     }
 
-    private Reply reply(AuthenticatedUser user, String text) {
-        return new Reply(text, sign(user.userId(), text));
+    private Reply reply(long userId, String text) {
+        return new Reply(text, sign(userId, text));
     }
 
     /** HMAC-SHA256 of {@code userId|answer}, Base64: an answer signed for one student is not valid for another (M6). */
@@ -186,19 +237,22 @@ public class AssistantService {
         }
     }
 
-    /** Counts a question against the student's hourly limit. */
+    /**
+     * Counts a question against the student's hourly limit, kept in {@code ast_question} (D1) so a restart or a second
+     * server does not reset it. One statement: the count and the insert see the same rows.
+     */
     private void take(long userId) {
         Instant now = Instant.now(clock);
-        Deque<Instant> times = asked.computeIfAbsent(userId, id -> new ArrayDeque<>());
-        synchronized (times) {
-            while (!times.isEmpty() && !times.peekFirst().isAfter(now.minus(WINDOW))) {
-                times.pollFirst();
-            }
-            if (times.size() >= config.requestsPerHour()) {
-                throw ApiException.tooManyRequests("ASSISTANT_LIMIT",
-                        "You have asked many questions in the last hour. Try again later.");
-            }
-            times.addLast(now);
+        Timestamp from = Timestamp.from(now.minus(WINDOW));
+        jdbc.sql("DELETE FROM ast_question WHERE asked_at <= :from").param("from", from).update();
+        int taken = jdbc.sql("""
+                INSERT INTO ast_question (user_id, asked_at)
+                SELECT :user, :now WHERE (SELECT count(*) FROM ast_question WHERE user_id = :user AND asked_at > :from) < :limit
+                """).param("user", userId).param("now", Timestamp.from(now)).param("from", from)
+                .param("limit", config.requestsPerHour()).update();
+        if (taken == 0) {
+            throw ApiException.tooManyRequests("ASSISTANT_LIMIT",
+                    "You have asked many questions in the last hour. Try again later.");
         }
     }
 

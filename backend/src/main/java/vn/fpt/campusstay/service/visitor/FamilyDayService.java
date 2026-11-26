@@ -137,6 +137,7 @@ public class FamilyDayService {
         Map<Long, List<Slot>> slots = days.slots(all.stream().map(Day::id).toList()).stream()
                 .collect(Collectors.groupingBy(Slot::dayId));
         Map<Long, String> codes = blocks.codesByIds(scope);
+        Map<Long, Long> checkedIn = days.counts(all.stream().map(Day::id).toList(), "CHECKED_IN");
         List<FamilyDayItem> items = new ArrayList<>();
         for (Day d : all) {
             List<Slot> s = slots.getOrDefault(d.id(), List.of());
@@ -147,7 +148,7 @@ public class FamilyDayService {
             items.add(new FamilyDayItem(String.valueOf(d.id()), codes.get(d.buildingId()), d.title(), d.area(), label,
                     d.opensAt(), d.closesAt(), FamilyDays.firstStart(s), FamilyDays.lastEnd(s), d.maxGuests(),
                     s.stream().mapToInt(Slot::capacity).sum(), s.stream().mapToInt(Slot::booked).sum(),
-                    d.status().equals("PUBLISHED") ? days.count(d.id(), "CHECKED_IN") : 0));
+                    d.status().equals("PUBLISHED") ? checkedIn.getOrDefault(d.id(), 0L) : 0));
         }
         items.sort(Comparator.comparing((FamilyDayItem i) -> i.startsAt() == null ? Instant.MAX : i.startsAt())
                 .reversed());

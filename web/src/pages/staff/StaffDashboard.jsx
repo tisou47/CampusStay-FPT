@@ -14,6 +14,7 @@ import { campusClock, formatDate, formatDateTime, formatDuration, formatNumber, 
 import { attentionText } from '@/lib/attention'
 import { cx } from '@/lib/cx'
 import { t, tr } from '@/i18n'
+import { WorkInboxPanel } from '@/components/layout/WorkInbox'
 import { Block, FilterChip, FloorBars, Queue, Section, ShiftPill, Skeleton, TermLine, Tile, Timeline } from './today/TodayParts'
 
 // SCR-HOME-02 Staff home "Today" (Change Spec v2 §11.2), built around the person's work: their shift, the Term on
@@ -468,6 +469,9 @@ export default function StaffDashboard() {
           below={<StageWork role="staff" term={term} counts={stageCounts} className="border-t border-line pt-3" />}
         />
       )}
+
+      {/* Work inbox (#69): check-out charges and requests nobody has taken */}
+      <WorkInboxPanel className="shrink-0" />
 
       {/* 3. What needs handling: each tile filters the queue */}
       <div role="group" aria-label={t('Filter the work queue')} className="grid shrink-0 grid-cols-2 gap-3 min-[720px]:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]">

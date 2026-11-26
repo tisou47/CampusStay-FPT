@@ -17,7 +17,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
-import { parseDecimal } from '@/lib/numbers'
+import { parseReading } from '@/lib/numbers'
 import { DetailFacts } from '@/components/ui/DetailFacts'
 import { DeskModeSwitch } from './CheckInDesk'
 import { FurnitureConditions } from './check-out/FurnitureConditions'
@@ -64,6 +64,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
     setValues(Object.fromEntries(query.data.items.map((r) => [r.room, { electricity: r.electricity != null ? String(r.electricity) : '', water: r.water != null ? String(r.water) : '' }])))
   }, [query.data])
   const set = (room, patch) => setValues((all) => ({ ...all, [room]: { ...all[room], ...patch } }))
+  const badReading = Object.values(values).some((v) => Number.isNaN(parseReading(v?.electricity)) || Number.isNaN(parseReading(v?.water)))
   const changed = (query.data?.items ?? []).filter((r) => {
     const v = values[r.room] ?? {}
     return (v.electricity ?? '') !== (r.electricity != null ? String(r.electricity) : '') || (v.water ?? '') !== (r.water != null ? String(r.water) : '')
@@ -82,7 +83,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
         readings: changed
           .map((r) => ({ room: r.room, electricity: values[r.room].electricity.trim(), water: values[r.room].water.trim() }))
           .filter((r) => r.electricity !== '' || r.water !== '')
-          .map((r) => ({ room: r.room, electricity: r.electricity === '' ? null : Number(r.electricity.replace(',', '.')), water: r.water === '' ? null : Number(r.water.replace(',', '.')) })),
+          .map((r) => ({ room: r.room, electricity: parseReading(r.electricity), water: parseReading(r.water) })),
       }),
     { invalidates: ['check-out'], onSuccess: done, onError: (e) => notifyError(e, 'Could not save the readings') },
   )
@@ -105,7 +106,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
       footer={
         <>
           <Button onClick={onClose}>Close</Button>
-          <Button variant="primary" icon={Save} disabled={!changed.length || save.pending} onClick={() => save.run()}>
+          <Button variant="primary" icon={Save} disabled={!changed.length || badReading || save.pending} onClick={() => save.run()} title={badReading ? t('Enter readings as numbers, e.g. 1234,5') : undefined}>
             {t('Save {n} rooms', { n: formatNumber(changed.length) })}
           </Button>
         </>
@@ -201,8 +202,8 @@ export function CheckOutPanel({ d, embedded = false }) {
   // Raw text: a reading keeps its decimals ("1360,5"); formatNumber would add thousands dots (WEB-OPS-01).
   const [electricity, setElectricity] = useState(d.reading?.electricity != null ? String(d.reading.electricity) : '')
   const [water, setWater] = useState(d.reading?.water != null ? String(d.reading.water) : '')
-  const eValue = parseDecimal(electricity)
-  const wValue = parseDecimal(water)
+  const eValue = parseReading(electricity)
+  const wValue = parseReading(water)
   const readingsInvalid = Number.isNaN(eValue) || Number.isNaN(wValue)
   const [fresh, setFresh] = useState(null)
   // Mutually exclusive condition: 'good' | 'damaged' | '' (empty by default when pending)

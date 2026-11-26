@@ -13,6 +13,7 @@ import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { SectionTabs } from './SectionTabs'
 import { ShiftConfirmHost } from './ShiftConfirm'
+import { NavWorkBadge, useWorkPolling } from './WorkInbox'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
@@ -67,6 +68,7 @@ function Sidebar({ role }) {
   const config = backOffice[role]
   const { user, signOut } = useSession()
   const [changingPassword, setChangingPassword] = useState(false)
+  const work = useWorkPolling().data?.items
   return (
     <aside className="flex h-full w-62 shrink-0 flex-col justify-between border-r border-line bg-surface">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
@@ -92,6 +94,7 @@ function Sidebar({ role }) {
                   >
                     <Glyph size={18} aria-hidden="true" className={cx('shrink-0', active ? 'text-primary' : 'text-fg-tertiary')} />
                     <span className="min-w-0">{t(item.label)}</span>
+                    <NavWorkBadge item={item} work={work} />
                   </Link>
                 )
               })}

@@ -114,6 +114,15 @@ class JdbcInventory implements Inventory {
                 .param("term", termId).query(JdbcInventory::slot).list();
     }
 
+    @Override
+    public List<Long> bedIdsOfBuildings(Collection<Long> buildingIds) {
+        if (buildingIds == null || buildingIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("SELECT b.id FROM inv_bed b JOIN inv_room r ON r.id = b.room_id WHERE r.building_id IN (:ids)")
+                .param("ids", List.copyOf(buildingIds)).query(Long.class).list();
+    }
+
     private List<BedSlot> ofBuilding(Long termId, long buildingId) {
         return jdbc.sql(SLOT + " WHERE r.building_id = :b AND b.status <> 'RETIRED' ORDER BY r.code, b.label")
                 .param("b", buildingId).param("term", termId).query(JdbcInventory::slot).list();

@@ -45,8 +45,12 @@ class FileLinkController {
                 .contentType(MediaType.parseMediaType(file.file().contentType()))
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePrivate())
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.inline().filename(file.file().name()).build().toString())
+                        // A PDF downloads: browsers do not open their PDF viewer in a sandboxed page.
+                        (file.file().contentType().startsWith("image/") ? ContentDisposition.inline()
+                                : ContentDisposition.attachment()).filename(file.file().name()).build().toString())
                 .header("X-Content-Type-Options", "nosniff")
+                // Served from the API origin: a crafted file must not run anything there (BE-PLT-16).
+                .header("Content-Security-Policy", "sandbox; default-src 'none'")
                 .body(file.bytes());
     }
 }

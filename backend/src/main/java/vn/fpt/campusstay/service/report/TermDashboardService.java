@@ -176,7 +176,7 @@ public class TermDashboardService {
                 SELECT count(*) FROM rpt_v_allocation WHERE term_id = :t AND status = 'ACTIVE' AND checked_in_at IS NOT NULL
                 """).param("t", t.id()).query(Long.class).single();
         long residents = jdbc.sql("""
-                SELECT count(*) FROM rpt_v_allocation WHERE term_id = :t AND status = 'ACTIVE' AND code_released_at IS NOT NULL
+                SELECT count(*) FROM rpt_v_allocation WHERE term_id = :t AND status = 'ACTIVE' AND resident_at IS NOT NULL -- desk check-ins too (BE-3RD-13)
                 """).param("t", t.id()).query(Long.class).single();
         return new TermDashboard(new TermOption(String.valueOf(t.id()), t.name(), label(t, now, today)), terms, request,
                 t.stayStart(), t.stayEnd(), milestones, applications, total, places, money, checkedIn, residents,
@@ -191,7 +191,7 @@ public class TermDashboardService {
         }
         return jdbc.sql("""
                 SELECT (SELECT count(*) FROM rpt_v_room_change WHERE term_id = :t AND status IN ('SUBMITTED', 'PENDING'))
-                     + (SELECT count(*) FROM rpt_v_swap WHERE term_id = :t AND status IN ('INVITED', 'PENDING', 'TO_MANAGER'))
+                     + (SELECT count(*) FROM rpt_v_swap WHERE term_id = :t AND status IN ('PENDING', 'TO_MANAGER')) -- as the fee blocker: an unanswered invitation expires (BE-3RD-17)
                      + (SELECT count(*) FROM rpt_v_stay_request WHERE term_id = :t AND status = 'SUBMITTED') AS open,
                        (SELECT count(*) FROM rpt_v_allocation
                         WHERE term_id = :t AND status = 'ACTIVE' AND renewal = 'CONTINUING') AS continuing,

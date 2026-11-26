@@ -2,6 +2,7 @@ import 'package:campusstay_student/api.dart';
 import 'package:campusstay_student/main.dart';
 import 'package:campusstay_student/screens/assistant.dart';
 import 'package:campusstay_student/session.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   testWidgets('signing out forgets the assistant conversation', (tester) async {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
     final store = await SessionStore.open();
     await tester.pumpWidget(CampusStayApp(store: store));
     AssistantScreen.messages

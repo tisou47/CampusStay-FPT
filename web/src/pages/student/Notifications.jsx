@@ -15,8 +15,8 @@ import { t } from '@/i18n'
 export default function Notifications() {
   const navigate = useNavigate()
   const query = useQuery(['notifications', 'page'], ({ signal }) => api.notifications.list({ limit: 50 }, { signal }))
-  const markAll = useMutation(() => api.notifications.markAllRead(), { invalidates: ['notifications'], onError: () => {} })
-  const markOne = useMutation((id) => api.notifications.markRead(id), { invalidates: ['notifications'], onError: () => {} })
+  const markAll = useMutation(() => api.notifications.markAllRead(), { invalidates: ['notifications', 'board'], onError: () => {} })
+  const markOne = useMutation((id) => api.notifications.markRead(id), { invalidates: ['notifications', 'board'], onError: () => {} })
   const unread = query.data?.unread ?? (query.data?.items ?? []).filter((n) => !n.read).length
 
   const open = (n) => {

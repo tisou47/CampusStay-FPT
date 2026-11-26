@@ -1146,3 +1146,44 @@ The reading is far above the Room's record ({0} {1}). Check it for a typo. ⟶ C
 The visit cannot start in the past. Choose a later time. ⟶ Không thể hẹn giờ đến đã qua. Hãy chọn giờ muộn hơn.
 The visit starts and ends on the same day. ⟶ Giờ đến kiểm tra phải bắt đầu và kết thúc trong cùng một ngày.
 Plan the visit within the Block's hours, {0} – {1}. ⟶ Hãy hẹn trong giờ làm việc của tòa, {0} – {1}.
+This device still receives another account's notifications. Sign out of that account first. ⟶ Thiết bị này vẫn đang nhận thông báo của một tài khoản khác. Hãy đăng xuất tài khoản đó trước.
+
+# ---------- wave 3: refunds, claims ----------
+A Utility Deposit settlement keeps its own amount: no rule applies. ⟶ Khoản quyết toán tiền đặt cọc điện nước giữ nguyên số tiền: không áp dụng quy tắc nào.
+Choose one of the active refund rules. ⟶ Hãy chọn một trong các quy tắc hoàn tiền đang áp dụng.
+This rule refunds nothing. Reject the refund instead. ⟶ Quy tắc này không hoàn tiền. Hãy từ chối khoản hoàn tiền.
+The student has not entered a bank account from the list yet. Remind them to enter it. ⟶ Sinh viên chưa nhập tài khoản ngân hàng từ danh sách. Hãy nhắc sinh viên nhập.
+You already asked for a late check-in this Term. ⟶ Bạn đã gửi yêu cầu nhận phòng muộn trong học kỳ này.
+This Bed is in the student's own Room. Choose a Bed in another Room. ⟶ Giường này ở ngay phòng hiện tại của sinh viên. Hãy chọn giường ở phòng khác.
+The student does not live in a Room now: there is nothing to move. ⟶ Sinh viên hiện không ở phòng nào: không có gì để chuyển.
+No Bed is free in another Room for this student. ⟶ Không còn giường trống ở phòng khác cho sinh viên này.
+This request is closed: only internal notes can be added. ⟶ Yêu cầu này đã đóng: chỉ có thể thêm ghi chú nội bộ.
+
+# ---------- wave 3 (privacy, Decree 13/2023) ----------
+Read and accept the privacy notice to continue. ⟶ Hãy đọc và đồng ý với thông báo bảo mật để tiếp tục.
+Your erasure request is already waiting for a Manager. ⟶ Yêu cầu xóa dữ liệu của bạn đang chờ Quản lý xử lý.
+Choose Pending, Rejected or Completed. ⟶ Hãy chọn Đang chờ, Bị từ chối hoặc Đã hoàn tất.
+This erasure request does not exist. ⟶ Yêu cầu xóa dữ liệu này không tồn tại.
+This erasure request has already been decided. ⟶ Yêu cầu xóa dữ liệu này đã được xử lý.
+Write why the request is rejected. ⟶ Hãy ghi lý do từ chối yêu cầu.
+The student still holds a Bed. Erase the data after the stay ends. ⟶ Sinh viên vẫn đang giữ giường. Hãy xóa dữ liệu sau khi kết thúc thời gian ở.
+The student has an Invoice still open. Erase the data once it is paid or void. ⟶ Sinh viên còn hóa đơn chưa xong. Hãy xóa dữ liệu khi hóa đơn đã thanh toán hoặc hủy.
+The student has a refund not paid yet. Erase the data once it is paid. ⟶ Sinh viên còn khoản hoàn tiền chưa chuyển. Hãy xóa dữ liệu sau khi đã chuyển.
+
+# ---------- wave 3 (config, cleanup) ----------
+Quiet hours start at {0} at the earliest. ⟶ Giờ yên tĩnh bắt đầu sớm nhất lúc {0}.
+Choose a visit window that has not ended yet. ⟶ Hãy chọn khung giờ đến xử lý chưa kết thúc.
+Some Rooms are not finished. Confirm to send the results anyway. ⟶ Một số phòng chưa kiểm tra xong. Hãy xác nhận để vẫn gửi kết quả.
+This student has not checked in yet and cannot check out. ⟶ Sinh viên này chưa nhận phòng nên chưa thể trả phòng.
+Choose a role: Student, Staff, Manager, Admin or System. ⟶ Hãy chọn vai trò: Sinh viên, Nhân viên, Quản lý, Quản trị viên hoặc Hệ thống.
+Only an archived checklist can be restored. ⟶ Chỉ khôi phục được danh mục kiểm tra đã lưu trữ.
+This checklist has already been used in inspection schedules or runs and cannot be deleted. Archive it instead to preserve history. ⟶ Danh mục kiểm tra này đã được dùng trong lịch hoặc đợt kiểm tra nên không thể xóa. Hãy lưu trữ để giữ lại lịch sử.
+Choose an item of your room. ⟶ Hãy chọn một món đồ trong phòng của bạn.
+You can only declare items of your bed or shared items of your room. ⟶ Bạn chỉ khai báo được đồ của giường mình hoặc đồ dùng chung của phòng.
+Choose a furniture item of this Room. ⟶ Hãy chọn một món đồ nội thất của phòng này.
+This inspection run is assigned to another staff member. ⟶ Đợt kiểm tra này đã được giao cho nhân viên khác.
+Choose Active, Paused or Completed. ⟶ Hãy chọn Đang hoạt động, Tạm dừng hoặc Hoàn tất.
+Enter an hour from 1 to 24. ⟶ Hãy nhập giờ từ 1 đến 24.
+Visit start hour must be earlier than end hour. ⟶ Giờ bắt đầu đến xử lý phải sớm hơn giờ kết thúc.
+The reading is higher than the cut of {0} ({1} kWh). ⟶ Chỉ số cao hơn lần chốt ngày {0} ({1} kWh).
+The reading is higher than the cut of {0} ({1} m³). ⟶ Chỉ số cao hơn lần chốt ngày {0} ({1} m³).
