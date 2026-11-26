@@ -14,7 +14,10 @@ import { ActivitySwitch, StatusList, StatusRow, StudentPage } from './shared'
 import { t, tr } from '@/i18n'
 
 // SCR-APP-02 My Applications (Figma 19:868)
-// GET /students/me/applications?page&pageSize → { items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status }], total, activeTermName }
+// GET /students/me/applications?page&pageSize → { items: [{ id, termName, roomTypeName, roomClassName, deposit, submittedAt, status, stayTerms, stayEnded }], total, activeTermName }
+
+/** An Allocated Application whose stay is over reads "Stay ended" (stayEnded, BE-4), not Allocated forever. */
+const shown = (r) => (r.stayEnded ? 'Stay ended' : r.status)
 export default function MyApplications() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
@@ -56,7 +59,7 @@ export default function MyApplications() {
                 icon={FileText}
                 value={r.id}
                 note={[r.termName, tr(r.roomTypeName), tr(r.roomClassName)].filter(Boolean).join(' · ')}
-                below={<StatusTag status={r.status} />}
+                below={<StatusTag status={shown(r)} />}
                 to={`/student/applications/${r.id}`}
               />
             ))}
@@ -94,7 +97,7 @@ export default function MyApplications() {
               </Td>
               <Td className={r.submittedAt ? undefined : 'text-fg-tertiary'}>{r.submittedAt ? formatDateTime(r.submittedAt) : '—'}</Td>
               <Td>
-                <StatusTag status={r.status} />
+                <StatusTag status={shown(r)} />
               </Td>
               <Td onClick={stop}>
                 <Button variant="text" to={`/student/applications/${r.id}`}>

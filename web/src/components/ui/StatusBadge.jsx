@@ -97,6 +97,7 @@ const STATUS_VARIANT = {
   Handled: 'done',
   'Checked in': 'done',
   'Checked out': 'neutral',
+  'Stay ended': 'neutral',
   Active: 'done',
   Inactive: 'neutral',
   Disabled: 'neutral',
