@@ -40,7 +40,9 @@ powershell -ExecutionPolicy Bypass -File infra/assistant/start-assistant.ps1 -St
 powershell -ExecutionPolicy Bypass -File infra/assistant/start-assistant.ps1 -ShowSettings
 ```
 
-Two windows open (the proxy's log and ngrok); keep them open. The proxy logs each call with its status and time.
+Two windows open (the proxy's log and ngrok); keep them open. The proxy runs hidden and logs each call with its status
+and time to `%USERPROFILE%\.campusstay\assistant-proxy.log`, which the log window shows: clicking in it (or pausing
+it) no longer stops the proxy, as a click in a console window running the proxy did.
 
 ## Before a demo
 
@@ -57,4 +59,6 @@ Two windows open (the proxy's log and ngrok); keep them open. The proxy logs eac
 | Students see "assistant offline" | This machine, the proxy or ngrok is off | Run the script again |
 | The proxy logs `401` | The server's `ASSISTANT_API_KEY` differs from the key here | `-ShowSettings`, then update the server |
 | Answers time out | The model runs on the CPU (no or small GPU) | Use a machine with a GPU; keep questions short |
+| Words appear, then "The answer was cut off" | The streamed answer ran past `campusstay.assistant.stream-timeout` (3 min; a long answer with the student's data took over 90 s on a laptop GPU) | Use a faster GPU, or raise it on the server with `CAMPUSSTAY_ASSISTANT_STREAM_TIMEOUT` (keep it under half of the controller's 7-minute stream) |
+| The answer is cleared and written again ("writing the answer again…") | Qwen slipped into Chinese: CampusStay stops that answer at the first Chinese character, the proxy stops Ollama (log line `closed by CampusStay`) and the question is asked once more | Normal; if it happens often, ask in Vietnamese or English only |
 | New key needed (leaked) | — | Delete `OLLAMA_PROXY_KEY` from `assistant.env`, run the script, update the server |

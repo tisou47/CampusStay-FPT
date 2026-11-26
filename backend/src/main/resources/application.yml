@@ -123,6 +123,10 @@ campusstay:
     api-key: ${ASSISTANT_API_KEY:}    # bearer token of the proxy in front of a remote Ollama; blank = none
     model: ${ASSISTANT_MODEL:qwen2.5:7b}
     timeout: 90s
+    # A streamed answer is read until its last word within this: a 7B model on a team member's GPU behind ngrok needs
+    # over 90 s for a long answer with the student's data, and the stream was cut mid-answer (the controller keeps
+    # the event stream open for two of these: a retry after Chinese script).
+    stream-timeout: 3m
     requests-per-hour: 30
     context-tokens: 12288             # the guide, the student's data and the recent turns
   push:

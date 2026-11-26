@@ -163,14 +163,31 @@ public class AssistantService {
             return answer(p, null, null);
         }
         return answer(p, messages -> {
-            boolean[] held = { false };
-            return model.stream(messages, chunk -> {
-                held[0] |= CJK.matcher(chunk).find();
-                if (!held[0]) {
+            StringBuilder shown = new StringBuilder();
+            try {
+                return model.stream(messages, chunk -> {
+                    if (CJK.matcher(chunk).find()) {
+                        // Stop reading here: the rest is never shown, and waiting for it delayed the retry so long
+                        // that the retry was cut (the student saw the answer twice, then "NetworkError").
+                        throw new Drifted(shown + chunk);
+                    }
+                    shown.append(chunk);
                     out.delta(chunk);
-                }
-            });
+                });
+            } catch (Drifted d) {
+                return d.text;
+            }
         }, out::reset);
+    }
+
+    /** A streamed answer that slipped into Chinese script, stopped where it did; {@link #answer} asks again. */
+    private static final class Drifted extends RuntimeException {
+        private final String text;
+
+        Drifted(String text) {
+            super(null, null, false, false);
+            this.text = text;
+        }
     }
 
     /** Checks the conversation and the role, counts the question and builds the model's messages. */

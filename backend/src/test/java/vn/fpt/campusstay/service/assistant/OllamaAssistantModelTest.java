@@ -36,7 +36,7 @@ class OllamaAssistantModelTest {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         return new OllamaAssistantModel(new AssistantProperties("http://ollama.test/", apiKey, "qwen2.5:3b",
-                Duration.ofSeconds(5), 30, 8192), builder);
+                Duration.ofSeconds(5), 30, 8192, Duration.ofSeconds(10)), builder);
     }
 
     /** TC-AST-006: the chat is posted unstreamed with the model, the context size and the proxy key; the answer is read. */
@@ -90,6 +90,37 @@ class OllamaAssistantModelTest {
         server.reset();
         server.expect(requestTo(CHAT)).andRespond(withStatus(HttpStatus.NOT_FOUND));
         assertThatThrownBy(() -> model.stream(List.of(new AssistantModel.Message("user", "Hi")), chunks::add))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("ASSISTANT_OFFLINE"));
+    }
+
+    /**
+     * TC-AST-505: a stream cut after its first words, in the middle of a line or between two lines (no last line with
+     * {@code done}), is 503 ASSISTANT_INTERRUPTED, not a parse fault (the browser said "NetworkError"); cut before any
+     * word it is ASSISTANT_OFFLINE.
+     */
+    @Test
+    void aCutStreamIsInterrupted() {
+        OllamaAssistantModel model = model("");
+        List<String> chunks = new java.util.ArrayList<>();
+        List<AssistantModel.Message> question = List.of(new AssistantModel.Message("user", "Phòng mình?"));
+
+        server.expect(requestTo(CHAT)).andRespond(withSuccess("""
+                {"message":{"role":"assistant","content":"Bạn ở "},"done":false}
+                {"message":{"role":"assistant","content":"phòng""", MediaType.parseMediaType("application/x-ndjson")));
+        assertThatThrownBy(() -> model.stream(question, chunks::add))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("ASSISTANT_INTERRUPTED"));
+        assertThat(chunks).containsExactly("Bạn ở ");
+
+        server.reset();
+        server.expect(requestTo(CHAT)).andRespond(withSuccess("""
+                {"message":{"role":"assistant","content":"Bạn ở "},"done":false}
+                """, MediaType.parseMediaType("application/x-ndjson")));
+        assertThatThrownBy(() -> model.stream(question, chunks::add))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("ASSISTANT_INTERRUPTED"));
+
+        server.reset();
+        server.expect(requestTo(CHAT)).andRespond(withSuccess("", MediaType.parseMediaType("application/x-ndjson")));
+        assertThatThrownBy(() -> model.stream(question, chunks::add))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo("ASSISTANT_OFFLINE"));
     }
 

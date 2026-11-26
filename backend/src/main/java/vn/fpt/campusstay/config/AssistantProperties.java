@@ -15,12 +15,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param requestsPerHour questions one student may ask per hour, so one person cannot hold the GPU
  * @param contextTokens   context window asked of the model ({@code num_ctx}): the guide, the student's data and the
  *                        recent turns must fit
+ * @param streamTimeout   longest time one streamed answer may take, from the question to its last word (the HTTP
+ *                        client closes the stream then, even while words still come); blank = twice {@code timeout}
  */
 @ConfigurationProperties("campusstay.assistant")
 public record AssistantProperties(String baseUrl, String apiKey, String model, Duration timeout,
-        int requestsPerHour, int contextTokens) {
+        int requestsPerHour, int contextTokens, Duration streamTimeout) {
 
     public boolean enabled() {
         return baseUrl != null && !baseUrl.isBlank();
+    }
+
+    /** {@link #streamTimeout}, or twice {@link #timeout} when not set. */
+    public Duration streamTimeoutOrDefault() {
+        return streamTimeout != null ? streamTimeout : timeout.multipliedBy(2);
     }
 }

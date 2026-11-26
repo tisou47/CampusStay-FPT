@@ -56,7 +56,8 @@ function Bubble({ message }) {
           mine ? 'bg-primary text-fg-on-brand' : message.error ? 'bg-warning-bg text-warning-fg' : 'bg-subtle text-fg',
         )}
       >
-        {mine ? <p className="whitespace-pre-wrap">{message.content}</p> : <Formatted text={message.content} />}
+        {mine ? <p className="whitespace-pre-wrap">{message.content}</p> : message.content && <Formatted text={message.content} />}
+        {message.stopped && <p className={cx('text-xs text-fg-tertiary', message.content && 'mt-1')}>{t('Stopped. Ask again for a whole answer.')}</p>}
       </div>
     </div>
   )
@@ -72,6 +73,8 @@ export function AssistantChat({ userId }) {
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
   const [partial, setPartial] = useState('')
+  const [rewriting, setRewriting] = useState(false)
+  const [next, setNext] = useState(null)
   const abort = useRef(null)
   const end = useRef(null)
   const input = useRef(null)
@@ -83,12 +86,26 @@ export function AssistantChat({ userId }) {
   useEffect(() => {
     if (open) input.current?.focus()
   }, [open])
+  // A question sent while an answer was coming: asked once that answer has stopped and the chat holds its bubble.
+  useEffect(() => {
+    if (!pending && next !== null) {
+      setNext(null)
+      ask(next)
+    }
+  }, [pending, next]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!status.data?.enabled) return null
 
   async function ask(text) {
     const question = text.trim()
-    if (!question || pending) return
+    if (!question) return
+    if (pending) {
+      // Never locked behind an answer that does not end: stop it (what was shown stays) and ask this one next.
+      setNext(question)
+      setDraft('')
+      abort.current?.abort()
+      return
+    }
     const turns = [...messages, { role: 'user', content: question }]
     setMessages((m) => [...m, { role: 'user', content: question }])
     setDraft('')
@@ -97,6 +114,7 @@ export function AssistantChat({ userId }) {
     const controller = new AbortController()
     abort.current = controller
     const body = { messages: turnsToSend(turns, SENT_TURNS) }
+    let shown = '' // what the student sees so far: kept if they press Stop
     try {
       // The answer appears as the model writes it (D6); `done` carries the whole reply with the server's signature,
       // which goes back with the next question (unsigned turns are ignored, BE-PLT-02).
@@ -106,8 +124,15 @@ export function AssistantChat({ userId }) {
         await api.me.streamAssistant(body, {
           signal: controller.signal,
           onEvent: (name, data) => {
-            if (name === 'delta') setPartial((p) => p + (data.text ?? ''))
-            else if (name === 'reset') setPartial('')
+            if (name === 'delta') {
+              shown += data.text ?? ''
+              setPartial(shown)
+            } else if (name === 'reset') {
+              // The first answer slipped into Chinese: it is cleared and written again (say so: the words vanish).
+              shown = ''
+              setPartial('')
+              setRewriting(true)
+            }
             else if (name === 'done') result = data
             else if (name === 'error') failure = data
           },
@@ -117,12 +142,19 @@ export function AssistantChat({ userId }) {
         result = await api.me.askAssistant(body) // a server without the stream endpoint
       }
       if (failure) throw new Error(failure.message)
-      if (result) setMessages((m) => [...m, { role: 'assistant', content: result.reply, signature: result.signature }])
+      // The stream closed without its last event (the server or the network cut it): say so, never stay silent.
+      if (!result) throw new Error(t('The answer was cut off. Ask again in a moment.'))
+      setMessages((m) => [...m, { role: 'assistant', content: result.reply, signature: result.signature }])
     } catch (error) {
-      if (error.name !== 'AbortError') setMessages((m) => [...m, { role: 'assistant', content: error.message, error: true }])
+      // Stopped: what was shown stays, marked as stopped; it and its question are not sent with the next question
+      // (turnsToSend), so the next answer is not about both.
+      const stopped = { role: 'assistant', content: shown.trim(), stopped: true }
+      const failed = { role: 'assistant', content: error.message, error: true }
+      setMessages((m) => [...m, error.name === 'AbortError' ? stopped : failed])
     } finally {
       abort.current = null
       setPartial('')
+      setRewriting(false)
       setPending(false)
     }
   }
@@ -189,7 +221,7 @@ export function AssistantChat({ userId }) {
         {pending && partial && <Bubble message={{ role: 'assistant', content: partial }} />}
         {pending && (
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-fg-secondary">{t('The assistant is writing…')}</p>
+            <p className="text-sm text-fg-secondary">{rewriting ? t('The assistant is writing the answer again…') : t('The assistant is writing…')}</p>
             <button type="button" onClick={() => abort.current?.abort()} className="rounded-md px-2 py-1 text-sm text-fg-secondary hover:bg-subtle hover:text-fg">
               {t('Stop')}
             </button>
@@ -220,8 +252,8 @@ export function AssistantChat({ userId }) {
           icon={SendHorizontal}
           type="submit"
           size="lg"
-          aria-label={t('Send')}
-          disabled={pending || !draft.trim()}
+          aria-label={pending ? t('Stop this answer and send') : t('Send')}
+          disabled={!draft.trim()}
           className="bg-primary text-fg-on-brand hover:bg-primary-hover disabled:opacity-45"
         />
       </form>

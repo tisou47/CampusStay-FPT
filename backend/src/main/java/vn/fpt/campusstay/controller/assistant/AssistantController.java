@@ -12,6 +12,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,8 +49,15 @@ class AssistantController {
             List<@Valid TurnRequest> messages) {
     }
 
-    /** Longer than the model's own timeout, asked twice (a retry after Chinese script). */
-    private static final Duration STREAM_TIMEOUT = Duration.ofMinutes(5);
+    /**
+     * Longer than the model's stream timeout ({@code campusstay.assistant.stream-timeout}, 3 minutes) asked twice (a
+     * retry after Chinese script), so the model's own limit ends a slow answer with an error event first.
+     */
+    private static final Duration STREAM_TIMEOUT = Duration.ofMinutes(7);
+
+    private static final Logger log = LoggerFactory.getLogger(AssistantController.class);
+    /** The same words as the model's {@code ASSISTANT_INTERRUPTED}. */
+    private static final String INTERRUPTED = "The answer was cut off. Ask again in a moment.";
 
     private final AssistantService assistant;
     private final Messages messages;
@@ -97,8 +106,19 @@ class AssistantController {
                 send(emitter, "error", Map.of("code", e.code(),
                         "message", messages.translate(e.getMessage(), prepared.locale())));
                 emitter.complete();
-            } catch (RuntimeException e) { // the student closed the page (ClientGone), or a fault: stop here
+            } catch (ClientGone e) { // the student closed the page: nobody to tell
                 emitter.completeWithError(e);
+            } catch (RuntimeException e) {
+                // Any other fault after words were shown: end with an error event the chat can show, not by
+                // dropping the connection (the browser then said "NetworkError" under half an answer).
+                log.warn("Assistant stream failed: {}", e.getClass().getSimpleName());
+                try {
+                    send(emitter, "error", Map.of("code", "ASSISTANT_INTERRUPTED",
+                            "message", messages.translate(INTERRUPTED, prepared.locale())));
+                    emitter.complete();
+                } catch (ClientGone gone) {
+                    emitter.completeWithError(gone);
+                }
             }
         });
         return emitter;

@@ -64,6 +64,14 @@ const server = http.createServer((req, res) => {
     console.log(`${time} 502 ${route} Ollama is not answering: ${e.message}`)
     if (!res.headersSent) send(res, 502, 'Ollama is not running')
   })
+  // CampusStay stopped reading (it cut a slow answer, or stopped one in Chinese to ask again): stop Ollama too, or the
+  // GPU keeps writing an answer nobody reads while the next question waits behind it.
+  res.on('close', () => {
+    if (!res.writableFinished) {
+      console.log(`${time} --- ${route} closed by CampusStay after ${((Date.now() - started) / 1000).toFixed(1)} s`)
+      upstream.destroy()
+    }
+  })
   req.pipe(upstream)
 })
 
