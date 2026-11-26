@@ -58,13 +58,13 @@
   --color-gray-800: #2a221d;
   --color-gray-900: #1d1714;
 
-  /* The band: a soft FPT-orange gradient across the top of every shell (band → band-to). Everything on it
-     is ink or a white control (white text on orange fails contrast). */
-  --color-band: #fa9452;
-  --color-band-to: #fdb88a;
+  /* The band: solid FPT orange across the top of every shell ("FPT desk", redesign 26/11/2026). Everything on
+     it is ink or a white control (white text on orange fails contrast; ink on #f37021 is 6.6:1). */
+  --color-band: #f37021;
+  --color-band-to: #f37021;
   --color-band-fg: #1d1714;
-  --color-band-line: #f5a26c;
-  --color-band-hover: #fdc7a2;
+  --color-band-line: #d9600f;
+  --color-band-hover: #fb9a5c;
 
   /* Brand and action */
   --color-primary: #c64f0e;        /* the only action colour: buttons, selection */
@@ -75,9 +75,9 @@
   --color-focus: #0a5da8;
 
   /* Surfaces */
-  --color-canvas: #f9f8f7;
+  --color-canvas: #f7f4f0;
   --color-surface: #ffffff;
-  --color-subtle: #f5f0eb;
+  --color-subtle: #f3ede6;
   --color-brand-subtle: #fff1e6;
 
   /* Text */
@@ -111,9 +111,9 @@
   --color-neutral: #75665b;
   --color-neutral-bg: #f5f0eb;
   --color-neutral-fg: #3f352e;
-  --color-progress: #7c3aed;       /* in progress (StatusBadge) */
-  --color-progress-bg: #f3effe;
-  --color-progress-fg: #5b21b6;
+  --color-progress: #c64f0e;       /* in progress (StatusBadge): the brand family, no off-palette violet */
+  --color-progress-bg: #fff1e6;
+  --color-progress-fg: #9e3f0f;
 
   /* ---------- Typography (Be Vietnam Pro) ---------- */
   --text-*: initial;
@@ -137,7 +137,7 @@
   /* ---------- Radius (radius/none · sm · md · lg · xl · full) ---------- */
   --radius-sm: 4px;
   --radius-md: 6px;  /* default control radius */
-  --radius-lg: 8px;  /* cards */
+  --radius-lg: 10px; /* cards, tables, panels */
   --radius-xl: 12px;
 
   /* ---------- Elevation ---------- */
@@ -271,7 +271,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The top band of every shell: soft orange, lighter towards the right. */
+/* The top band of every shell: solid FPT orange (band-to equals band, so the gradient is flat). */
 @utility bg-band-gradient {
   background-color: var(--color-band);
   background-image: linear-gradient(90deg, var(--color-band) 0%, var(--color-band-to) 100%);

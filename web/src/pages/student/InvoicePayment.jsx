@@ -252,7 +252,7 @@ function Payment({ data, reload }) {
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <Building2 size={15} aria-hidden="true" className="text-fg-tertiary" />
-              <span className="text-xs font-semibold tracking-wider text-fg-tertiary uppercase">
+              <span className="text-xs font-semibold text-fg-tertiary">
                 {t('Or transfer manually')}
               </span>
             </div>

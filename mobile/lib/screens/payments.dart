@@ -393,7 +393,8 @@ class _Hero extends StatelessWidget {
     final payments = (s?.number('paidCount') ?? 0).toInt();
     final upcoming = s?.obj('upcoming');
     final clear = outstanding <= 0;
-    final colors = clear ? const [Color(0xFF15803D), Color(0xFF16A34A)] : const [Color(0xFFC2410C), Color(0xFFEA580C)];
+    // FPT green when nothing is due (done/paid), deep orange otherwise: both hold white text above 4.5:1.
+    final fill = clear ? Tone.success.fg : Tokens.primary;
     const white70 = Color(0xB3FFFFFF);
 
     Widget stat(String name, String value, String note) => Expanded(
@@ -419,8 +420,8 @@ class _Hero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(18),
+        color: fill,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

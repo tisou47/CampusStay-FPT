@@ -146,7 +146,7 @@ function Row({ label, sub, base, student, final, diff, photosTo, resolution, onR
 
 function Group({ children }) {
   return (
-    <div role="row" className="border-b border-l-4 border-line border-l-transparent bg-subtle/60 px-3 py-1.5 text-xs font-semibold tracking-wide text-fg-secondary uppercase">
+    <div role="row" className="border-b border-l-4 border-line border-l-transparent bg-subtle/60 px-3 py-1.5 text-sm font-semibold text-fg-secondary">
       <span role="cell">{children}</span>
     </div>
   )

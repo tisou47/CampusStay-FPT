@@ -44,6 +44,9 @@ const KINDS = {
   'job-failed': 'Background jobs that failed',
 }
 
+/** The summary as cached (the shell polls it). */
+export const useWork = () => useQuery([KEY], (opts) => api.workSummary(opts))
+
 /** The summary, read again every minute and when the window gets the focus back (call it once, in the shell). */
 export function useWorkPolling() {
   const query = useQuery([KEY], (opts) => api.workSummary(opts))

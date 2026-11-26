@@ -29,7 +29,7 @@ function StudentTopBar() {
   const { user, term, signOut } = useSession()
   const [changingPassword, setChangingPassword] = useState(false)
   return (
-    <header data-band className="z-30 hidden shrink-0 border-b border-band-line bg-band-gradient lg:block">
+    <header data-band className="z-30 hidden shrink-0 border-b border-band-line bg-band lg:block">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       {/* Full-width top bar: flex layout prevents 1fr column inflation so the student name never overflows the right edge. */}
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 lg:px-6">

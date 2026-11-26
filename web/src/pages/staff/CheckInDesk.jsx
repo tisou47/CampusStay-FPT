@@ -220,7 +220,7 @@ function StudentPanel({ person, termId, onDone }) {
         ) : (
           <section className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold tracking-wider text-fg-tertiary uppercase">
+              <span className="text-xs font-semibold text-fg-tertiary">
                 {t('Eligibility checks')}
               </span>
               <span className="text-xs font-medium text-fg-secondary">

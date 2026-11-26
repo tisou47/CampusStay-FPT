@@ -781,17 +781,17 @@ function ReviewStep({ w, goTo, onPrev, stepIndex }) {
       {publish.error && <Alert type="error" title="Could not publish">{publish.error.message}</Alert>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="flex flex-col gap-1.5 p-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-fg-tertiary">{t('Stay')}</span>
+          <span className="text-xs font-semibold text-fg-tertiary">{t('Stay')}</span>
           <span className="text-base font-bold text-fg">{formatDateRange(w.general.stayStart, w.general.stayEnd)}</span>
           <span className="text-sm text-fg-secondary">{t('{n} milestones set', { n: filled })}</span>
         </Card>
         <Card className="flex flex-col gap-1.5 p-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-fg-tertiary">{t('Places')}</span>
+          <span className="text-xs font-semibold text-fg-tertiary">{t('Places')}</span>
           <span className="text-base font-bold text-fg">{t('{n} beds', { n: beds })}</span>
           <span className="text-sm text-fg-secondary">{w.rooms.allBlocks ? t('Every block') : w.rooms.blocks.filter((b) => b.used).map((b) => b.code).join(', ')}</span>
         </Card>
         <Card className="flex flex-col gap-1.5 p-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-fg-tertiary">{t('Prices per bed')}</span>
+          <span className="text-xs font-semibold text-fg-tertiary">{t('Prices per bed')}</span>
           <span className="text-base font-bold text-fg">{prices.length ? `${formatVnd(Math.min(...prices))} – ${formatVnd(Math.max(...prices))}` : '—'}</span>
           <span className="text-sm text-fg-secondary">{t('Deposit {n}% · Utility Deposit {amount}', { n: w.prices.depositPercent, amount: formatVnd(w.prices.utilityDeposit) })}</span>
         </Card>

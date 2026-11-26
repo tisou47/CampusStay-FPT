@@ -9,7 +9,7 @@ import { cx } from '@/lib/cx'
  */
 export const VARIANTS = {
   assigned: { box: 'bg-info-bg text-info-fg', dot: 'bg-info' }, // blue: someone is in charge, not started
-  in_progress: { box: 'bg-progress-bg text-progress-fg', dot: 'bg-progress' }, // purple: being worked on
+  in_progress: { box: 'bg-progress-bg text-progress-fg', dot: 'bg-progress' }, // brand wash: being worked on
   unassigned: { box: 'bg-neutral-bg text-neutral-fg', dot: 'bg-neutral' }, // grey: nobody in charge
   overdue: { box: 'bg-error-bg text-error-fg', dot: 'bg-error' }, // red: late, rejected, broken
   done: { box: 'bg-success-bg text-success-fg', dot: 'bg-success' }, // green: done, allocated, paid

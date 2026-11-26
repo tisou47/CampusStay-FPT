@@ -826,7 +826,7 @@ export function FurnitureCharges() {
 
           {s && (
             <div className="flex flex-col gap-2 rounded-xl border border-line bg-subtle/40 p-3.5">
-              <span className="text-xs font-semibold tracking-wide text-fg-secondary uppercase">
+              <span className="text-xs font-semibold text-fg-secondary">
                 {t('3. Utility deposit settlement')}
               </span>
               <dl className="flex flex-col gap-1.5 text-sm">

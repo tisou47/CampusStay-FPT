@@ -251,11 +251,11 @@ class _ShellState extends State<Shell> {
                   Container(
                     width: 42,
                     height: 42,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(10)),
                     alignment: Alignment.center,
                     child: Text(
                       first.characters.firstOrNull ?? '?',
-                      style: const TextStyle(color: Tokens.primary, fontSize: 20, fontWeight: FontWeight.w800),
+                      style: const TextStyle(color: Tokens.fgBrand, fontSize: 20, fontWeight: FontWeight.w800),
                     ),
                   ),
                   Expanded(
@@ -269,7 +269,7 @@ class _ShellState extends State<Shell> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
-                            color: Colors.white.withValues(alpha: 0.85),
+                            color: Tokens.fg.withValues(alpha: 0.75),
                           ),
                         ),
                       ],
