@@ -6,7 +6,7 @@ import { useSession } from '@/app/session'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { KpiTile } from '@/components/ui/Charts'
 import { Card } from '@/components/ui/Display'
-import { QueryState, StaleNotice } from '@/components/ui/States'
+import { ErrorState, LoadingState, QueryState, StaleNotice } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
 import { daysFromToday, formatDate, formatNumber } from '@/lib/format'
 import { floorPercent } from '@/lib/money'
@@ -31,11 +31,11 @@ const SHORTCUTS = [
   { to: '/admin/system-parameters', icon: SlidersHorizontal, label: 'System parameters' },
 ]
 
-/** Account groups in a fixed order with fixed hues (checked for colour-blind separation); labels sit beside them. */
+/** Account groups in a fixed order, told apart by lightness inside the FPT palette (no teal, no blue: DESIGN.md); labels sit beside them. */
 const ACCOUNT_GROUPS = [
-  { key: 'students', label: 'Students', color: 'var(--color-info)' },
-  { key: 'staff', label: 'Staff', color: '#0d9488' },
-  { key: 'managers', label: 'Managers', color: 'var(--color-accent)' },
+  { key: 'students', label: 'Students', color: 'var(--color-primary)' },
+  { key: 'staff', label: 'Staff', color: 'var(--color-orange-300)' },
+  { key: 'managers', label: 'Managers', color: 'var(--color-gray-500)' },
 ]
 
 /** A card holding one chart: title, optional headline on the right, the chart filling the rest. */
@@ -145,8 +145,8 @@ function BedsCard({ k }) {
     { label: t('Still free'), value: free, color: 'var(--color-gray-300, #d9cec4)' },
   ]
   return (
-    <ChartCard title={t('Beds this term')} className="col-span-4">
-      <div className="flex min-h-0 flex-1 flex-wrap content-center items-center justify-center gap-x-5 gap-y-3">
+    <ChartCard title={t('Beds this term')} className="xl:col-span-4">
+      <div className="flex min-h-0 flex-1 flex-wrap items-center justify-center gap-x-5 gap-y-3 [align-content:safe_center]">
         <Donut parts={parts} label={t('{n} beds held of {total}', { n: formatNumber(k.allocated), total: formatNumber(k.beds) })}>
           <span className="text-h1 font-semibold text-fg tabular">{floorPercent(k.beds ? k.allocated / k.beds : 0)}</span>
           <span className="text-xs text-fg-tertiary">{t('of beds held')}</span>
@@ -165,7 +165,7 @@ function BedsCard({ k }) {
 function AccountsCard({ k }) {
   const total = k.students + k.staff + k.managers
   return (
-    <ChartCard title={t('Accounts')} aside={<span className="text-h3 font-semibold text-fg tabular">{formatNumber(total)}</span>} className="col-span-5">
+    <ChartCard title={t('Accounts')} aside={<span className="text-h3 font-semibold text-fg tabular">{formatNumber(total)}</span>} className="xl:col-span-5">
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-4">
         <div className="flex h-4 w-full shrink-0 gap-0.5 overflow-hidden rounded-[4px]" role="img" aria-label={t('{s} students · {st} staff · {m} managers', { s: formatNumber(k.students), st: formatNumber(k.staff), m: formatNumber(k.managers) })}>
           {ACCOUNT_GROUPS.filter((g) => k[g.key] > 0).map((g) => (
@@ -184,7 +184,7 @@ function AccountsCard({ k }) {
               {formatNumber(k.activeUsers)} <span className="text-base font-normal text-fg-tertiary">/ {formatNumber(total)}</span>
             </span>
             <div className="h-1.5 overflow-hidden rounded-full bg-subtle">
-              <div className="h-full rounded-full bg-info" style={{ width: `${total ? Math.min(100, (k.activeUsers / total) * 100) : 0}%` }} />
+              <div className="h-full rounded-full bg-primary" style={{ width: `${total ? Math.min(100, (k.activeUsers / total) * 100) : 0}%` }} />
             </div>
           </div>
         </div>
@@ -195,7 +195,7 @@ function AccountsCard({ k }) {
 
 function Shortcuts() {
   return (
-    <ChartCard title={t('Shortcuts')} className="col-span-7">
+    <ChartCard title={t('Shortcuts')} className="xl:col-span-7">
       <ul className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto [align-content:safe_center]">
         {SHORTCUTS.map(({ to, icon: Glyph, label }) => (
           <li key={to} className="min-w-0">
@@ -228,7 +228,7 @@ export default function AdminDashboard() {
       <PageHeader title="System overview" />
       <StaleNotice query={query} />
 
-      <div className="grid shrink-0 grid-cols-3 gap-4">
+      <div className="grid shrink-0 grid-cols-1 gap-4 md:grid-cols-3">
         <KpiTile
           icon={Calendar}
           label="Current term"
@@ -242,17 +242,18 @@ export default function AdminDashboard() {
       {/* Work inbox (#69): what is waiting on the Admin */}
       <WorkInboxPanel className="shrink-0" />
 
-      <div className="grid min-h-0 flex-1 grid-cols-12 grid-rows-[minmax(0,1.45fr)_minmax(0,1fr)] gap-4">
+      {/* One screen from 1280 px; a shorter or narrower window scrolls instead of squeezing the charts. */}
+      <div className="grid shrink-0 grid-cols-1 gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-12 xl:grid-rows-[minmax(260px,1.45fr)_minmax(200px,1fr)]">
         <ChartCard
           title={d?.term ? t('{term} application funnel', { term: d.term.name }) : t('Application funnel')}
-          className="col-span-8"
+          className="min-h-72 xl:col-span-8 xl:min-h-0"
         >
           <QueryState query={query} compact isEmpty={(x) => !x.funnel?.length}>
             {(data) => <FunnelColumns steps={data.funnel} />}
           </QueryState>
         </ChartCard>
-        {k ? <BedsCard k={k} /> : <Card className="col-span-4" />}
-        {k ? <AccountsCard k={k} /> : <Card className="col-span-5" />}
+        {k ? <BedsCard k={k} /> : <Card className="xl:col-span-4">{query.error ? <ErrorState error={query.error} onRetry={query.reload} compact /> : <LoadingState />}</Card>}
+        {k ? <AccountsCard k={k} /> : <Card className="xl:col-span-5">{query.error ? <ErrorState error={query.error} onRetry={query.reload} compact /> : <LoadingState />}</Card>}
         <Shortcuts />
       </div>
     </>

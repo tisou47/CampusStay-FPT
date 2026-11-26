@@ -91,7 +91,7 @@ export default function SendEmail() {
       }
     >
       {o && (
-        <div className="flex min-h-0 flex-1 items-stretch gap-4">
+        <div className="flex min-h-0 flex-1 items-stretch gap-4 max-md:flex-col max-md:*:w-full max-md:*:shrink-0">
           <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto">
             <h2 className="text-h3 font-semibold text-fg">{t('Recipients')}</h2>
             <div className="flex gap-6" role="radiogroup" aria-label={t('Recipients')}>
@@ -154,7 +154,7 @@ export default function SendEmail() {
               </Field>
             </div>
           </Card>
-          <Card className="flex min-h-0 w-105 shrink-0 flex-col gap-2.5 overflow-y-auto">
+          <Card className="flex min-h-0 w-80 shrink-0 flex-col gap-2.5 overflow-y-auto xl:w-105">
             <div className="flex flex-col gap-0.5">
               <h2 className="text-h3 font-semibold text-fg">{p?.recipientName ? t('Preview for {name}', { name: p.recipientName }) : t('Preview')}</h2>
               <p className="text-sm text-fg-secondary">{t('Variables filled from the first recipient')}</p>

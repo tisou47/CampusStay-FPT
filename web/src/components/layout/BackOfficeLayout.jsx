@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
-import { Building, Calendar, Check, ChevronDown, KeyRound, LogOut, Search } from 'lucide-react'
+import { Building, Calendar, Check, ChevronDown, KeyRound, LogOut, Menu, Search, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
 import { backOffice, isNavActive } from '@/app/navigation'
@@ -62,7 +62,7 @@ function ProfileLink({ to, current, name, title, avatar }) {
   )
 }
 
-function Sidebar({ role }) {
+function Sidebar({ role, open }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const config = backOffice[role]
@@ -70,9 +70,19 @@ function Sidebar({ role }) {
   const [changingPassword, setChangingPassword] = useState(false)
   const work = useWorkPolling().data?.items
   return (
-    <aside className="flex h-full w-62 shrink-0 flex-col justify-between border-r border-line bg-surface">
+    <aside
+      id="main-menu"
+      className={cx(
+        'flex h-full w-62 shrink-0 flex-col justify-between border-r border-line bg-surface',
+        // Below 1024 px the menu is a drawer over the page, opened from the band's menu button.
+        'max-lg:fixed max-lg:top-14 max-lg:bottom-0 max-lg:left-0 max-lg:z-40 max-lg:h-auto max-lg:shadow-modal max-lg:transition-transform max-lg:duration-200',
+        !open && 'max-lg:invisible max-lg:-translate-x-full',
+      )}
+    >
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       <div className="flex min-h-0 flex-col">
+        {/* On a phone the band has no room for the Term and Block pickers: they lead the menu drawer. */}
+        <ScopePickers role={role} className="flex-wrap border-b border-line bg-band px-3 py-3 md:hidden" />
         <nav aria-label={t('Main')} className="scrollbar-none flex min-h-0 flex-col gap-4 overflow-y-auto px-3 pt-4 pb-4">
           {config.sections.map((section, si) => (
             <div key={section.title ?? si} className="flex flex-col gap-px">
@@ -162,7 +172,7 @@ function SelectorButton({ icon: Glyph, value, options, onChange, label, disabled
           aria-label={label}
           disabled={disabled}
           className={cx(
-            'flex h-9 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 py-1.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-primary-subtle disabled:pointer-events-none disabled:opacity-60',
+            'flex h-9 shrink-0 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 py-1.5 text-base font-medium whitespace-nowrap text-fg shadow-card transition-colors hover:bg-primary-subtle disabled:pointer-events-none disabled:opacity-60',
             open && 'bg-surface ring-2 ring-white/60',
           )}
           {...props}
@@ -292,12 +302,13 @@ function QuickSearch({ role }) {
           onClick={toggle}
           aria-keyshortcuts="/"
           title={t('Search pages, students, rooms, codes…')}
-          className="flex h-9 w-72 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 text-base whitespace-nowrap text-fg-tertiary shadow-card transition-colors hover:bg-primary-subtle hover:text-fg-secondary"
+          aria-label={t('Search')}
+          className="flex h-9 w-72 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 text-base whitespace-nowrap text-fg-tertiary shadow-card transition-colors hover:bg-primary-subtle hover:text-fg-secondary max-xl:w-56 max-md:w-9 max-md:justify-center max-md:px-0"
           {...props}
         >
           <Search size={16} aria-hidden="true" className="shrink-0" />
-          <span className="min-w-0 flex-1 truncate text-left">{t('Search…')}</span>
-          <kbd aria-hidden="true" className="shrink-0 rounded-md border border-line bg-subtle px-1.5 font-sans text-sm text-fg-tertiary">/</kbd>
+          <span className="min-w-0 flex-1 truncate text-left max-md:hidden">{t('Search…')}</span>
+          <kbd aria-hidden="true" className="shrink-0 max-md:hidden rounded-md border border-line bg-subtle px-1.5 font-sans text-sm text-fg-tertiary">/</kbd>
         </button>
       )}
     >
@@ -394,7 +405,8 @@ function DutyIndicator({ role }) {
 
 // Term selector for every role. Block scope: Managers choose among every Block (ADR-19); Staff with several Blocks
 // choose among theirs; Staff with one Block see it as a fixed label, since a Manager sets their Blocks.
-function BackOfficeTopBar({ role }) {
+/** Term and Block pickers: on the band from 768 px, at the top of the menu drawer on a phone. */
+function ScopePickers({ role, className }) {
   const { terms, term, setTermId, blocks, block, setBlock } = useSession()
   const termOptions = terms.map((x) => ({ value: x.id, label: t('Term: {name}', { name: x.name }), note: termWhen(x) }))
   const blockOptions = [
@@ -403,26 +415,42 @@ function BackOfficeTopBar({ role }) {
   ]
   const fixedBlock = role === 'staff' && blocks.length === 1
   return (
-    <header data-band className="z-30 flex h-14 shrink-0 items-center gap-4 border-b border-band-line bg-band pr-5">
-      <Link to={`/${role}`} aria-label={t('Home')} className="flex h-full w-62 shrink-0 items-center px-4">
+    <div className={cx('flex min-w-0 items-center gap-3', className)}>
+      <SelectorButton icon={Calendar} label={t('Term')} value={term?.id} options={termOptions} onChange={setTermId} disabled={!termOptions.length} />
+      {fixedBlock ? (
+        <span
+          title={t('Your block. A manager sets the blocks of your account.')}
+          className="flex h-9 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card"
+        >
+          <Building size={16} aria-hidden="true" className="text-fg-brand" />
+          {t('Block {code}', { code: blocks[0] })}
+        </span>
+      ) : (
+        role !== 'admin' &&
+        blockOptions.length > 0 && <SelectorButton icon={Building} label={t('Block scope')} value={block} options={blockOptions} onChange={setBlock} />
+      )}
+    </div>
+  )
+}
+
+function BackOfficeTopBar({ role, menuOpen, onMenu }) {
+  return (
+    <header data-band className="z-30 flex h-14 shrink-0 items-center gap-2 border-b border-band-line bg-band pr-3 sm:gap-4 sm:pr-5">
+      <button
+        type="button"
+        onClick={onMenu}
+        aria-label={t(menuOpen ? 'Close menu' : 'Open menu')}
+        aria-expanded={menuOpen}
+        aria-controls="main-menu"
+        className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-lg text-band-fg hover:bg-band-hover lg:hidden"
+      >
+        {menuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+      </button>
+      <Link to={`/${role}`} aria-label={t('Home')} className="flex h-full shrink-0 items-center px-2 lg:w-62 lg:px-4 max-sm:[&_div>span:last-child]:hidden">
         <Logo tone="band" subtitle={t(backOffice[role].portal)} />
       </Link>
-      <div className="flex min-w-0 flex-1 items-center gap-3 pl-6">
-        <SelectorButton icon={Calendar} label={t('Term')} value={term?.id} options={termOptions} onChange={setTermId} disabled={!termOptions.length} />
-        {fixedBlock ? (
-          <span
-            title={t('Your block. A manager sets the blocks of your account.')}
-            className="flex h-9 items-center gap-2 rounded-lg border border-transparent bg-surface px-3.5 text-base font-medium whitespace-nowrap text-fg shadow-card"
-          >
-            <Building size={16} aria-hidden="true" className="text-fg-brand" />
-            {t('Block {code}', { code: blocks[0] })}
-          </span>
-        ) : (
-          role !== 'admin' &&
-          blockOptions.length > 0 && <SelectorButton icon={Building} label={t('Block scope')} value={block} options={blockOptions} onChange={setBlock} />
-        )}
-      </div>
-      <div className="flex items-center gap-3">
+      <ScopePickers role={role} className="flex-1 lg:pl-6 max-md:hidden" />
+      <div className="flex items-center gap-2 max-md:ml-auto sm:gap-3">
         <QuickSearch role={role} />
         <LanguageSwitch />
         <NotificationsButton onBand />
@@ -436,12 +464,23 @@ function BackOfficeTopBar({ role }) {
 export function BackOfficeLayout({ role }) {
   // Focus mode (app/focus.js): a page reading reports side by side takes the sidebar's width.
   const focus = useFocusModeOn()
+  // The menu drawer below 1024 px: closes on every move to another page and with Escape.
+  const [menuOpen, setMenuOpen] = useState(false)
+  const { pathname } = useLocation()
+  useEffect(() => setMenuOpen(false), [pathname])
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const onKey = (e) => e.key === 'Escape' && setMenuOpen(false)
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [menuOpen])
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-canvas">
-      <BackOfficeTopBar role={role} />
+      <BackOfficeTopBar role={role} menuOpen={menuOpen} onMenu={() => setMenuOpen((o) => !o)} />
       <div className="flex min-h-0 flex-1">
-        {!focus && <Sidebar role={role} />}
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
+        {menuOpen && <div aria-hidden="true" onClick={() => setMenuOpen(false)} className="fixed inset-0 top-14 z-30 animate-fade-in bg-gray-900/45 lg:hidden" />}
+        {!focus && <Sidebar role={role} open={menuOpen} />}
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6">
           {/* The Term stage trail (FlowTrail) is no longer shown above every page: the screens get its height back
               (user decision 24/11/2026). The dashboards still use its stage steps. */}
           {!focus && <SectionTabs role={role} />}

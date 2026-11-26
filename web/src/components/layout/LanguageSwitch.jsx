@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 import { useSession } from '@/app/session'
 import { LANGUAGES, t, useI18n } from '@/i18n'
 import { cx } from '@/lib/cx'
+import { confirmDiscard, hasUnsavedChanges } from '@/app/unsaved'
 
 // Where the switch last clicked sits in the page. Its marker carries the view-transition name before and after the
 // screens are rebuilt, so the marker slides from the old language to the new one while the screen cross-fades
@@ -60,6 +61,8 @@ export function LanguageSwitch({ className, size = 'md' }) {
             title={option.label}
             onClick={() => {
               if (active) return
+              // The switch rebuilds every screen: unsaved form edits would vanish without this question.
+              if (hasUnsavedChanges() && !confirmDiscard()) return
               if (marker.current) {
                 clicked = placeOf(marker.current)
                 marker.current.style.viewTransitionName = 'lang-marker'

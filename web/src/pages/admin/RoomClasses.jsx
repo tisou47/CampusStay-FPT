@@ -219,7 +219,7 @@ function TierRoomsDrawer({ tier, onClose }) {
         )}
       </div>
 
-      <QueryState query={query} compact isEmpty={() => !rooms.length} empty={<EmptyBlock icon={DoorOpen} title={needle ? 'No room matches' : 'No rooms'} />}>
+      <QueryState query={query} compact skeleton="table" isEmpty={() => !rooms.length} empty={<EmptyBlock icon={DoorOpen} title={needle ? 'No room matches' : 'No rooms'} />}>
         {() => (
           <div className="flex flex-col gap-5">
             {floors.map((floor) => {

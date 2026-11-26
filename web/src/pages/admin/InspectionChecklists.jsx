@@ -3,6 +3,7 @@ import { CircleCheck, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
+import { useUnsavedChanges } from '@/app/unsaved'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Alert, Card } from '@/components/ui/Display'
@@ -94,7 +95,11 @@ function Editor({ checklist, categories, severities, onRemoved, onDirtyChange })
   const [deleting, setDeleting] = useState(false)
   const [renaming, setRenaming] = useState(null)
   const dirty = JSON.stringify(items) !== JSON.stringify(checklist.items ?? [])
-  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange])
+  // Braces: the callback returns its value, and an effect may return only a cleanup function.
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
+  useUnsavedChanges(dirty)
   const isDraft = checklist.status === 'Draft'
   const isArchived = checklist.status === 'Archived'
   const nextVersion = isDraft ? checklist.version : checklist.version + 1
@@ -350,15 +355,15 @@ export default function InspectionChecklists() {
           </Button>
         }
       />
-      <div className="flex min-h-0 flex-1 items-stretch gap-4">
-        <div className="flex min-h-0 w-112 shrink-0 flex-col overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="flex min-h-0 flex-1 items-stretch gap-4 max-md:flex-col max-md:*:w-full max-md:*:shrink-0">
+        <div className="flex min-h-0 w-80 shrink-0 flex-col overflow-hidden rounded-lg border border-line bg-surface xl:w-112">
           <div className="flex h-10 shrink-0 items-center gap-3 border-b border-line bg-subtle px-4 text-sm font-medium text-fg-secondary">
             <span className="flex-1">{t('Checklist')}</span>
             <span className="w-12 text-right">{t('Items')}</span>
             <span className="w-36 text-right">{t('Status')}</span>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <QueryState query={query} compact empty={<EmptyBlock icon={CircleCheck} title="No checklists yet" />}>
+            <QueryState query={query} compact skeleton="table" empty={<EmptyBlock icon={CircleCheck} title="No checklists yet" />}>
               {() => (
                 <ul>
                   {[...active, ...archivedFamilies].map((c) => {

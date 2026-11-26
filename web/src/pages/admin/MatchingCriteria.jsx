@@ -73,7 +73,7 @@ export default function MatchingCriteria() {
   const [preview, setPreview] = useState(null)
   const [advanced, setAdvanced] = useState(false)
   const body = () => ({ order: draft.order, weights: draft.weights.map((w) => ({ key: w.key, level: w.level })), boost: parseDecimal(draft.boost) ?? 1 })
-  const boostInvalid = Number.isNaN(parseDecimal(draft.boost)) // "1,5" is 1.5, text is an error, never Off (WEB-ADM-23)
+  const boostInvalid = Number.isNaN(parseDecimal(draft?.boost)) // draft is null until loaded; "1,5" is 1.5, text is an error, never Off (WEB-ADM-23)
   const dryRun = useMutation(() => api.admin.matching.preview(body()), {
     onSuccess: (res) => setPreview(res),
     onError: (e) => notifyError(e, 'Preview failed'),
@@ -169,7 +169,7 @@ export default function MatchingCriteria() {
               )}
             </Card>
           </div>
-          <div className="flex w-120 shrink-0 flex-col gap-4 overflow-y-auto">
+          <div className="flex w-80 shrink-0 flex-col gap-4 overflow-y-auto xl:w-120">
             <div className="flex shrink-0 flex-col gap-3 rounded-lg border border-line bg-subtle p-5">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-base font-medium text-fg">{t('Preview against the rules in use')}</p>

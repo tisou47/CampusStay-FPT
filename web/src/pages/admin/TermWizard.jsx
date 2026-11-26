@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { ArrowLeft, ArrowRight, Check, CircleCheck, ExternalLink, Plus, Rocket, Trash2, TriangleAlert } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { invalidate, useMutation, useQuery } from '@/api/hooks'
 import { useToast } from '@/app/toast'
+import { useUnsavedChanges } from '@/app/unsaved'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Choice'
@@ -83,6 +84,21 @@ function useStep(w, step, onSaved) {
   return { save, fields, setFields }
 }
 
+/**
+ * Marks a step as having unsaved edits until they are saved, so leaving the page or switching the language asks
+ * first (app/unsaved). Sets count by their members.
+ */
+function useEdited(values, save) {
+  const snap = JSON.stringify(values, (_, v) => (v instanceof Set ? [...v] : v))
+  const [kept, setKept] = useState(snap)
+  const wasPending = useRef(false)
+  useEffect(() => {
+    if (wasPending.current && !save.pending && !save.error) setKept(snap)
+    wasPending.current = save.pending
+  }, [save.pending, save.error, snap])
+  useUnsavedChanges(snap !== kept)
+}
+
 /** The change reason a published Term asks for (shown to students in the change announcement). */
 function ChangeReason({ w, value, onChange, error }) {
   if (!w.published) return null
@@ -147,6 +163,7 @@ function GeneralStep({ w, onSaved, onPrev, stepIndex }) {
   const [form, setForm] = useState({ name: w.general.name, stayStart: w.general.stayStart, stayEnd: w.general.stayEnd })
   const [reasons, setReasons] = useState(reasonsOf(w))
   const [changeReason, setChangeReason] = useState('')
+  useEdited([form, reasons, changeReason], save)
   const proposed = w.request ? { name: w.request.termName, stayStart: w.request.stayStart, stayEnd: w.request.stayEnd } : null
   const differs = (key) => proposed && proposed[key] != null && String(proposed[key]) !== String(form[key] ?? '')
   const input = (key, label, type = 'text') => (
@@ -204,6 +221,7 @@ function TimelineStep({ w, onSaved, onPrev, stepIndex }) {
   const [form, setForm] = useState(() => timelineForm(w.timeline.values))
   const [reasons, setReasons] = useState(reasonsOf(w))
   const [changeReason, setChangeReason] = useState('')
+  useEdited([form, reasons, changeReason], save)
   const proposed = w.request?.proposal?.timeline ?? null
   const renewal = Boolean(w.timeline.previousTerm)
   return (
@@ -268,6 +286,7 @@ function RoomsStep({ w, onSaved, onPrev, stepIndex }) {
   const [classes, setClasses] = useState(() => new Set(w.rooms.roomClasses.filter((x) => x.used).map((x) => x.id)))
   const [reasons, setReasons] = useState(reasonsOf(w))
   const [changeReason, setChangeReason] = useState('')
+  useEdited([used, excluded, reserved, types, classes, reasons, changeReason], save)
   const proposal = w.request?.proposal
   const offerDiffers = (asked, options, ticked) => asked?.length > 0 && [...asked].sort().join(',') !== offerKey(options, ticked)
   const typesDiffer = offerDiffers(proposal?.roomTypes, w.rooms.roomTypes, types)
@@ -450,6 +469,7 @@ function PricesStep({ w, onSaved, onPrev, stepIndex }) {
   const [utility, setUtility] = useState(String(p.utilityDeposit))
   const [reasons, setReasons] = useState(reasonsOf(w))
   const [changeReason, setChangeReason] = useState('')
+  useEdited([rows, deposit, utility, reasons, changeReason], save)
   const editable = w.editable.prices
   const asked = w.request?.proposal
   const depositDiffers = asked?.depositPercent != null && Number(asked.depositPercent) !== Number(deposit || 0)
@@ -668,6 +688,7 @@ function InformationStep({ w, onSaved, onPrev, stepIndex }) {
   const [docs, setDocs] = useState(w.information.documents ?? [])
   const [changeReason, setChangeReason] = useState('')
   const [reasons, setReasons] = useState(reasonsOf(w))
+  useEdited([rules, faq, docs, changeReason, reasons], save)
   const editable = w.editable.information
   const asked = w.request?.proposal
   const rulesDiffer = asked?.houseRules != null && asked.houseRules !== rules.trim()
@@ -931,7 +952,7 @@ export default function TermWizard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w])
-  if (w === undefined) return query.error ? <ErrorState error={query.error} onRetry={query.reload} /> : <LoadingState />
+  if (w === undefined) return query.error ? <ErrorState error={query.error} onRetry={query.reload} /> : <LoadingState variant="form" />
   const index = STEPS.findIndex((s) => s.key === step)
   const next = () => {
     if (index < STEPS.length - 1) setPendingStep(STEPS[index + 1].key)
