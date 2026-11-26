@@ -57,4 +57,5 @@ Two windows open (the proxy's log and ngrok); keep them open. The proxy logs eac
 | Students see "assistant offline" | This machine, the proxy or ngrok is off | Run the script again |
 | The proxy logs `401` | The server's `ASSISTANT_API_KEY` differs from the key here | `-ShowSettings`, then update the server |
 | Answers time out | The model runs on the CPU (no or small GPU) | Use a machine with a GPU; keep questions short |
+| Words appear, then "The answer was cut off" | The streamed answer ran past `campusstay.assistant.stream-timeout` (3 min; a long answer with the student's data took over 90 s on a laptop GPU) | Use a faster GPU, or raise it on the server with `CAMPUSSTAY_ASSISTANT_STREAM_TIMEOUT` (keep it under half of the controller's 7-minute stream) |
 | New key needed (leaked) | — | Delete `OLLAMA_PROXY_KEY` from `assistant.env`, run the script, update the server |

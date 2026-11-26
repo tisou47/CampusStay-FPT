@@ -956,6 +956,7 @@ A published Term keeps the Room Types and Room Classes it offers. ⟶ Học kỳ
 
 # ---------- assistant (ADR-28) ----------
 The assistant is offline right now. Try again later. ⟶ Trợ lý đang offline. Hãy thử lại sau.
+The answer was cut off. Ask again in a moment. ⟶ Câu trả lời bị gián đoạn. Bạn hãy hỏi lại sau giây lát.
 End the conversation with your question. ⟶ Hãy kết thúc cuộc trò chuyện bằng câu hỏi của bạn.
 You have asked many questions in the last hour. Try again later. ⟶ Bạn đã hỏi nhiều câu trong một giờ qua. Hãy thử lại sau.
 The assistant could not answer. Ask in other words. ⟶ Trợ lý chưa trả lời được. Hãy hỏi bằng cách khác.

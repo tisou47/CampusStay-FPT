@@ -22,6 +22,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -44,7 +45,8 @@ class OllamaAssistantModel implements AssistantModel {
     record ChatRequest(String model, List<Message> messages, boolean stream, Map<String, Object> options) {
     }
 
-    record ChatResponse(Message message, @JsonProperty("prompt_eval_count") Integer promptEvalCount) {
+    /** {@code done}: the last line of a streamed answer says so; a stream that ends without it was cut. */
+    record ChatResponse(Message message, @JsonProperty("prompt_eval_count") Integer promptEvalCount, Boolean done) {
     }
 
     /** Reads the streamed lines; Ollama adds fields this adapter does not need. */
@@ -53,16 +55,24 @@ class OllamaAssistantModel implements AssistantModel {
 
     private final AssistantProperties config;
     private final RestClient http;
+    /** For streamed answers: its timeout runs until the last word ({@link AssistantProperties#streamTimeout}). */
+    private final RestClient streaming;
 
     @Autowired
     OllamaAssistantModel(AssistantProperties config) {
-        this(config, RestClient.builder().requestFactory(requestFactory(config.timeout())));
+        this(config, RestClient.builder().requestFactory(requestFactory(config.timeout())),
+                RestClient.builder().requestFactory(requestFactory(config.streamTimeoutOrDefault())));
     }
 
     /** For tests: the builder may be bound to a mock server. */
     OllamaAssistantModel(AssistantProperties config, RestClient.Builder builder) {
+        this(config, builder, builder);
+    }
+
+    private OllamaAssistantModel(AssistantProperties config, RestClient.Builder whole, RestClient.Builder streamed) {
         this.config = config;
-        this.http = builder.build();
+        this.http = whole.build();
+        this.streaming = streamed.build();
     }
 
     @Override
@@ -108,8 +118,9 @@ class OllamaAssistantModel implements AssistantModel {
         }
         ChatRequest request = new ChatRequest(config.model(), messages, true,
                 Map.of("num_ctx", config.contextTokens(), "num_predict", MAX_ANSWER_TOKENS, "temperature", 0));
+        StringBuilder answer = new StringBuilder();
         try {
-            return http.post().uri(config.baseUrl().replaceAll("/+$", "") + "/api/chat")
+            return streaming.post().uri(config.baseUrl().replaceAll("/+$", "") + "/api/chat")
                     .contentType(MediaType.APPLICATION_JSON)
                     .headers(h -> {
                         if (config.apiKey() != null && !config.apiKey().isBlank()) {
@@ -123,28 +134,51 @@ class OllamaAssistantModel implements AssistantModel {
                                     res.getStatusCode().value());
                             throw offline();
                         }
-                        StringBuilder answer = new StringBuilder();
+                        boolean finished = false;
                         try (BufferedReader lines = new BufferedReader(
                                 new InputStreamReader(res.getBody(), StandardCharsets.UTF_8))) {
                             for (String line = lines.readLine(); line != null; line = lines.readLine()) {
                                 if (line.isBlank()) {
                                     continue;
                                 }
-                                ChatResponse part = LINES.readValue(line, ChatResponse.class);
+                                ChatResponse part;
+                                try {
+                                    part = LINES.readValue(line, ChatResponse.class);
+                                } catch (JacksonException e) {
+                                    // The stream was closed in the middle of a line (the stream timeout, the tunnel).
+                                    log.warn("Assistant model stream cut in the middle of a line");
+                                    throw interrupted();
+                                }
                                 String text = part.message() == null ? null : part.message().content();
                                 if (text != null && !text.isEmpty()) {
                                     answer.append(text);
                                     onChunk.accept(text);
                                 }
                                 promptSize(part.promptEvalCount());
+                                finished |= Boolean.TRUE.equals(part.done());
                             }
+                        }
+                        if (!finished) {
+                            // Closed between two lines: half an answer must not pass for the whole one.
+                            log.warn("Assistant model stream ended before its last line");
+                            throw answer.isEmpty() ? offline() : interrupted();
                         }
                         return answer.toString();
                     });
         } catch (ResourceAccessException e) {
+            if (!answer.isEmpty()) {
+                // Words were shown already: the answer stopped, the assistant is not offline.
+                log.warn("Assistant model stream cut: {}", e.getMostSpecificCause().getClass().getSimpleName());
+                throw interrupted();
+            }
             log.warn("Assistant model server not reachable: {}", e.getMostSpecificCause().getClass().getSimpleName());
             throw offline();
         }
+    }
+
+    /** A streamed answer that stopped after its first words (it ran past the stream timeout, or the tunnel dropped). */
+    static ApiException interrupted() {
+        return ApiException.unavailable("ASSISTANT_INTERRUPTED", "The answer was cut off. Ask again in a moment.");
     }
 
     private void promptSize(Integer count) {
