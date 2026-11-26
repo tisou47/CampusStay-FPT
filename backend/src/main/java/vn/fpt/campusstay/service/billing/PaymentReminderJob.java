@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.billing;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -24,8 +26,11 @@ class PaymentReminderJob {
     private final Duration interval;
     private final Clock clock;
 
-    PaymentReminderJob(PaymentReminders reminders, PaymentClaimService claims,
+    private final ScheduledJobs jobs;
+
+    PaymentReminderJob(ScheduledJobs jobs, PaymentReminders reminders, PaymentClaimService claims,
             @Value("${campusstay.bil.reminder-interval:1h}") Duration interval, Clock clock) {
+        this.jobs = jobs;
         this.reminders = reminders;
         this.claims = claims;
         this.interval = interval;
@@ -35,10 +40,12 @@ class PaymentReminderJob {
     @Scheduled(fixedDelayString = "${campusstay.bil.reminder-interval:1h}",
             initialDelayString = "${campusstay.bil.reminder-interval:1h}")
     void run() {
-        int sent = reminders.sendDue();
-        if (sent > 0) {
-            log.info("{} payment reminders sent", sent);
-        }
-        claims.summarize(Instant.now(clock).minus(interval));
+        jobs.run("bil.payment-reminder", () -> {
+            int sent = reminders.sendDue();
+            if (sent > 0) {
+                log.info("{} payment reminders sent", sent);
+            }
+            claims.summarize(Instant.now(clock).minus(interval));
+        });
     }
 }

@@ -15,7 +15,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { Tooltip, Truncate } from '@/components/ui/Tooltip'
 import { formatDate, formatDateRange, formatNumber, formatPercent } from '@/lib/format'
-import { parseDecimal } from '@/lib/numbers'
+import { parseReading } from '@/lib/numbers'
 import { cx } from '@/lib/cx'
 import { t, tr } from '@/i18n'
 
@@ -366,7 +366,7 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
     setW(r.water?.current == null ? '' : String(r.water.current))
   }, [r])
 
-  const save = useMutation(() => api.meters.save(periodId, room, { electricity: parseDecimal(e), water: parseDecimal(w) }), {
+  const save = useMutation(() => api.meters.save(periodId, room, { electricity: parseReading(e), water: parseReading(w) }), {
     invalidates: ['meters'],
     onSuccess: () => {
       onChanged(room)
@@ -384,8 +384,8 @@ function RoomDrawer({ periodId, periodLabel, room, closed, onClose, onChanged })
   })
 
   // Decimals are kept ("12,5" is 12.5, not 125: WEB-OPS-01); text that is not a number blocks the save.
-  const eNum = parseDecimal(e)
-  const wNum = parseDecimal(w)
+  const eNum = parseReading(e)
+  const wNum = parseReading(w)
   const invalid = eNum == null || wNum == null || Number.isNaN(eNum) || Number.isNaN(wNum)
     || (r && (eNum < r.electricity.previous || wNum < r.water.previous))
 
@@ -513,11 +513,8 @@ export default function MeterReadings() {
   const periods = useQuery(['meters', 'periods', block], ({ signal }) => api.meters.periods({ block }, { signal }), { enabled: Boolean(block) })
   const [periodId, setPeriodId] = useState(null)
   const activePeriod = periodId ?? periods.data?.items?.[0]?.id
-  // The status filter starts on Missing for a period still open (the rooms left to read) and on every room for a
-  // closed one (nothing is missing there); choosing another period goes back to that default.
-  const [chosenStatus, setStatus] = useState(null)
-  const periodClosed = Boolean(periods.data?.items?.find((p) => p.id === activePeriod)?.closed)
-  const status = chosenStatus ?? (periodClosed ? '' : 'Missing')
+  // Default the status filter to All ("") on initial load and when switching block or period.
+  const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const [openRoom, setOpenRoom] = useState(null)
@@ -620,7 +617,7 @@ export default function MeterReadings() {
                 onChange={(e) => {
                   setBlock(e.target.value)
                   setPeriodId(null)
-                  setStatus(null)
+                  setStatus('')
                   setPage(1)
                 }}
                 options={blocks.map((b) => ({ value: b, label: t('Block {code}', { code: b }) }))}
@@ -632,7 +629,7 @@ export default function MeterReadings() {
               value={activePeriod ?? ''}
               onChange={(e) => {
                 setPeriodId(e.target.value)
-                setStatus(null)
+                setStatus('')
                 setPage(1)
               }}
               options={(periods.data?.items ?? []).map((p) => ({ value: p.id, label: t('Period: {label}', { label: tr(p.label) }) }))}

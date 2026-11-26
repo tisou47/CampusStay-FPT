@@ -432,10 +432,29 @@ public class MeterService {
         }
         BigDecimal ePrev = baseline && roomCuts.isEmpty() ? electricity : r.electricityPrev();
         BigDecimal wPrev = baseline && roomCuts.isEmpty() ? water : r.waterPrev();
-        BigDecimal lastUse = lastUse(r.roomId(), p.start());
+        // A cut taken after the period (a check-out on the 1st) caps the reading entered later (BE-APP-BIL-07).
+        jdbc.sql("""
+                SELECT cut_date, created_at, electricity, water FROM bil_meter_cut
+                WHERE room_id = :room AND cut_date > :end ORDER BY cut_date, created_at LIMIT 1
+                """).param("room", r.roomId()).param("end", p.end())
+                .query((rs, i) -> new CutRow(rs.getObject("cut_date", LocalDate.class),
+                        rs.getTimestamp("created_at").toInstant(), rs.getBigDecimal("electricity"), rs.getBigDecimal("water")))
+                .optional().ifPresent(after -> {
+                    NumberFormat number = NumberFormat.getNumberInstance(Locale.US);
+                    errors.check(electricity.compareTo(after.electricity()) <= 0, "electricity",
+                            "The reading is higher than the cut of " + DAY.format(after.day()) + " ("
+                                    + number.format(after.electricity()) + " kWh).");
+                    errors.check(water.compareTo(after.water()) <= 0, "water",
+                            "The reading is higher than the cut of " + DAY.format(after.day()) + " ("
+                                    + number.format(after.water()) + " m³).");
+                    errors.throwIfAny();
+                });
+        Use last = lastUse(r.roomId(), p.start());
         BigDecimal use = electricity.subtract(ePrev);
-        String status = lastUse != null && lastUse.signum() > 0 && use.compareTo(lastUse.multiply(CHECK_FACTOR)) > 0
-                ? "CHECK_VALUE" : "ENTERED";
+        BigDecimal waterUse = water.subtract(wPrev);
+        // water is checked like electricity: a leak or 4,500 typed for 45 needs a second look (BE-APP-BIL-16)
+        boolean high = last != null && (exceeds(use, last.electricity()) || exceeds(waterUse, last.water()));
+        String status = high ? "CHECK_VALUE" : "ENTERED";
         jdbc.sql("""
                 UPDATE bil_meter_reading SET electricity_prev = :ePrev, electricity_curr = :e, water_prev = :wPrev,
                        water_curr = :w, status = :status, entered_by = :by, entered_at = :now, confirmed_by = NULL,
@@ -480,13 +499,21 @@ public class MeterService {
     }
 
     /** kWh the Room used in the latest earlier period, or null. */
-    private BigDecimal lastUse(long roomId, LocalDate before) {
+    private record Use(BigDecimal electricity, BigDecimal water) {
+    }
+
+    private static boolean exceeds(BigDecimal use, BigDecimal last) {
+        return last != null && last.signum() > 0 && use.compareTo(last.multiply(CHECK_FACTOR)) > 0;
+    }
+
+    private Use lastUse(long roomId, LocalDate before) {
         return jdbc.sql("""
-                SELECT r.electricity_curr - r.electricity_prev FROM bil_meter_reading r
-                JOIN bil_meter_period p ON p.id = r.period_id
+                SELECT r.electricity_curr - r.electricity_prev AS e, r.water_curr - r.water_prev AS w
+                FROM bil_meter_reading r JOIN bil_meter_period p ON p.id = r.period_id
                 WHERE r.room_id = :room AND p.period_end < :before AND r.electricity_curr IS NOT NULL
                 ORDER BY p.period_end DESC LIMIT 1
-                """).param("room", roomId).param("before", before).query(BigDecimal.class).optional().orElse(null);
+                """).param("room", roomId).param("before", before)
+                .query((rs, i) -> new Use(rs.getBigDecimal("e"), rs.getBigDecimal("w"))).optional().orElse(null);
     }
 
     private static List<UtilitySplit.Point> points(Period p, Reading r, List<CutRow> cuts) {

@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { Link } from 'react-router'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
-import campusAerial from '@/assets/signin/campus-aerial.png'
+import campusAerial from '@/assets/signin/campus-aerial.jpg'
 import fptLogo from '@/assets/signin/fpt-logo.png'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
@@ -18,7 +18,7 @@ export const textLinkClasses = 'text-base leading-5 font-semibold text-fg-link h
 export function AuthShell({ children }) {
   return (
     <div className="relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-10">
-      <img src={campusAerial} alt="" className="pointer-events-none absolute inset-0 -z-10 size-full max-w-none object-cover" />
+      <img src={campusAerial} alt="" decoding="async" className="pointer-events-none absolute inset-0 -z-10 size-full max-w-none object-cover" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgba(10,15,26,0.72)]" />
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1.25 bg-accent" />
 

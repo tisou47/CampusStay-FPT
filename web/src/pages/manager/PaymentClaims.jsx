@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Clock, ExternalLink, FileCheck2, HandCoins, Paperclip, ReceiptText, X } from 'lucide-react'
+import { Check, Clock, ExternalLink, Eye, FileCheck2, HandCoins, Paperclip, ReceiptText, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
+import { StatStrip } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
-import { Alert, Note } from '@/components/ui/Display'
+import { Alert, DescriptionList, Note } from '@/components/ui/Display'
 import { Field, SearchInput, Select, Textarea } from '@/components/ui/Field'
-import { Modal } from '@/components/ui/Overlay'
+import { Drawer, Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine, stop } from '@/components/ui/Table'
@@ -114,6 +114,7 @@ export default function PaymentClaims() {
   const [rejectTarget, setRejectTarget] = useState(null)
   const [receipting, setReceipting] = useState(null)
   const [reason, setReason] = useState('')
+  const [viewing, setViewing] = useState(null)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -132,6 +133,8 @@ export default function PaymentClaims() {
   const ready = chosen.filter((c) => c.receipt)
   const readyTotal = ready.reduce((sum, c) => sum + c.amount, 0)
   const allChecked = items.length > 0 && chosen.length === items.length
+  // The details follow the list (a receipt attached there shows at once).
+  const shown = viewing ? items.find((c) => c.invoiceId === viewing) ?? null : null
 
   // Drop selections that left the list (decided elsewhere).
   useEffect(() => {
@@ -192,25 +195,15 @@ export default function PaymentClaims() {
 
   return (
     <>
-      <PageHeader
-        title="Payment confirmations"
-        actions={
-          <>
-            <Button tip="Send the ticked claims back to the students with your reason. Their invoices stay unpaid." icon={X} disabled={!chosen.length} onClick={() => setDialog('reject')}>
-              {t('Reject ({n})', { n: chosen.length })}
-            </Button>
-            <Button tip="Mark the ticked invoices as paid, only after you found each amount and transfer content on the bank statement." variant="primary" icon={Check} disabled={!chosen.length} onClick={() => setDialog('confirm')}>
-              {t('Confirm ({n})', { n: chosen.length })}
-            </Button>
-          </>
-        }
-      />
+      {/* Tick claims to confirm or reject them together: the bar beside the filters appears with the choice. */}
+      <PageHeader title="Payment confirmations" />
 
-      <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" icon={Clock} label="Claims waiting" value={formatNumber(s?.count)} valueTone={s?.count ? 'warning' : undefined} note="The students' deadlines are paused" />
-        <KpiTile size="md" icon={HandCoins} label="Amount waiting" value={s ? formatVnd(s.amount) : '—'} note="To find on the bank statement" />
-        <KpiTile size="md" icon={Check} label="Selected" value={formatNumber(chosen.length)} note={chosen.length ? formatVnd(chosenTotal) : t('Select claims to decide them')} />
-      </div>
+      <StatStrip
+        stats={[
+          { label: 'Claims waiting', value: formatNumber(s?.count), tone: s?.count ? 'warning' : undefined, note: "The students' deadlines are paused" },
+          { label: 'Amount waiting', value: s ? formatVnd(s.amount) : '—', note: 'To find on the bank statement' },
+        ]}
+      />
 
       {/* Filter Bar & Prominent Bulk Selection Action Bar */}
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
@@ -285,20 +278,19 @@ export default function PaymentClaims() {
                 <span>{t('Invoice')}</span>
               </div>
             </Th>
-            <Th className="w-48">Student</Th>
+            <Th>Student</Th>
             <Th className="w-36" align="right">
               Amount
             </Th>
-            <Th>Transfer content</Th>
-            <Th className="w-48">Claimed</Th>
+            <Th className="w-44">Claimed</Th>
             <Th className="w-48">Receipt</Th>
-            <Th className="w-52" align="right">
-              Actions
+            <Th className="w-[300px]">
+              <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={HandCoins} emptyTitle="No payment claims wait for confirmation" />
+          <TableStatus query={query} colSpan={6} emptyIcon={HandCoins} emptyTitle="No payment claims wait for confirmation" />
           {items.map((c) => {
             const isChecked = selected.has(c.invoiceId)
             const urgentTime = c.timeLeftSeconds != null && c.timeLeftSeconds <= 43200
@@ -319,31 +311,17 @@ export default function PaymentClaims() {
                   </div>
                 </Td>
 
-                {/* Col 2: Student (Name + MSSV) */}
+                {/* Col 2: Student (Name + MSSV); a claim rejected before says so */}
                 <Td>
-                  <TwoLine primary={c.studentName} secondary={c.studentCode} />
+                  <div className="flex flex-col items-start gap-1">
+                    <TwoLine primary={c.studentName} secondary={c.studentCode} />
+                    {c.rejected > 0 && <Tag tone="warning">{t('Rejected {n}×', { n: c.rejected })}</Tag>}
+                  </div>
                 </Td>
 
                 {/* Col 3: Amount (Right-aligned, prominent tabular) */}
                 <Td align="right" className="whitespace-nowrap">
                   <span className="text-base font-bold text-fg tabular">{formatVnd(c.amount)}</span>
-                </Td>
-
-                {/* Col 4: Transfer Content & Reference (Monospace for bank statement reconciliation) */}
-                <Td>
-                  <div className="flex flex-col items-start gap-1">
-                    <span className="inline-flex items-center rounded-md bg-brand-subtle/70 px-2 py-0.5 font-mono text-xs font-semibold text-fg-brand">
-                      {c.transferContent}
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {c.reference && (
-                        <span className="font-mono text-xs text-fg-secondary">
-                          {t('Ref. {ref}', { ref: c.reference })}
-                        </span>
-                      )}
-                      {c.rejected > 0 && <Tag tone="warning">{t('Rejected {n}×', { n: c.rejected })}</Tag>}
-                    </div>
-                  </div>
                 </Td>
 
                 {/* Col 5: Claimed Time & Remaining Time Badge */}
@@ -374,9 +352,12 @@ export default function PaymentClaims() {
                 {/* Col 7: Quick Actions (Confirm with receipt / Quick Reject) */}
                 <Td align="right" onClick={stop}>
                   <div className="flex items-center justify-end gap-1.5">
+                    <Button size="sm" icon={Eye} iconSize={14} onClick={() => setViewing(c.invoiceId)}>
+                      Details
+                    </Button>
                     <Button
                       size="sm"
-                      variant="secondary"
+                      variant="primary"
                       icon={ReceiptText}
                       iconSize={14}
                       onClick={() => setReceipting(c)}
@@ -479,6 +460,52 @@ export default function PaymentClaims() {
           {t('The students are told and their deadline continues with the time that was left (at least 12 hours). A second rejection cancels a deposit or a balance and what depends on it.')}
         </Alert>
       </Modal>
+      {shown && (
+        <Drawer
+          open
+          onClose={() => setViewing(null)}
+          width={520}
+          title={`${shown.invoiceId} · ${tr(shown.title ?? shown.typeLabel)}`}
+          description={`${shown.studentName} · ${shown.studentCode}`}
+          footer={
+            <>
+              <Button
+                icon={X}
+                onClick={() => {
+                  setViewing(null)
+                  setRejectTarget(shown)
+                  setDialog('reject')
+                }}
+              >
+                {t('Reject ({n})', { n: 1 })}
+              </Button>
+              <Button
+                variant="primary"
+                icon={ReceiptText}
+                onClick={() => {
+                  setViewing(null)
+                  setReceipting(shown)
+                }}
+              >
+                Confirm with receipt
+              </Button>
+            </>
+          }
+        >
+          <DescriptionList labelWidth="w-36"
+            items={[
+              ['Amount', <span key="a" className="font-semibold tabular">{formatVnd(shown.amount)}</span>],
+              ['Transfer content', <span key="c" className="font-mono font-semibold text-fg-brand">{shown.transferContent ?? '—'}</span>],
+              shown.reference && ['Bank reference', <span key="r" className="font-mono">{shown.reference}</span>],
+              ['Claimed', formatDateTime(shown.claimedAt)],
+              shown.dueAt && ['Due', formatDateTime(shown.dueAt)],
+              ['Time left', duration(shown.timeLeftSeconds)],
+              shown.rejected > 0 && ['Rejected before', t('Rejected {n}×', { n: shown.rejected })],
+              ['Receipt', <ReceiptCell key="rc" claim={shown} />],
+            ].filter(Boolean)}
+          />
+        </Drawer>
+      )}
       <ConfirmPaymentModal payment={receipting} onClose={() => setReceipting(null)} />
     </>
   )

@@ -225,6 +225,11 @@ class JdbcMoves implements Moves {
             throw bedTaken();
         }
         billing.followAllocation(from.id(), id);
+        // The late check-in and an unfinished check-out belong to the stay, not to the Bed (BE-2ND-09).
+        jdbc.sql("UPDATE asg_late_check_in SET allocation_id = :to WHERE allocation_id = :from")
+                .param("to", id).param("from", from.id()).update();
+        jdbc.sql("UPDATE asg_check_out SET allocation_id = :to WHERE allocation_id = :from AND status <> 'COMPLETED'")
+                .param("to", id).param("from", from.id()).update();
         events.publishEvent(new AllocationMoved(from.id(), id));
         if (released != null && !sameRoom) {
             events.publishEvent(new DoorCodeReleased(next.roomCode(), List.of(from.studentId())));

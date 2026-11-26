@@ -25,9 +25,9 @@ import { t, tr } from '@/i18n'
 // POST /applications/bulk-review { ids, decision: 'Approved' }
 
 const statusFilters = [
-  { value: 'Submitted,Under Review', label: 'Status: Submitted, Under Review' },
-  { value: '', label: 'Status: All' },
-  ...['Submitted', 'Under Review', 'Approved', 'Allocated', 'Waitlisted', 'Rejected', 'Expired', 'Forfeited', 'Cancelled'].map((s) => ({ value: s, label: `Status: ${s}` })),
+  { value: 'Submitted,Under Review', label: 'Submitted or under review' },
+  { value: '', label: 'All' },
+  ...['Submitted', 'Under Review', 'Approved', 'Allocated', 'Waitlisted', 'Rejected', 'Expired', 'Forfeited', 'Cancelled'].map((s) => ({ value: s, label: s })),
 ]
 const countTones = { Submitted: 'info', 'Under Review': 'info', Approved: 'info', Allocated: 'success', Waitlisted: 'warning', Rejected: 'error', Expired: 'neutral', Forfeited: 'neutral' }
 const reviewable = (r) => ['Submitted', 'Under Review'].includes(r.status)
@@ -80,13 +80,17 @@ export default function ApplicationQueue() {
 
   const approve = useMutation((ids) => api.applications.bulkReview({ ids, decision: 'Approved' }), {
     invalidates: ['applications', 'dashboard'],
-    onSuccess: (_, ids) => {
+    onSuccess: (r) => {
       setSelected(new Set())
-      notify({ title: t(ids.length === 1 ? '{n} Application approved' : '{n} applications approved', { n: ids.length }), message: 'They join the next assignment run.' })
+      // Counts what the server approved: another Manager may have decided some of them meanwhile (WEB-OPS-30).
+      notify({
+        title: t(r.approved === 1 ? '{n} Application approved' : '{n} applications approved', { n: r.approved }),
+        message: r.skipped ? t('{n} skipped: decided by someone else.', { n: r.skipped }) : 'They join the next assignment run.',
+      })
     },
     onError: (e) => notifyError(e, 'Could not approve the applications'),
   })
-  const exporting = useMutation(() => api.exports.download('applications', { ...filters, page: undefined, pageSize: undefined }, 'applications.xlsx'), {
+  const exporting = useMutation(() => api.exports.download('applications', { ...filters, page: undefined, pageSize: undefined }, 'applications.csv'), {
     onError: (e) => notifyError(e, 'Export failed'),
   })
 
@@ -112,7 +116,7 @@ export default function ApplicationQueue() {
           label="Status"
           value={status}
           onChange={(v) => filter(setStatus)({ target: { value: v } })}
-          options={statusFilters.map((o) => ({ value: o.value, label: String(o.label).replace(/^Status:\s*/i, '') }))}
+          options={statusFilters}
         />
         <FilterSelect
           label="Room type"

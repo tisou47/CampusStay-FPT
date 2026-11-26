@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.LateCheckInRequested;
@@ -34,7 +33,7 @@ class ResidenceNotificationListener {
         this.users = users;
     }
 
-    @EventListener
+    @AfterCommit
     void on(LateCheckInRequested e) {
         Map<String, String> values = Map.of("name", e.studentName(), "studentCode", e.studentCode(),
                 "requestedFor", DAY.format(e.requestedFor()), "room", e.room() == null ? "-" : e.room());
@@ -42,7 +41,7 @@ class ResidenceNotificationListener {
                 "/manager/approvals/late-check-in"));
     }
 
-    @EventListener
+    @AfterCommit
     void on(TerminationStarted e) {
         Map<String, String> values = Map.of("room", e.room() == null ? "-" : e.room(), "moveOutBy",
                 DAY.format(e.moveOutBy()));
@@ -54,7 +53,7 @@ class ResidenceNotificationListener {
         });
     }
 
-    @EventListener
+    @AfterCommit
     void on(NextTermBedTaken e) {
         notifier.notify(e.studentId(), "NEXT_TERM_BED_TAKEN", Map.of("room", e.room(), "term", e.term()),
                 "/student/room");
@@ -63,12 +62,12 @@ class ResidenceNotificationListener {
                 Map.of("name", name, "room", e.room(), "term", e.term()), "/manager/next-term/requests"));
     }
 
-    @EventListener
+    @AfterCommit
     void on(TerminationCancelled e) {
         notifier.notify(e.studentId(), "TERMINATION_CANCELLED", Map.of("room", e.room()), "/student/room");
     }
 
-    @EventListener
+    @AfterCommit
     void on(TerminationOverdue e) {
         Map<String, String> values = Map.of("name", e.studentName() == null ? "-" : e.studentName(), "room", e.room(),
                 "moveOutBy", DAY.format(e.moveOutBy()));

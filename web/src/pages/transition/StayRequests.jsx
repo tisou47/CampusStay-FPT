@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { CalendarPlus, Check, X } from 'lucide-react'
+import { CalendarPlus, Check, Eye, X } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
-import { Alert } from '@/components/ui/Display'
+import { Alert, DescriptionList } from '@/components/ui/Display'
 import { Field, Select, Textarea } from '@/components/ui/Field'
-import { Modal } from '@/components/ui/Overlay'
+import { Drawer, Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
@@ -25,6 +25,27 @@ const DECIDED = ['Approved', 'Rejected', 'Cancelled', 'Set back', 'Declined', 'E
 //   decisionNote, decidedBy, decidedAt }], total, window }
 // POST /stay-requests/:id/decision { decision: Approved | Rejected, note }
 
+function KindLabel({ request: r }) {
+  return (
+    <span className="flex items-center gap-2 whitespace-nowrap">
+      {tr(r.kind)}
+      {r.kind === 'Extension' && <Tag>{t('+{n}', { n: r.terms })}</Tag>}
+    </span>
+  )
+}
+
+/** The status, and while it waits for a decision, how long is left (the exact deadline is in the details). */
+function RequestStatus({ request: r }) {
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <StatusTag status={r.status} tone={r.status === 'Approved' ? 'success' : undefined}>
+        {r.automatic && r.status === 'Approved' ? t('Approved · automatic') : undefined}
+      </StatusTag>
+      {!DECIDED.includes(r.status) && <SlaBadge dueAt={r.dueAt} warnHours={48} />}
+    </span>
+  )
+}
+
 export default function StayRequests({ termId }) {
   const scope = useScopeQuery()
   const { notify } = useToast()
@@ -33,6 +54,12 @@ export default function StayRequests({ termId }) {
   const [page, setPage] = useState(1)
   const [deciding, setDeciding] = useState(null)
   const [note, setNote] = useState('')
+  const [viewing, setViewing] = useState(null)
+  // Approving or rejecting from the details closes them: the decision dialog takes over.
+  const openDecision = (request, decision) => {
+    setViewing(null)
+    setDeciding({ request, decision })
+  }
   const filters = { termId, block: scope.block, kind: kind || undefined, status: status || undefined, page, pageSize: 20 }
   const query = useQuery(['stay-requests', filters], ({ signal }) => api.stay.requests(filters, { signal }))
   const items = query.data?.items ?? []
@@ -51,16 +78,16 @@ export default function StayRequests({ termId }) {
   }
   return (
     <>
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
         <Select
-          wrapperClassName="w-52"
+          fit
           aria-label={t('Kind')}
           value={kind}
           onChange={filter(setKind)}
           options={[{ value: '', label: 'Kind: All' }, { value: 'Extension', label: 'Kind: Extension' }, { value: 'End of stay', label: 'Kind: End of stay' }]}
         />
         <Select
-          wrapperClassName="w-48"
+          fit
           aria-label={t('Status')}
           value={status}
           onChange={filter(setStatus)}
@@ -70,63 +97,92 @@ export default function StayRequests({ termId }) {
       <Table fill>
         <THead>
           <tr>
-            <Th className="w-40">Request</Th>
-            <Th className="w-52">Student</Th>
-            <Th className="w-36">Kind</Th>
-            <Th>Stay</Th>
-            <Th className="w-32">Status</Th>
-            <Th className="w-36">Decide by</Th>
-            <Th className="w-48">
+            <Th className="w-44">Request</Th>
+            <Th>Student</Th>
+            <Th className="w-44">Kind</Th>
+            <Th className="w-64">Status</Th>
+            <Th className="w-[300px]">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={7} emptyIcon={CalendarPlus} emptyTitle="No requests match these filters" />
+          <TableStatus query={query} colSpan={5} emptyIcon={CalendarPlus} emptyTitle="No requests match these filters" />
           {items.map((r) => (
             <Tr key={r.id} className="[&>td]:h-14">
-              <Td className="font-medium text-fg-brand">{r.id}</Td>
+              <Td className="font-medium whitespace-nowrap text-fg-brand">{r.id}</Td>
               <Td>
                 <TwoLine primary={r.studentName} secondary={`${r.studentCode} · ${r.room ?? ''}`} />
               </Td>
               <Td>
-                <span className="flex items-center gap-2">
-                  {tr(r.kind)}
-                  {r.kind === 'Extension' && <Tag>{t('+{n}', { n: r.terms })}</Tag>}
-                </span>
-              </Td>
-              <Td className="text-sm text-fg-secondary">
-                {t('{used} of {committed} terms used', { used: r.termsUsed, committed: r.committedTerms })}
-                {r.reason ? ` · ${r.reason}` : ''}
-                {r.decisionNote ? ` · ${tr(r.decisionNote)}` : ''}
+                <KindLabel request={r} />
               </Td>
               <Td>
-                <StatusTag status={r.status} tone={r.status === 'Approved' ? 'success' : undefined}>
-                  {r.automatic && r.status === 'Approved' ? t('Approved · automatic') : undefined}
-                </StatusTag>
-              </Td>
-              <Td className="whitespace-nowrap">
-                <span className="flex items-center gap-2">
-                  {formatDateTime(r.dueAt)}
-                  <SlaBadge dueAt={r.dueAt} done={DECIDED.includes(r.status)} warnHours={48} />
-                </span>
+                <RequestStatus request={r} />
               </Td>
               <Td>
-                {r.status === 'Pending' && (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="danger" icon={X} onClick={() => setDeciding({ request: r, decision: 'Rejected' })}>
-                      Reject
-                    </Button>
-                    <Button size="sm" variant="primary" icon={Check} onClick={() => setDeciding({ request: r, decision: 'Approved' })}>
-                      Approve
-                    </Button>
-                  </div>
-                )}
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" icon={Eye} onClick={() => setViewing(r)}>
+                    Details
+                  </Button>
+                  {r.status === 'Pending' && (
+                    <>
+                      <Button size="sm" variant="danger" icon={X} onClick={() => setDeciding({ request: r, decision: 'Rejected' })}>
+                        Reject
+                      </Button>
+                      <Button size="sm" variant="primary" icon={Check} onClick={() => setDeciding({ request: r, decision: 'Approved' })}>
+                        Approve
+                      </Button>
+                    </>
+                  )}
+                </div>
               </Td>
             </Tr>
           ))}
         </TBody>
       </Table>
+      {viewing && (
+        <Drawer
+          open
+          onClose={() => setViewing(null)}
+          width={520}
+          title={viewing.id}
+          description={t('{name} · {code} · {room}', { name: viewing.studentName, code: viewing.studentCode, room: viewing.room ?? '—' })}
+          footer={
+            viewing.status === 'Pending' ? (
+              <>
+                <Button variant="danger" icon={X} onClick={() => openDecision(viewing, 'Rejected')}>
+                  Reject
+                </Button>
+                <Button variant="primary" icon={Check} onClick={() => openDecision(viewing, 'Approved')}>
+                  Approve
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setViewing(null)}>Close</Button>
+            )
+          }
+        >
+          <DescriptionList
+            items={[
+              ['Kind', <KindLabel key="kind" request={viewing} />],
+              ['Status', <RequestStatus key="status" request={viewing} />],
+              ['Stay', t('{used} of {committed} terms used', { used: viewing.termsUsed, committed: viewing.committedTerms })],
+              viewing.reason && ['Reason', viewing.reason],
+              viewing.submittedAt && ['Submitted', formatDateTime(viewing.submittedAt)],
+              [
+                'Decide by',
+                <span key="due" className="flex flex-wrap items-center gap-2">
+                  {formatDateTime(viewing.dueAt)}
+                  <SlaBadge dueAt={viewing.dueAt} done={DECIDED.includes(viewing.status)} warnHours={48} />
+                </span>,
+              ],
+              viewing.decidedAt && ['Decided', [formatDateTime(viewing.decidedAt), viewing.decidedBy].filter(Boolean).join(' · ')],
+              viewing.decisionNote && ['Decision note', tr(viewing.decisionNote)],
+            ].filter(Boolean)}
+          />
+        </Drawer>
+      )}
       <div className="flex shrink-0 justify-end">
         <Pagination total={query.data?.total ?? 0} page={page} pageSize={20} onChange={setPage} showSizeChanger={false} />
       </div>

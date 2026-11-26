@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api.dart';
 import '../common.dart';
@@ -20,13 +23,36 @@ import 'requests.dart';
 /// milestones, the next Term with its requests, the Balance, the door code (shown 30 seconds, every view audited),
 /// late check-in). `GET /students/me/allocation`, `/students/me/door-code` (+ `/reveal`), `/students/me/furniture`,
 /// `/students/me/late-check-in`, `POST /students/me/stay/extension|end`.
+/// My Room's data, and the last copy kept on the phone for the desk when the network fails (MOB-22, N1): the check-in
+/// pass and the Room still show, marked "offline, as of …" (`_offlineAt`). Signing out clears the preferences, so the
+/// copy goes with the student.
+Future<Json> loadAllocation() async {
+  try {
+    final data = await Api.get('/students/me/allocation');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('allocation', jsonEncode(data));
+      await prefs.setString('allocationAt', DateTime.now().toUtc().toIso8601String());
+    } catch (_) {
+      // the copy is a convenience
+    }
+    return data;
+  } on ApiException catch (e) {
+    if (e.status != 0) rethrow; // only a network failure or a timeout falls back to the copy
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('allocation');
+    if (saved == null) rethrow;
+    return {...jsonDecode(saved) as Json, '_offlineAt': prefs.getString('allocationAt')};
+  }
+}
+
 class RoomScreen extends StatelessWidget {
   const RoomScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Loader<Json>(
-      fetch: () => Api.get('/students/me/allocation'),
+      fetch: loadAllocation,
       builder: (context, data, reload) {
         final a = data.obj('allocation');
         final term = data.obj('term');
@@ -110,6 +136,15 @@ class _RoomState extends State<_Room> {
 
     return Cards(
       children: [
+        if (data.str('_offlineAt') != null)
+          Alert(
+            tone: Tone.warning,
+            title: t('Offline', 'Không có mạng'),
+            body: t(
+              'Showing your Room as of ${moment(data.str('_offlineAt'))}. Pull down to refresh.',
+              'Đang hiện thông tin phòng lúc ${moment(data.str('_offlineAt'))}. Kéo xuống để làm mới.',
+            ),
+          ),
         if (termination != null)
           Alert(
             tone: Tone.error,
@@ -183,7 +218,7 @@ class _RoomState extends State<_Room> {
             _StayMilestones(data: data),
             _NextTermCard(data: data, reload: widget.reload),
             if (balance != null) _BalanceCard(balance: balance, open: _open),
-            const _DoorCodeCard(),
+            const DoorCodeCard(),
             if (checkIn?.str('checkedInAt') == null && !resident) const _LateCheckInCard(),
           ],
           _ => [
@@ -1257,7 +1292,10 @@ class _NextTermCard extends StatelessWidget {
     final filing = w?.flag('filing') == true;
     final fee = n.obj('fee');
     final stay = data.obj('stay');
-    final left = stay != null ? (9 - (stay.number('committedTerms') ?? 1)).clamp(1, 8).toInt() : 8;
+    // MOB-30: the configured longest stay (`stay.maxTerms`, stay.max_terms) less the Terms already committed, as the
+    // server checks it; 8 when an older server does not send it.
+    final maxTerms = (stay?.number('maxTerms') ?? 8).toInt().clamp(1, 99);
+    final left = (maxTerms - (stay?.number('committedTerms') ?? 0).toInt()).clamp(1, maxTerms);
     final state = n.str('state');
 
     return Section(
@@ -1392,17 +1430,18 @@ class _NextTermCard extends StatelessWidget {
   }
 }
 
-/// The Room's door code (ADR-23, web `DoorCodeCard`): shown on request for 30 seconds; every view is written to the
-/// Audit Log.
-class _DoorCodeCard extends StatefulWidget {
-  const _DoorCodeCard();
+/// The Room's door code (ADR-23, web `DoorCodeCard`; also on the check-in inventory screen): shown on request for 30 seconds; every view is written to
+/// the Audit Log.
+class DoorCodeCard extends StatefulWidget {
+  const DoorCodeCard({super.key});
 
   @override
-  State<_DoorCodeCard> createState() => _DoorCodeCardState();
+  State<DoorCodeCard> createState() => DoorCodeCardState();
 }
 
-class _DoorCodeCardState extends State<_DoorCodeCard> {
+class DoorCodeCardState extends State<DoorCodeCard> {
   Json? _door;
+  bool _failed = false;
   String? _code;
   bool _busy = false;
   Timer? _hide;
@@ -1410,26 +1449,42 @@ class _DoorCodeCardState extends State<_DoorCodeCard> {
   @override
   void initState() {
     super.initState();
-    Api.get('/students/me/door-code').then((d) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _failed = false);
+    try {
+      final d = await Api.get('/students/me/door-code');
       if (mounted) setState(() => _door = d);
-    }, onError: (_) {});
+    } on ApiException catch (e) {
+      // MOB-18: say so instead of hiding the row (404: no Bed this Term, nothing to show)
+      if (mounted && e.status != 404) setState(() => _failed = true);
+    }
   }
 
   @override
   void dispose() {
     _hide?.cancel();
+    if (_code != null) secureScreen(false);
     super.dispose();
+  }
+
+  void _show(String? code) {
+    secureScreen(code != null); // MOB-17: no screenshot or recent-apps thumbnail while the code is on screen
+    setState(() => _code = code);
   }
 
   Future<void> _reveal() async {
     setState(() => _busy = true);
     try {
       final code = (await Api.post('/students/me/door-code/reveal')).text('code');
+      if (!mounted) return;
       _hide?.cancel();
       _hide = Timer(const Duration(seconds: 30), () {
-        if (mounted) setState(() => _code = null);
+        if (mounted) _show(null);
       });
-      setState(() => _code = code);
+      _show(code);
     } on ApiException catch (e) {
       toast(e.message, error: true);
     }
@@ -1439,7 +1494,9 @@ class _DoorCodeCardState extends State<_DoorCodeCard> {
   @override
   Widget build(BuildContext context) {
     final d = _door;
-    if (d == null) return const SizedBox.shrink();
+    if (d == null) {
+      return _failed ? RetryRow(what: t('the door code', 'mã cửa'), retry: _load) : const SizedBox.shrink();
+    }
     final code = _code;
     return Section(
       title: t('Door code', 'Mã cửa'),
@@ -1459,7 +1516,7 @@ class _DoorCodeCardState extends State<_DoorCodeCard> {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => setState(() => _code = null),
+                    onPressed: () => _show(null),
                     icon: const Icon(Icons.visibility_off_outlined, size: 18),
                     label: Text(t('Hide', 'Ẩn')),
                   ),
@@ -1502,6 +1559,7 @@ class _LateCheckInCard extends StatefulWidget {
 
 class _LateCheckInCardState extends State<_LateCheckInCard> {
   Json? _data;
+  bool _failed = false;
   bool _open = false;
   final _reason = TextEditingController();
   DateTime? _day;
@@ -1523,11 +1581,12 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _failed = false);
     try {
       final d = await Api.get('/students/me/late-check-in');
       if (mounted) setState(() => _data = d);
-    } on ApiException {
-      // the card stays hidden
+    } on ApiException catch (e) {
+      if (mounted && e.status != 404) setState(() => _failed = true); // MOB-18
     }
   }
 
@@ -1552,9 +1611,11 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
           'Đã gửi yêu cầu nhận phòng muộn. Quản lý sẽ quyết định; bạn sẽ được thông báo.',
         ),
       );
+      if (!mounted) return;
       setState(() => _open = false);
       await _load();
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _errors = e.fields;
         _error = e.fields.isEmpty ? e.message : null;
@@ -1566,7 +1627,11 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
   @override
   Widget build(BuildContext context) {
     final d = _data;
-    if (d == null) return const SizedBox.shrink();
+    if (d == null) {
+      return _failed
+          ? Panel(child: RetryRow(what: t('the late check-in', 'yêu cầu nhận phòng muộn'), retry: _load))
+          : const SizedBox.shrink();
+    }
     final r = d.obj('request');
     if (r == null && !d.flag('canRequest')) return const SizedBox.shrink();
     final latest = DateTime.tryParse(d.text('latestDay'));

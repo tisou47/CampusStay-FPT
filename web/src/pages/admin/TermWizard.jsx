@@ -16,6 +16,7 @@ import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateRange, formatVnd } from '@/lib/format'
 import { parseDecimal } from '@/lib/numbers'
+import { STEPS } from './termSteps'
 import { DifferencesTable, ExcludedRoomsField, ReasonInput, TimelineFields, TimelineStrip, timelineBody, timelineForm } from '../registration/shared'
 import { termTone } from './Terms'
 import { t, tr } from '@/i18n'
@@ -27,15 +28,6 @@ import { t, tr } from '@/i18n'
 //   rules, information, differences, checks, editable }
 // PUT /admin/terms/:id/wizard/:step { …values of the step, reasons, changeReason } · POST /admin/terms/:id/publish
 
-export const STEPS = [
-  { key: 'general', label: 'General', why: 'The term’s name and stay dates; everything else hangs on them.' },
-  { key: 'timeline', label: 'Timeline', why: 'When registration opens and closes and when each later milestone falls; deadlines and reminders follow these dates.' },
-  { key: 'rooms', label: 'Rooms and places', why: 'Which blocks and rooms this term offers; the assignment can only use these beds.' },
-  { key: 'prices', label: 'Prices', why: 'The price of each room type and room tier for this term; fixed once published.' },
-  { key: 'rules', label: 'Rules', why: 'Who may apply, who goes first and how roommates are matched for this term.' },
-  { key: 'information', label: 'Information', why: 'What students read about the term on their board before they apply.' },
-  { key: 'review', label: 'Review and publish', why: 'Check what is still missing, then publish: students see the term and managers are told.' },
-]
 
 const GENDER = { M: 'Male', F: 'Female' }
 
@@ -79,7 +71,11 @@ function useStep(w, step, onSaved) {
     invalidates: ['admin-terms', 'terms', 'term-wizard'],
     onSuccess: (_, body) => {
       setFields({})
-      notify({ title: t('{step} saved', { step: t(STEPS.find((s) => s.key === step).label) }), message: w.published ? 'Students read the change in an announcement.' : 'The Draft keeps it.' })
+      const announced = step !== 'information' || (body?.houseRules ?? '') !== (w.information?.houseRules ?? '')
+      notify({
+        title: t('{step} saved', { step: t(STEPS.find((s) => s.key === step).label) }),
+        message: !w.published ? 'The Draft keeps it.' : announced ? 'Students read the change in an announcement.' : 'Students are not sent an announcement for FAQ or document changes.',
+      })
       onSaved(body)
     },
     onError: (err) => setFields(err.fields ?? {}),
@@ -923,7 +919,8 @@ export default function TermWizard() {
   const query = useQuery(['term-wizard', id], ({ signal }) => api.admin.terms.wizard(id, { signal }))
   const w = query.data
   const firstOpen = useMemo(() => (w ? (w.published ? 'review' : STEPS[Math.min(w.step ?? 1, 6)].key) : null), [w])
-  const step = params.get('step') ?? firstOpen
+  const asked = params.get('step')
+  const step = STEPS.some((s) => s.key === asked) ? asked : firstOpen
   const goTo = (key) => setParams({ step: key })
   // The next step opens once the wizard is read again after the save: its form starts from the saved data (WEB-ADM-21).
   const [pendingStep, setPendingStep] = useState(null)
@@ -955,7 +952,6 @@ export default function TermWizard() {
       <PageHeader
         title={w.name}
         badge={<Tag tone={termTone[w.status] ?? 'neutral'}>{w.status}</Tag>}
-        description={`${formatDateRange(w.general.stayStart, w.general.stayEnd)}${w.request ? ` · ${t('built from {code} ({manager})', { code: w.request.code, manager: w.request.requestedBy })}` : ''}`}
         breadcrumb={
           <Link to="/admin/terms" className="flex items-center gap-1 text-sm text-fg-tertiary hover:text-fg">
             <ArrowLeft size={14} aria-hidden="true" />

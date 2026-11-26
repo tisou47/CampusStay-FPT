@@ -37,6 +37,7 @@ export default function SettlementPage() {
     refund,
     damageLines,
     hasSharedSplit,
+    readingsInvalid,
     submit,
   } = ws
 
@@ -133,12 +134,12 @@ export default function SettlementPage() {
           </Button>
           {!done && (
             <div className="flex flex-wrap items-center gap-2">
-              <Button icon={Save} disabled={submit.pending} onClick={() => submit.run(true)}>
+              <Button icon={Save} disabled={submit.pending || readingsInvalid} onClick={() => submit.run(true)}>
                 {t('Save draft')}
               </Button>
               <Button
                 variant="primary"
-                disabled={submit.pending || !condition}
+                disabled={submit.pending || readingsInvalid || !condition}
                 onClick={() => setShowSummary(true)}
               >
                 {t('Confirm check-out')}

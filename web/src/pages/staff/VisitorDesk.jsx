@@ -403,6 +403,12 @@ export default function VisitorDesk() {
                 <br />
                 {t('Time slot {slot}', { slot: slotText(result.visitor) })}
               </p>
+              {result.visitor.familyDayId != null && String(result.visitor.familyDayId) !== String(id) && (
+                // The pass belongs to another Family Day of the Staff member's scope (WEB-OPS-32).
+                <Alert type="warning" title="Pass for another Family Day">
+                  {t('This pass is for {title}, not the day of this desk.', { title: result.familyDayTitle ?? '—' })}
+                </Alert>
+              )}
               {result.problem && <Alert type="warning" title="Cannot check in">{result.problem}</Alert>}
               {result.visitor.overdue && <p className="text-sm text-fg-secondary">{overdueText(result.visitor)}</p>}
               <div className="flex gap-2">

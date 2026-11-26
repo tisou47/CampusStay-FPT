@@ -199,10 +199,11 @@ public class Round2Service {
         applications.event(app.id(), "CANCELLED", text, "The Application is cancelled; the Deposit is refunded "
                 + "after a Manager approves.", null);
         long paid = depositPaid(app.id());
-        if (paid > 0) {
-            billing.requestCredit(app.termId(), app.studentId(), null, "APPLICATION_CANCEL", app.id(),
-                    text + " · Application " + app.code(), paid);
-        }
+        // Linked to the paid Deposit Invoice, so no later path can refund it again (BE-APP-BIL-08).
+        billing.invoicesOfApplication(app.id()).stream()
+                .filter(i -> i.type().equals("deposit") && i.status().equals("Paid"))
+                .forEach(i -> billing.refundInFull(i.id(), "APPLICATION_CANCEL", app.id(),
+                        text + " · Application " + app.code()));
         return paid;
     }
 

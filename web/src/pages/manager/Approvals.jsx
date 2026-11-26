@@ -55,7 +55,7 @@ function LateDecision({ req }) {
     setRejecting(false)
     setReason('')
     setBalanceDue('')
-  }, [req])
+  }, [req.id]) // a refetch returns a new object: only another request resets the typed reason (WEB-OPS-13)
   const balanceTooLate = Boolean(balanceDue && deadline && balanceDue > deadline)
   const decide = useMutation(
     (decision) =>

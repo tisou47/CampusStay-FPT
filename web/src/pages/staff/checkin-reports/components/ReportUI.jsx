@@ -17,6 +17,7 @@ import { DateTimePicker } from '@/components/ui/date-time'
 import { t, tx } from '@/i18n'
 import { cx } from '@/lib/cx'
 import { conditionOptions, typeName } from '@/lib/furniture'
+import { parseReading } from '@/lib/numbers'
 import { campusToday, formatDate, formatDateTime, formatNumber, formatTime } from '@/lib/format'
 import { StatusBadge } from './Badges'
 
@@ -288,12 +289,14 @@ export function VerificationModal({ detail, prefill = {}, onClose }) {
   const [electricity, setElectricity] = useState(pick('electricity', detail.electricity?.baseline, detail.electricity?.student, detail.electricity?.verified) ?? '')
   const [water, setWater] = useState(pick('water', detail.water?.baseline, detail.water?.student, detail.water?.verified) ?? '')
   const [present, setPresent] = useState(false)
+  const eBad = Number.isNaN(parseReading(electricity))
+  const wBad = Number.isNaN(parseReading(water))
   const save = useMutation(
     (mode) =>
       api.handover.verification(detail.row.id, {
         items: Object.entries(items).map(([itemId, v]) => ({ itemId, condition: v.condition, note: v.note || undefined })),
-        electricity: electricity === '' ? undefined : Number(electricity),
-        water: water === '' ? undefined : Number(water),
+        electricity: parseReading(electricity) ?? undefined,
+        water: parseReading(water) ?? undefined,
         send: mode === 'send',
         finalizeOnSite: mode === 'final',
       }),
@@ -332,13 +335,13 @@ export function VerificationModal({ detail, prefill = {}, onClose }) {
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           <Checkbox label="The student is here and agrees with what we found" checked={present} onChange={(e) => setPresent(e.target.checked)} />
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => save.run('save')} disabled={save.pending}>
+            <Button onClick={() => save.run('save')} disabled={save.pending || eBad || wBad}>
               Save
             </Button>
-            <Button onClick={() => save.run('send')} disabled={save.pending}>
+            <Button onClick={() => save.run('send')} disabled={save.pending || eBad || wBad}>
               Send to the student
             </Button>
-            <Button variant="primary" icon={CircleCheck} onClick={() => save.run('final')} disabled={!present || save.pending}>
+            <Button variant="primary" icon={CircleCheck} onClick={() => save.run('final')} disabled={!present || save.pending || eBad || wBad}>
               Sign the Final report in the Room
             </Button>
           </div>
@@ -391,10 +394,10 @@ export function VerificationModal({ detail, prefill = {}, onClose }) {
         </Table>
         <div className="flex flex-wrap gap-3">
           <Field label="Electricity (kWh)" className="w-64" helper={helper(detail.electricity, 'kWh')}>
-            <Input type="number" min="0" step="0.1" value={electricity} onChange={(e) => setElectricity(e.target.value)} />
+            <Input inputMode="decimal" invalid={eBad} value={electricity} onChange={(e) => setElectricity(e.target.value)} />
           </Field>
           <Field label="Water (m³)" className="w-64" helper={helper(detail.water, 'm³')}>
-            <Input type="number" min="0" step="0.1" value={water} onChange={(e) => setWater(e.target.value)} />
+            <Input inputMode="decimal" invalid={wBad} value={water} onChange={(e) => setWater(e.target.value)} />
           </Field>
         </div>
       </div>

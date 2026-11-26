@@ -67,7 +67,14 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
   const from = total === 0 ? 0 : (current - 1) * pageSize + 1
   const to = Math.min(total, current * pageSize)
   const nounText = t(total === 1 ? noun[0] : noun[1])
-
+  // Every slot is as wide as the widest page number, so the strip keeps one width while paging
+  // (5 → 10 → 14 no longer shifts the buttons and the arrows under the pointer).
+  const cellWidth = `max(2rem, calc(${String(pages).length}ch + 1rem))`
+  // A page past the end (its last row left the filter) moves back to the last page (WEB-ADM-29). A total of 0 may be
+  // a list still loading, so it is left alone.
+  useEffect(() => {
+    if (total > 0 && page > pages) onChange?.(pages)
+  }, [total, page, pages, onChange])
   return (
     <nav aria-label={t('Pagination')} className={cx('flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-2', className)}>
       {/* Range summary: what this page shows out of how many. */}
@@ -103,17 +110,18 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
               aria-label={p === 'next-gap' ? t('Next 5 pages') : t('Previous 5 pages')}
               title={p === 'next-gap' ? t('Next 5 pages') : t('Previous 5 pages')}
               onClick={() => go(p === 'next-gap' ? current + 5 : current - 5)}
-              className={cx(cell, 'group text-fg-tertiary hover:bg-subtle hover:text-fg-brand max-lg:hidden')}
+              style={{ minWidth: cellWidth }}
+              className={cx(cell, 'group relative text-fg-tertiary hover:bg-subtle hover:text-fg-brand max-lg:hidden')}
             >
-              {/* Ant Design: the gap shows ••• and turns into a double arrow on hover / focus. */}
-              <span className="tracking-widest group-hover:hidden group-focus-visible:hidden" aria-hidden="true">
+              {/* Ant Design: the gap shows ••• and turns into a double arrow on hover / focus. Both stay in the
+                  layout (only visibility swaps) so the button keeps its width: a width change on hover moved the
+                  button out from under the pointer and made it flicker. */}
+              <span className="tracking-widest group-hover:invisible group-focus-visible:invisible" aria-hidden="true">
                 •••
               </span>
-              {p === 'next-gap' ? (
-                <ChevronsRight size={16} className="hidden group-hover:block group-focus-visible:block" aria-hidden="true" />
-              ) : (
-                <ChevronsLeft size={16} className="hidden group-hover:block group-focus-visible:block" aria-hidden="true" />
-              )}
+              <span className="invisible absolute inset-0 flex items-center justify-center group-hover:visible group-focus-visible:visible" aria-hidden="true">
+                {p === 'next-gap' ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
+              </span>
             </button>
           ) : (
             <button
@@ -122,6 +130,7 @@ export function Pagination({ total = 0, page = 1, pageSize = 20, onChange, onPag
               aria-label={t('Page {n}', { n: formatNumber(p) })}
               aria-current={p === current ? 'page' : undefined}
               onClick={() => go(p)}
+              style={{ minWidth: cellWidth }}
               className={cx(cell, 'max-lg:hidden', p === current ? 'bg-primary font-semibold text-fg-on-brand shadow-card hover:bg-primary-hover' : idle)}
             >
               {formatNumber(p)}

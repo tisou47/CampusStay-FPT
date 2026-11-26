@@ -13,6 +13,7 @@ import ForgotPassword from '@/pages/auth/ForgotPassword'
 import ResetPassword from '@/pages/auth/ResetPassword'
 import SignIn from '@/pages/auth/SignIn'
 import NotFound from '@/pages/common/NotFound'
+import { loadPortalTexts } from '@/i18n'
 const Announcements = () => import('@/pages/common/Announcements')
 const Profile = () => import('@/pages/common/Profile')
 const FamilyDays = () => import('@/pages/manager/FamilyDays')
@@ -100,6 +101,8 @@ const InspectionSchedule = () => import('@/pages/manager/InspectionSchedule')
 const Students = () => import('@/pages/manager/Students')
 const StudentHub = () => import('@/pages/manager/StudentHub')
 const StudentImport = () => import('@/pages/manager/StudentImport')
+const ErasureRequests = () => import('@/pages/manager/ErasureRequests')
+const MyData = () => import('@/pages/student/MyData')
 const StaffAccounts = () => import('@/pages/manager/StaffAccounts')
 const StaffActivity = () => import('@/pages/manager/StaffActivity')
 const StaffSchedule = () => import('@/pages/manager/StaffSchedule')
@@ -113,14 +116,10 @@ const AdminDashboard = () => import('@/pages/admin/AdminDashboard')
 const Terms = () => import('@/pages/admin/Terms')
 const TermWizard = () => import('@/pages/admin/TermWizard')
 const NewTerm = () => import('@/pages/admin/NewTerm')
-const Deadlines = () => import('@/pages/admin/Deadlines')
-const StayRenewal = () => import('@/pages/admin/StayRenewal')
 const RefundsTerminations = () => import('@/pages/admin/RefundsTerminations')
 const RoomTypes = () => import('@/pages/admin/RoomTypes')
 const RoomClasses = () => import('@/pages/admin/RoomClasses')
 const FurnitureTypes = () => import('@/pages/admin/FurnitureTypes')
-const FeesRules = () => import('@/pages/admin/FeesRules')
-const UtilitySettings = () => import('@/pages/admin/UtilitySettings')
 const EligibilityRules = () => import('@/pages/admin/EligibilityRules')
 const MatchingCriteria = () => import('@/pages/admin/MatchingCriteria')
 const InspectionChecklists = () => import('@/pages/admin/InspectionChecklists')
@@ -133,6 +132,7 @@ const UsersRoles = () => import('@/pages/admin/UsersRoles')
 const OccupancyReport = () => import('@/pages/manager/OccupancyReport')
 const FinancialReport = () => import('@/pages/manager/FinancialReport')
 const AuditLog = () => import('@/pages/admin/AuditLog')
+const SystemHealth = () => import('@/pages/admin/SystemHealth')
 
 // Development only: every state of the date and time pickers.
 const DevPickers = () => import('@/dev/Pickers')
@@ -190,7 +190,9 @@ function page(load, props) {
 
 /** A portal: role guard → layout → pages. */
 function portal(role, layout, children) {
-  return { path: role, element: <RequireRole role={role} />, children: [{ element: layout, children }] }
+  // The portal's Vietnamese texts load before its first page shows (WEB-ADM-32).
+  const texts = role === 'student' ? 'student' : 'office'
+  return { path: role, element: <RequireRole role={role} />, loader: () => loadPortalTexts(texts).then(() => null), children: [{ element: layout, children }] }
 }
 
 export const router = createBrowserRouter([
@@ -234,6 +236,7 @@ export const router = createBrowserRouter([
         { path: 'requests/swap/invitations/:id', ...page(SwapInvitation) },
         { path: 'notifications', ...page(Notifications) },
         { path: 'verification', ...page(Verification) },
+        { path: 'my-data', ...page(MyData) },
         { path: 'profile', ...page(Profile, { role: 'student' }) },
         { path: 'registration-periods/:termId', ...page(RegistrationPeriod) },
         { path: 'family-days', ...page(MyFamilyDays) },
@@ -322,6 +325,7 @@ export const router = createBrowserRouter([
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
         { path: 'student-import', ...page(StudentImport) },
+        { path: 'erasure-requests', ...page(ErasureRequests) },
         { path: 'staff-accounts', ...page(StaffAccounts) },
         { path: 'staff-activity', ...page(StaffActivity) },
         { path: 'staff-schedule', ...page(StaffSchedule) },
@@ -338,15 +342,19 @@ export const router = createBrowserRouter([
         { path: 'terms/new', ...page(NewTerm) },
         { path: 'terms/:id', ...page(TermWizard) },
         { path: 'term-requests', ...page(TermRequests) },
-        { path: 'deadlines', ...page(Deadlines) },
+        // Deadlines and reminders is a section of System parameters since 22/11/2026.
+        { path: 'deadlines', element: <Navigate to="/admin/system-parameters#deadlines" replace /> },
         { path: 'refunds', ...page(RefundsTerminations) },
-        { path: 'stay', ...page(StayRenewal) },
+        // Stay and renewal is a section of System parameters since 22/11/2026.
+        { path: 'stay', element: <Navigate to="/admin/system-parameters#stay" replace /> },
         { path: 'announcements', ...page(Announcements) },
         { path: 'profile', ...page(Profile, { role: 'admin' }) },
         { path: 'room-types', ...page(RoomTypes) },
         { path: 'room-classes', ...page(RoomClasses) },
-        { path: 'fees', ...page(FeesRules) },
-        { path: 'utility', ...page(UtilitySettings) },
+        // The Deposit is a section of System parameters since 22/11/2026; old links still land there.
+        { path: 'fees', element: <Navigate to="/admin/system-parameters#deposit" replace /> },
+        // Utility billing and the Utility deposit are sections of System parameters since 22/11/2026.
+        { path: 'utility', element: <Navigate to="/admin/system-parameters#utility-billing" replace /> },
         { path: 'eligibility', ...page(EligibilityRules) },
         { path: 'matching', ...page(MatchingCriteria) },
         { path: 'inspection-checklists', ...page(InspectionChecklists) },
@@ -358,6 +366,7 @@ export const router = createBrowserRouter([
         { path: 'furniture-types', ...page(FurnitureTypes) },
         { path: 'users', ...page(UsersRoles) },
         { path: 'audit-log', ...page(AuditLog) },
+        { path: 'system-health', ...page(SystemHealth) },
         { path: 'students', ...page(Students) },
         { path: 'students/:id', ...page(StudentHub) },
         { path: 'student-import', ...page(StudentImport) },

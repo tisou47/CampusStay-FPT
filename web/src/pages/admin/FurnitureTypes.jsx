@@ -111,12 +111,12 @@ function EditDrawer({ item, categories, uses, onClose }) {
 // Adds, renames, revalues and removes the condition levels; saved together, listed by value (best first).
 function ConditionsDrawer({ conditions, onClose }) {
   const { notify } = useToast()
-  const [rows, setRows] = useState(() => conditions.map((c) => ({ key: c.code, code: c.code, nameVi: c.nameVi, percent: String(c.percent) })))
+  const [rows, setRows] = useState(() => conditions.map((c) => ({ key: c.code, code: c.code, name: c.name ?? '', nameVi: c.nameVi, percent: String(c.percent) })))
   const setRow = (key, field, value) => setRows((list) => list.map((r) => (r.key === key ? { ...r, [field]: value } : r)))
-  const add = () => setRows((list) => [...list, { key: `new-${Date.now()}`, code: null, nameVi: '', percent: '' }])
+  const add = () => setRows((list) => [...list, { key: `new-${Date.now()}`, code: null, name: '', nameVi: '', percent: '' }])
   const remove = (key) => setRows((list) => list.filter((r) => r.key !== key))
   const save = useMutation(
-    () => api.admin.furnitureConditions.save({ items: rows.map((r) => ({ code: r.code, nameVi: r.nameVi.trim(), percent: Number(r.percent) })) }),
+    () => api.admin.furnitureConditions.save({ items: rows.map((r) => ({ code: r.code, name: r.name.trim(), nameVi: r.nameVi.trim(), percent: Number(r.percent) })) }),
     {
       invalidates: ['admin-furniture-types'],
       onSuccess: () => {
@@ -126,7 +126,7 @@ function ConditionsDrawer({ conditions, onClose }) {
       onError: () => {},
     },
   )
-  const filled = rows.length > 0 && rows.every((r) => r.nameVi.trim() && r.percent !== '')
+  const filled = rows.length > 0 && rows.every((r) => r.name.trim() && r.nameVi.trim() && r.percent !== '')
   return (
     <Drawer
       open
@@ -145,14 +145,16 @@ function ConditionsDrawer({ conditions, onClose }) {
     >
       {save.error && <Alert type="error" title="Could not save">{save.error.fields?.items ?? save.error.summary}</Alert>}
       <div className="flex flex-col gap-2">
-        <div className="grid grid-cols-[minmax(0,1fr)_96px_32px] gap-2 text-sm font-medium text-fg-secondary">
-          <span>{t('Condition level')}</span>
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_80px_32px] gap-2 text-sm font-medium text-fg-secondary">
+          <span>{t('Name (Vietnamese)')}</span>
+          <span>{t('Name (English)')}</span>
           <span>{t('Value (%)')}</span>
           <span className="sr-only">{t('Actions')}</span>
         </div>
         {rows.map((r) => (
-          <div key={r.key} className="grid grid-cols-[minmax(0,1fr)_96px_32px] items-center gap-2">
-            <Input aria-label={t('Condition level')} value={r.nameVi} onChange={(e) => setRow(r.key, 'nameVi', e.target.value)} placeholder="e.g. Scratched" />
+          <div key={r.key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_80px_32px] items-center gap-2">
+            <Input aria-label={t('Name (Vietnamese)')} value={r.nameVi} onChange={(e) => setRow(r.key, 'nameVi', e.target.value)} placeholder="e.g. Scratched" />
+            <Input aria-label={t('Name (English)')} value={r.name} onChange={(e) => setRow(r.key, 'name', e.target.value)} placeholder="e.g. Scratched" />
             <Input aria-label={t('Value (%)')} inputMode="numeric" value={r.percent} onChange={(e) => setRow(r.key, 'percent', e.target.value.replace(/\D/g, '').slice(0, 3))} />
             <IconButton icon={Trash2} aria-label={t('Remove level')} onClick={() => remove(r.key)} disabled={rows.length === 1 || HANDOVER_LEVELS.includes(r.code)} />
           </div>
@@ -207,7 +209,6 @@ export default function FurnitureTypes() {
     <>
       <PageHeader
         title="Furniture types"
-        description="Kinds of furniture the dormitory tracks. Types that define a room tier are what the classes require (Room tiers)."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!query.data}>
             New furniture type

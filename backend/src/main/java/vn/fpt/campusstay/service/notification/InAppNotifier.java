@@ -19,7 +19,7 @@ import vn.fpt.campusstay.service.auth.UserDirectory;
 /**
  * Writes in-app notifications from the Admin's templates ({@code ntf_template}), in English and
  * Vietnamese (ADR-25): both texts are kept, and the Notification Center shows the reader's language.
- * Runs in the caller's transaction, so a notification exists exactly when the change it announces does.
+ * Runs in the listener's own transaction, after the change it announces committed (BE-2ND-08).
  * When the template says so, the text in the user's language is pushed to their Android devices after
  * the transaction commits.
  */

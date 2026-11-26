@@ -6,7 +6,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.ApplicationCreated;
@@ -26,7 +25,7 @@ import vn.fpt.campusstay.event.SwapDecided;
 import vn.fpt.campusstay.event.SwapInvited;
 import vn.fpt.campusstay.config.TimeConfig;
 
-/** Turns Applications, Assignment, Billing, Maintenance and Requests events into the student's in-app notifications (synchronous: same transaction). */
+/** Turns Applications, Assignment, Billing, Maintenance and Requests events into the student's in-app notifications, after the change committed ({@link AfterCommit}). */
 @Component
 class StudentNotificationListener {
 
@@ -42,27 +41,27 @@ class StudentNotificationListener {
         this.notifier = notifier;
     }
 
-    @EventListener
+    @AfterCommit
     void on(ApplicationWaitlisted e) {
         notifier.notify(e.studentId(), "WAITLISTED",
                 Map.of("term", e.termName(), "until", e.until() == null ? "check-in" : e.until().format(DATE)),
                 "/student/applications/" + e.applicationCode());
     }
 
-    @EventListener
+    @AfterCommit
     void on(WaitlistEnded e) {
         notifier.notify(e.studentId(), "WAITLIST_ENDED", Map.of("term", e.termName(), "amount", vnd(e.refund())),
                 "/student/applications/" + e.applicationCode());
     }
 
-    @EventListener
+    @AfterCommit
     void on(ApplicationCreated e) {
         notifier.notify(e.studentId(), "DEPOSIT_DUE",
                 Map.of("amount", vnd(e.depositAmount()), "dueAt", WHEN.format(e.depositDueAt()), "term", e.termName()),
                 "/student/invoices/" + e.depositInvoiceCode() + "/pay");
     }
 
-    @EventListener
+    @AfterCommit
     void on(RoommateInvited e) {
         notifier.notify(e.inviteeStudentId(), "ROOMMATE_INVITATION",
                 Map.of("fromName", e.fromName(), "roomType", e.roomTypeName(), "term", e.termName(),
@@ -70,26 +69,26 @@ class StudentNotificationListener {
                 "/student/roommate-invitation");
     }
 
-    @EventListener
+    @AfterCommit
     void on(ApplicationSubmitted e) {
         notifier.notify(e.studentId(), "APPLICATION_SUBMITTED",
                 Map.of("term", e.termName(), "resultsAt", day(e.resultsPublishedAt())),
                 "/student/applications/" + e.applicationCode());
     }
 
-    @EventListener
+    @AfterCommit
     void on(PaymentConfirmed e) {
         notifier.notify(e.studentId(), "PAYMENT_CONFIRMED", Map.of("amount", vnd(e.amount()), "title", e.title()),
                 "/student/invoices");
     }
 
-    @EventListener
+    @AfterCommit
     void on(ApplicationRejected e) {
         notifier.notify(e.studentId(), "APPLICATION_REJECTED", Map.of("term", e.termName(), "note", e.note()),
                 "/student/applications/" + e.applicationCode());
     }
 
-    @EventListener
+    @AfterCommit
     void on(AllocationCreated e) {
         notifier.notify(e.studentId(), "ALLOCATION_PUBLISHED",
                 Map.of("room", e.room(), "bed", e.bed(), "term", e.termName(), "dueAt",
@@ -97,43 +96,43 @@ class StudentNotificationListener {
                 "/student/room");
     }
 
-    @EventListener
+    @AfterCommit
     void on(MaintenanceUpdated e) {
         notifier.notify(e.reporterId(), "MAINTENANCE_UPDATED", Map.of("title", e.title(), "status", e.status()),
                 "/student/requests");
     }
 
-    @EventListener
+    @AfterCommit
     void on(InvoiceIssued e) {
         notifier.notify(e.studentId(), "INVOICE_ISSUED",
                 Map.of("title", e.title(), "amount", vnd(e.amount()), "dueAt", WHEN.format(e.dueAt())),
                 "/student/invoices/" + e.code() + "/pay");
     }
 
-    @EventListener
+    @AfterCommit
     void on(RoomChangeDecided e) {
         notifier.notify(e.studentId(), "ROOM_CHANGE_DECIDED", Map.of("decision", e.decision()), "/student/requests");
     }
 
-    @EventListener
+    @AfterCommit
     void on(SwapInvited e) {
         notifier.notify(e.inviteeId(), "SWAP_INVITATION",
                 Map.of("fromName", e.fromName(), "expiresAt", WHEN.format(e.expiresAt())),
                 "/student/requests/swap/invitations/" + e.code());
     }
 
-    @EventListener
+    @AfterCommit
     void on(SwapDecided e) {
         notifier.notify(e.studentId(), "SWAP_DECIDED", Map.of("decision", e.decision()), "/student/requests");
     }
 
-    @EventListener
+    @AfterCommit
     void on(Round2Offered e) {
         notifier.notify(e.studentId(), "ROUND2_OFFER", Map.of("expiresAt", WHEN.format(e.expiresAt())),
                 "/student/round-2-offer");
     }
 
-    @EventListener
+    @AfterCommit
     void on(InspectionScheduled e) {
         // dueAt is the start of the day after the last day.
         Map<String, String> values = Map.of("from", DAY.format(e.from()),

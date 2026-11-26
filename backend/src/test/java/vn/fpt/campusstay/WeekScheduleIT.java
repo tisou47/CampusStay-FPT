@@ -34,7 +34,8 @@ import vn.fpt.campusstay.service.auth.WeekScheduleService;
 
 /**
  * The weekly schedule handover (a Manager sends next week's schedule, Managers are reminded on Sunday) and the Staff
- * handle list that follows the Staff portal, the reminder day Admin chooses, and the schedule planned per week (TC-AUTH-076…082).
+ * handle list that follows the Staff portal, the reminder day Admin chooses, and the schedule planned per week, without overlapping shifts and without changing
+ * the days already past (TC-AUTH-076…082, 102, 103).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -216,6 +217,58 @@ class WeekScheduleIT {
                 .andExpect(jsonPath("$.inShift").value(false));
         mvc.perform(delete("/week-schedule/plan/" + a2).param("week", thisMonday().toString())
                 .header(HttpHeaders.AUTHORIZATION, manager)).andExpect(status().isOk());
+    }
+
+    /**
+     * TC-AUTH-102: shifts that overlap are refused, for a planned week and for the default weekly shifts (an overnight
+     * shift runs into the next day, Sunday's into Monday); shifts that only meet are accepted.
+     */
+    @Test
+    void overlappingShiftsAreRefused() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        long a1 = userId(STAFF_A);
+        LocalDate next = thisMonday().plusWeeks(1);
+        String sameDay = "{\"shifts\":[{\"weekday\":1,\"start\":\"07:00\",\"end\":\"15:00\"},{\"weekday\":1,\"start\":\"08:00\",\"end\":\"17:00\"}]}";
+        String overnight = "{\"shifts\":[{\"weekday\":2,\"start\":\"23:00\",\"end\":\"07:00\"},{\"weekday\":3,\"start\":\"06:00\",\"end\":\"12:00\"}]}";
+        String sundayNight = "{\"shifts\":[{\"weekday\":7,\"start\":\"22:00\",\"end\":\"06:00\"},{\"weekday\":1,\"start\":\"05:00\",\"end\":\"09:00\"}]}";
+        String meeting = "{\"shifts\":[{\"weekday\":1,\"start\":\"07:00\",\"end\":\"15:00\"},{\"weekday\":1,\"start\":\"15:00\",\"end\":\"23:00\"},"
+                + "{\"weekday\":1,\"start\":\"23:00\",\"end\":\"07:00\"},{\"weekday\":2,\"start\":\"07:00\",\"end\":\"15:00\"}]}";
+        try {
+            for (String body : new String[] { sameDay, overnight, sundayNight }) {
+                planWeek(manager, a1, next, body).andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.details.fields.shifts").value(org.hamcrest.Matchers.containsString("overlap")));
+                mvc.perform(put("/block-staff/" + a1 + "/shifts").header(HttpHeaders.AUTHORIZATION, manager)
+                        .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+            }
+            planWeek(manager, a1, next, meeting).andExpect(status().isOk()).andExpect(jsonPath("$.shifts.length()").value(4));
+        } finally {
+            mvc.perform(delete("/week-schedule/plan/" + a1).param("week", next.toString())
+                    .header(HttpHeaders.AUTHORIZATION, manager));
+        }
+    }
+
+    /**
+     * TC-AUTH-103: in this week the days already past keep their shifts: a plan or a reset changes today and the days
+     * after only.
+     */
+    @Test
+    void pastDaysOfThisWeekKeepTheirShifts() throws Exception {
+        String manager = bearer(mvc, MANAGER_A);
+        long a1 = userId(STAFF_A);
+        LocalDate today = LocalDate.now(TimeConfig.CAMPUS_ZONE);
+        int day = today.getDayOfWeek().getValue();
+        try {
+            planWeek(manager, a1, thisMonday(), "{\"shifts\":[]}").andExpect(status().isOk());
+            String everyDay = "{\"shifts\":[" + String.join(",", java.util.stream.IntStream.rangeClosed(1, 7)
+                    .mapToObj(d -> "{\"weekday\":" + d + ",\"start\":\"09:00\",\"end\":\"10:00\"}").toList()) + "]}";
+            planWeek(manager, a1, thisMonday(), everyDay).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.shifts.length()").value(8 - day))
+                    .andExpect(jsonPath("$.shifts[0].weekday").value(day));
+        } finally {
+            // A reset would keep the past days planned; the next tests expect this week not planned.
+            jdbc.sql("DELETE FROM auth_staff_week WHERE user_id = :u AND week_start = :w").param("u", a1)
+                    .param("w", java.sql.Date.valueOf(thisMonday())).update();
+        }
     }
 
     /** TC-AUTH-078: what Staff handle follows the Staff portal; each Staff screen's changes belong to one kind. */

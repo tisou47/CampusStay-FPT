@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import 'common.dart';
@@ -68,6 +69,7 @@ Future<void> openLink(BuildContext context, String? link) async {
     case 'applications':
       tab(3, 'applications');
     case 'requests':
-      tab(3, 'requests');
+      // `/student/requests?kind=room-changes` opens the Room changes segment (MOB-16), as on the web.
+      tab(3, uri.queryParameters['kind'] == 'room-changes' ? 'room-changes' : 'requests');
   }
 }

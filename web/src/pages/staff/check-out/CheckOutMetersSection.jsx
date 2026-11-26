@@ -4,7 +4,7 @@ import { Field, Input } from '@/components/ui/Field'
 import { Tag } from '@/components/ui/Tag'
 import { formatDate, formatNumber } from '@/lib/format'
 import { t } from '@/i18n'
-import { toNumber } from './checkOutShared'
+import { readingError, readingUsage } from './checkOutShared'
 
 export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
   { d, done, electricity, setElectricity, water, setWater, children },
@@ -30,6 +30,7 @@ export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <Field
           label="Electricity (kWh)"
+          error={readingError(electricity)}
           helper={
             d.previousReading
               ? t('Previous reading: {value} kWh (recorded {date})', {
@@ -43,6 +44,7 @@ export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
             <Input
               id={fieldId}
               value={electricity}
+              invalid={Boolean(readingError(electricity))}
               onChange={(e) => setElectricity(e.target.value)}
               inputMode="decimal"
               className="text-right text-base tabular"
@@ -53,6 +55,8 @@ export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
 
         <Field
           label="Water (m³)"
+
+          error={readingError(water)}
           helper={
             d.previousReading
               ? t('Previous reading: {value} m³ (recorded {date})', {
@@ -66,6 +70,7 @@ export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
             <Input
               id={fieldId}
               value={water}
+              invalid={Boolean(readingError(water))}
               onChange={(e) => setWater(e.target.value)}
               inputMode="decimal"
               className="text-right text-base tabular"
@@ -82,7 +87,7 @@ export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
             <span className="tabular">
               {t('Electricity')}:{' '}
               <strong className="font-semibold text-fg">
-                {formatNumber(Math.max(0, toNumber(electricity) - (d.previousReading.electricity ?? 0)))} kWh
+                {readingUsage(electricity, d.previousReading.electricity)} kWh
               </strong>
             </span>
           )}
@@ -90,7 +95,7 @@ export const CheckOutMetersSection = forwardRef(function CheckOutMetersSection(
             <span className="tabular">
               {t('Water')}:{' '}
               <strong className="font-semibold text-fg">
-                {formatNumber(Math.max(0, toNumber(water) - (d.previousReading.water ?? 0)))} m³
+                {readingUsage(water, d.previousReading.water)} m³
               </strong>
             </span>
           )}

@@ -1,5 +1,7 @@
 package vn.fpt.campusstay.service.assignment;
 
+import vn.fpt.campusstay.common.job.ScheduledJobs;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,28 +19,33 @@ class RenewalJobs {
 
     private final RenewalService renewals;
 
-    RenewalJobs(RenewalService renewals) {
+    private final ScheduledJobs jobs;
+
+    RenewalJobs(ScheduledJobs jobs, RenewalService renewals) {
+        this.jobs = jobs;
         this.renewals = renewals;
     }
 
     @Scheduled(fixedDelayString = "${campusstay.asg.renewal-interval:15m}",
             initialDelayString = "${campusstay.asg.renewal-interval:15m}")
     void run() {
-        int opened = renewals.openDue();
-        if (opened > 0) {
-            log.info("{} next-Term Allocations created: a requests window opened", opened);
-        }
-        int notExtended = renewals.closeDue();
-        if (notExtended > 0) {
-            log.info("{} next-Term Allocations cancelled: not extended by the request deadline", notExtended);
-        }
-        int alerted = renewals.escalateDue();
-        if (alerted > 0) {
-            log.info("Managers alerted about undecided next-Term work in {} windows", alerted);
-        }
-        int unpaid = renewals.cancelUnpaidFees();
-        if (unpaid > 0) {
-            log.info("{} next-Term Allocations cancelled: next-Term fee not paid", unpaid);
-        }
+        jobs.run("asg.renewal", () -> {
+            int opened = renewals.openDue();
+            if (opened > 0) {
+                log.info("{} next-Term Allocations created: a requests window opened", opened);
+            }
+            int notExtended = renewals.closeDue();
+            if (notExtended > 0) {
+                log.info("{} next-Term Allocations cancelled: not extended by the request deadline", notExtended);
+            }
+            int alerted = renewals.escalateDue();
+            if (alerted > 0) {
+                log.info("Managers alerted about undecided next-Term work in {} windows", alerted);
+            }
+            int unpaid = renewals.cancelUnpaidFees();
+            if (unpaid > 0) {
+                log.info("{} next-Term Allocations cancelled: next-Term fee not paid", unpaid);
+            }
+        });
     }
 }

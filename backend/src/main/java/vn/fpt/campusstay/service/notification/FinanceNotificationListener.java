@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.event.AllocationForfeited;
@@ -45,7 +44,7 @@ class FinanceNotificationListener {
         this.users = users;
     }
 
-    @EventListener
+    @AfterCommit
     void on(InvoiceOverdue e) {
         Map<String, String> values = Map.of("title", e.title(), "amount", vnd(e.amount()), "dueAt", DAY.format(e.dueAt()));
         notifier.notify(e.studentId(), "INVOICE_OVERDUE", values, "/student/invoices/" + e.code() + "/pay");
@@ -56,24 +55,24 @@ class FinanceNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(RefundDecided e) {
         notifier.notify(e.studentId(), "REFUND_DECIDED", Map.of("amount", vnd(e.amount()), "decision", e.decision()),
                 "/student/invoices");
     }
 
-    @EventListener
+    @AfterCommit
     void on(RefundAccountReminded e) {
         notifier.notify(e.studentId(), "REFUND_ACCOUNT_REMINDER",
                 Map.of("amount", vnd(e.amount()), "reason", sentence(e.reason())), "/student/invoices");
     }
 
-    @EventListener
+    @AfterCommit
     void on(LateCheckInDecided e) {
         notifier.notify(e.studentId(), "LATE_CHECK_IN_DECIDED", Map.of("decision", e.decision()), "/student/room");
     }
 
-    @EventListener
+    @AfterCommit
     void on(PaymentClaimRejected e) {
         if (e.cancelled()) {
             notifier.notify(e.studentId(), "PAYMENT_CLAIM_CANCELLED",
@@ -85,14 +84,14 @@ class FinanceNotificationListener {
                 "/student/invoices/" + e.invoiceCode() + "/pay");
     }
 
-    @EventListener
+    @AfterCommit
     void on(PaymentClaimsWaiting e) {
         Map<String, String> values = Map.of("count", String.valueOf(e.count()), "total", vnd(e.total()));
         users.activeUserIds("MANAGER").forEach(u -> notifier.notify(u, "PAYMENT_CLAIMS_WAITING", values,
                 "/manager/payment-claims"));
     }
 
-    @EventListener
+    @AfterCommit
     void on(PaymentDueSoon e) {
         notifier.notify(e.studentId(), "TERM_FEE".equals(e.type()) ? "NEXT_TERM_FEE_DUE_SOON" : "PAYMENT_DUE_SOON",
                 Map.of("title", e.title(), "amount", vnd(e.amount()), "dueAt", WHEN.format(e.dueAt())),
@@ -101,14 +100,14 @@ class FinanceNotificationListener {
                 "dueAt", WHEN.format(e.dueAt())));
     }
 
-    @EventListener
+    @AfterCommit
     void on(AllocationForfeited e) {
         Map<String, String> values = Map.of("room", e.room(), "dueAt", WHEN.format(e.dueAt()), "refund", vnd(e.refund()));
         notifier.notify(e.studentId(), "BALANCE_FORFEITED", values, "/student/applications");
         email(e.studentId(), "BALANCE_FORFEITED", values);
     }
 
-    @EventListener
+    @AfterCommit
     void on(UtilityWarningIssued e) {
         if (e.level().equals("FINAL")) {
             Map<String, String> values = Map.of("debt", vnd(e.debt()), "terminateOn", DATE.format(e.terminateOn()));

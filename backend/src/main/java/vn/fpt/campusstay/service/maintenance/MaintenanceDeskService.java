@@ -29,10 +29,10 @@ import vn.fpt.campusstay.security.CurrentUser;
 import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.UserDirectory;
+import vn.fpt.campusstay.service.setting.BlockSettings;
 import vn.fpt.campusstay.service.setting.Lookups;
 import vn.fpt.campusstay.service.inventory.Inventory;
 import vn.fpt.campusstay.event.FurnitureRepairLogged;
-import vn.fpt.campusstay.event.MaintenanceUpdated;
 import vn.fpt.campusstay.common.audit.AuditLog;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.exception.FieldErrors;
@@ -86,14 +86,25 @@ public class MaintenanceDeskService {
     public record RoomSummary(int residents, int capacity, long otherOpen, long pastThisTerm) {
     }
 
-    /** {@code staff}: who may be assigned the request, the staff of its own Block (the PATCH refuses anyone else). */
+    /**
+     * {@code staff}: who may be assigned the request, the staff of its own Block (the PATCH refuses anyone else; Staff
+     * may only take an unassigned request for themselves). {@code furnitureItemFixed}: the item came with the request
+     * (an inspection finding) and cannot change.
+     */
     public record Detail(String id, String title, String status, String room, String bed, String category,
             String location, Instant reportedAt, Reporter reporter, String urgency, String priority,
             boolean staffMayEnter, String description, List<PhotoLink> photos, Assignee assignee,
             String suggestedAssigneeId, String visitWindow, List<DeskEvent> events, RoomSummary roomSummary,
             Instant slaDueAt, FurnitureRef furnitureItem, List<MaintenanceService.FurnitureOption> furnitureOptions,
-            InspectionFinding inspectionFinding, List<MaintenanceService.StaffOption> staff) {
+            InspectionFinding inspectionFinding, List<MaintenanceService.StaffOption> staff,
+            boolean furnitureItemFixed, VisitHours visitHours) {
     }
+
+    /** The hours a visit may be planned in: the Block's desk hours ("HH:mm"), or null when the Block has none set. */
+    public record VisitHours(String from, String until) {
+    }
+
+    private static final java.time.format.DateTimeFormatter HH_MM = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
 
     /**
      * What the inspection that created the request found: the furniture item's condition (Worn, Damaged, Missing) or
@@ -145,11 +156,15 @@ public class MaintenanceDeskService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final Clock clock;
+    private final RequestAudience audience;
+    private final BlockSettings blockSettings;
 
     public MaintenanceDeskService(JdbcClient jdbc, RequestStore requests, MaintenanceService labels,
             CurrentUser currentUser, BlockScope blockScope, Residences residences, Inventory inventory,
             UserDirectory users, Lookups lookups, FileStore files, FileLinks links, ApplicationEventPublisher events,
-            AuditLog audit, Clock clock) {
+            AuditLog audit, Clock clock, RequestAudience audience, BlockSettings blockSettings) {
+        this.audience = audience;
+        this.blockSettings = blockSettings;
         this.jdbc = jdbc;
         this.requests = requests;
         this.labels = labels;
@@ -170,10 +185,15 @@ public class MaintenanceDeskService {
 
     @Transactional(readOnly = true)
     public QueuePage queue(Filter f, PageQuery page) {
+        currentUser.require(Permission.PROCESS_MAINTENANCE); // BE-OPS-10: Block scope alone let the Admin read it
         Set<Long> scope = blockScope.resolve(f.block()).ids();
         Map<String, Object> params = new HashMap<>();
         params.put("scope", List.copyOf(scope));
         StringBuilder base = new StringBuilder(" WHERE building_id IN (:scope)");
+        staffOwnOnly().ifPresent(me -> {
+            base.append(" AND assignee_id = :me");
+            params.put("me", me);
+        });
         if (f.termId() != null) {
             base.append(" AND (term_id = :term OR term_id IS NULL)");
             params.put("term", f.termId());
@@ -261,6 +281,7 @@ public class MaintenanceDeskService {
 
     @Transactional(readOnly = true)
     public Detail detail(String idOrCode) {
+        currentUser.require(Permission.PROCESS_MAINTENANCE);
         RequestStore.Request r = inScope(idOrCode, false);
         List<RequestStore.Event> history = requests.events(r.id());
         List<Long> people = new ArrayList<>(history.stream().map(RequestStore.Event::actorId).filter(Objects::nonNull)
@@ -301,7 +322,12 @@ public class MaintenanceDeskService {
                         e.actorRole() == null ? "System" : ROLES.getOrDefault(e.actorRole(), e.actorRole()), e.at(),
                         e.text(), e.message(), e.internal())).toList(),
                 room, r.slaDueAt(), item, furniture, "INSPECTION".equals(r.source()) ? finding(r.id()) : null,
-                labels.staffOptions(List.of(r.buildingId())));
+                labels.staffOptions(List.of(r.buildingId())), furnitureItemFixed(r), visitHours(r.buildingId()));
+    }
+
+    /** A request an inspection created for a furniture item keeps that item: the finding is about it. */
+    private static boolean furnitureItemFixed(RequestStore.Request r) {
+        return r.furnitureItemId() != null && "INSPECTION".equals(r.source());
     }
 
     /** The Block's maintenance staff member with the fewest open requests (ties: by name). */
@@ -359,6 +385,10 @@ public class MaintenanceDeskService {
             FieldErrors errors = new FieldErrors();
             Long wanted = labels.furnitureItem(body.get("furnitureItemId"), r.roomId(), errors);
             errors.throwIfAny();
+            if (!Objects.equals(wanted, furnitureItem) && furnitureItemFixed(r)) {
+                throw ApiException.conflict("FURNITURE_ITEM_FIXED",
+                        "This request was created for this furniture item, which cannot change.");
+            }
             if (!Objects.equals(wanted, furnitureItem)) {
                 jdbc.sql("UPDATE mnt_request SET furniture_item_id = :f WHERE id = :id").param("f", wanted)
                         .param("id", r.id()).update();
@@ -373,6 +403,19 @@ public class MaintenanceDeskService {
         }
         if (body.containsKey("assigneeId")) {
             Long wanted = id(body.get("assigneeId"));
+            if (!Objects.equals(wanted, assignee) && user.role() == Role.STAFF) {
+                // Staff take an unassigned request for themselves (or give back their own); only Managers assign
+                // a request to someone else or move it from one person to another.
+                if (wanted != null && wanted != user.userId()) {
+                    throw ApiException.forbidden("STAFF_ASSIGN_SELF_ONLY",
+                            "Staff take a request for themselves only. A Manager assigns it to someone else.");
+                }
+                if (assignee != null && assignee != user.userId()) {
+                    throw ApiException.conflict("ASSIGNED_TO_SOMEONE_ELSE", "This request is assigned to "
+                            + users.displayNames(List.of(assignee)).get(assignee)
+                            + ". Only a Manager can move it to someone else.");
+                }
+            }
             if (!Objects.equals(wanted, assignee)) {
                 if (wanted == null) {
                     if (!status.equals("ASSIGNED") && !status.equals("SUBMITTED")) {
@@ -404,6 +447,14 @@ public class MaintenanceDeskService {
                         .orElseThrow(() -> FieldErrors.single("visitWindow",
                                 "Use dd/mm/yyyy hh:mm – hh:mm, with the end after the start."));
             }
+            // Only a new or changed window is checked: one planned earlier stays as is when other fields change.
+            if (window != null && !Objects.equals(RequestStore.visitWindow(window[0], window[1]),
+                    RequestStore.visitWindow(r.visitStart(), r.visitEnd()))) {
+                if (window[1].isBefore(now)) {
+                    throw FieldErrors.single("visitWindow", "Choose a visit window that has not ended yet.");
+                }
+                checkVisitWindow(window, r.buildingId(), now);
+            }
             jdbc.sql("UPDATE mnt_request SET visit_window_start = :s, visit_window_end = :e WHERE id = :id")
                     .param("s", window == null ? null : Timestamp.from(window[0]))
                     .param("e", window == null ? null : Timestamp.from(window[1])).param("id", r.id()).update();
@@ -423,7 +474,7 @@ public class MaintenanceDeskService {
                 if (user.role() == Role.STAFF && assignee != null && assignee != user.userId()) {
                     throw ApiException.conflict("ASSIGNED_TO_SOMEONE_ELSE", "This request is assigned to "
                             + users.displayNames(List.of(assignee)).get(assignee)
-                            + ". Take it over before you change its status.");
+                            + ". Only the person in charge changes its status.");
                 }
                 status = transition(r, status, wanted, assignee, now);
                 requests.event(r.id(), user.userId(), role, "Status: " + RequestStore.statusLabel(status), null, false,
@@ -440,9 +491,8 @@ public class MaintenanceDeskService {
         if (!changes.isEmpty()) {
             audit.record("MAINTENANCE_UPDATED", AuditLog.Tone.INFO, "Maintenance Request", r.id(), r.code(), changes);
         }
-        if (studentVisible && r.source().equals("STUDENT")) {
-            events.publishEvent(new MaintenanceUpdated(r.id(), r.code(), r.reporterId(), r.title(),
-                    RequestStore.statusLabel(status), visitText == null ? null : "Visit planned " + visitText));
+        if (studentVisible) {
+            audience.notify(r, RequestStore.statusLabel(status), visitText == null ? null : "Visit planned " + visitText);
         }
     }
 
@@ -483,16 +533,44 @@ public class MaintenanceDeskService {
             throw FieldErrors.single("message", "Write the update.");
         }
         RequestStore.Request r = inScope(idOrCode, true);
-        boolean privateNote = internal || !r.source().equals("STUDENT");
+        boolean privateNote = internal; // inspection requests reach the Room's residents too (RequestAudience)
+        if (!privateNote && r.status().equals("CLOSED")) { // the student can no longer answer (BE-OPS-14)
+            throw ApiException.conflict("REQUEST_CLOSED", "This request is closed: only internal notes can be added.");
+        }
         requests.event(r.id(), user.userId(), user.role().name(), null, message.trim(), privateNote,
                 Instant.now(clock));
         if (!privateNote) {
-            events.publishEvent(new MaintenanceUpdated(r.id(), r.code(), r.reporterId(), r.title(),
-                    RequestStore.statusLabel(r.status()), message.trim()));
+            audience.notify(r, RequestStore.statusLabel(r.status()), message.trim());
         }
     }
 
     // ---------------------------------------------------------------- helpers
+
+    private VisitHours visitHours(long buildingId) {
+        return blockSettings.forBlock(buildingId)
+                .map(s -> new VisitHours(HH_MM.format(s.deskOpens()), HH_MM.format(s.deskCloses()))).orElse(null);
+    }
+
+    /**
+     * A new visit window starts from now on, within one day and inside the Block's desk hours: the students of the
+     * Room are told the time, so it must be one Staff can still keep.
+     */
+    private void checkVisitWindow(Instant[] window, long buildingId, Instant now) {
+        java.time.ZonedDateTime start = window[0].atZone(TimeConfig.CAMPUS_ZONE);
+        java.time.ZonedDateTime end = window[1].atZone(TimeConfig.CAMPUS_ZONE);
+        if (window[0].isBefore(now)) {
+            throw FieldErrors.single("visitWindow", "The visit cannot start in the past. Choose a later time.");
+        }
+        if (!start.toLocalDate().equals(end.toLocalDate())) {
+            throw FieldErrors.single("visitWindow", "The visit starts and ends on the same day.");
+        }
+        blockSettings.forBlock(buildingId).ifPresent(s -> {
+            if (start.toLocalTime().isBefore(s.deskOpens()) || end.toLocalTime().isAfter(s.deskCloses())) {
+                throw FieldErrors.single("visitWindow", "Plan the visit within the Block's hours, "
+                        + HH_MM.format(s.deskOpens()) + " – " + HH_MM.format(s.deskCloses()) + ".");
+            }
+        });
+    }
 
     private RequestStore.Request inScope(String idOrCode, boolean lock) {
         Set<Long> scope = blockScope.resolve(null).ids();
@@ -501,7 +579,20 @@ public class MaintenanceDeskService {
         if (!scope.contains(r.buildingId())) {
             throw ApiException.forbidden("BLOCK_OUT_OF_SCOPE", "You do not have access to this Block.");
         }
+        if (staffOwnOnly().filter(me -> !me.equals(r.assigneeId())).isPresent()) {
+            throw ApiException.notFound("This Maintenance Request does not exist.");
+        }
         return r;
+    }
+
+    /**
+     * Staff see only the Maintenance Requests assigned to them (user decision 25/11/2026): the queue, the detail and
+     * every change. Managers assign the others (routing rules, inspections and escalations assign too). Empty for
+     * Managers and Admins.
+     */
+    private Optional<Long> staffOwnOnly() {
+        AuthenticatedUser user = currentUser.require(Permission.PROCESS_MAINTENANCE);
+        return user.role() == Role.STAFF ? Optional.of(user.userId()) : Optional.empty();
     }
 
     private static Assignee assignee(Long id, Map<Long, String> names) {

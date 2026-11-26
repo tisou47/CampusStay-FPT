@@ -346,6 +346,7 @@ public class SwapService {
      */
     @Transactional(readOnly = true)
     public SwapPage queue(Long termId, String block, String kind, String status, PageQuery page) {
+        currentUser.require(Permission.DECIDE_ROOM_CHANGES); // BE-OPS-10
         Set<Long> scope = blockScope.resolve(block).ids();
         long term = roomChanges.queueTerm(termId);
         Map<String, Object> params = new HashMap<>();

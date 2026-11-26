@@ -130,7 +130,10 @@ final class AssignmentEngine {
 
     /** The best free Bed for one student in Rooms of the given Room Type and Room Class (used to resolve conflicts too). */
     Optional<Placement> placeSingle(Applicant a, long roomTypeId, long roomClassId) {
-        record Option(List<Bed> free, BigDecimal score, int people, String code, BigDecimal fit) {
+        // tier: 2 = a started Room the student fits (fit ≥ LOW_FIT), 1 = an empty Room, 0 = a started Room of
+        // strangers. Started Rooms fill before empty ones are opened (BE-ASG-25), keeping empty Rooms for pairs and
+        // Round 2; gender and Block are fixed by the Beds offered, not by the score.
+        record Option(List<Bed> free, int tier, BigDecimal score, int people, String code, BigDecimal fit) {
         }
         List<Option> options = new ArrayList<>();
         for (List<Bed> room : bedsByRoom.values()) {
@@ -146,10 +149,11 @@ final class AssignmentEngine {
             List<Profile> people = occupants.getOrDefault(first.roomId(), List.of());
             BigDecimal fit = people.isEmpty() ? null : fit(a, people);
             BigDecimal score = fit == null ? new BigDecimal("0.5") : fit;
-            options.add(new Option(free, score, people.size(), first.roomCode(), fit));
+            int tier = fit == null ? 1 : fit.compareTo(LOW_FIT) >= 0 ? 2 : 0;
+            options.add(new Option(free, tier, score, people.size(), first.roomCode(), fit));
         }
         return options.stream()
-                .max(Comparator.comparing(Option::score).thenComparing(Option::people)
+                .max(Comparator.comparingInt(Option::tier).thenComparing(Option::score).thenComparing(Option::people)
                         .thenComparing(Option::code, Comparator.reverseOrder()))
                 .map(o -> take(a, o.free().getFirst(), o.fit()));
     }

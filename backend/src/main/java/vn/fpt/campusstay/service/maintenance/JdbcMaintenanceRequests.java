@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.fpt.campusstay.service.assignment.Residences;
 import vn.fpt.campusstay.service.auth.UserDirectory;
 import vn.fpt.campusstay.service.maintenance.MaintenanceRequests;
-import vn.fpt.campusstay.event.MaintenanceUpdated;
 import vn.fpt.campusstay.exception.ApiException;
 import vn.fpt.campusstay.repository.maintenance.RequestStore;
 
@@ -31,9 +31,13 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
     private final RequestStore requests;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final RequestAudience audience;
+    private final Residences residences;
 
     JdbcMaintenanceRequests(JdbcClient jdbc, MaintenanceService labels, UserDirectory users, RequestStore requests,
-            ApplicationEventPublisher events, Clock clock) {
+            ApplicationEventPublisher events, Clock clock, RequestAudience audience, Residences residences) {
+        this.audience = audience;
+        this.residences = residences;
         this.jdbc = jdbc;
         this.labels = labels;
         this.users = users;
@@ -63,6 +67,11 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
     }
 
     @Override
+    public boolean isAssigned(long requestId) {
+        return requests.find(String.valueOf(requestId), false).map(r -> r.assigneeId() != null).orElse(false);
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void setSlaDue(long requestId, Instant dueAt) {
         jdbc.sql("UPDATE mnt_request SET sla_due_at = :due WHERE id = :id")
@@ -83,10 +92,7 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
         String name = users.displayNames(List.of(assigneeId)).get(assigneeId);
         requests.event(r.id(), actorId, actorRole, actorId == null ? "Assigned to " + name + " (" + why + ")" : "Assigned to " + name,
                 null, false, Instant.now(clock));
-        if (r.source().equals("STUDENT")) {
-            events.publishEvent(new MaintenanceUpdated(r.id(), r.code(), r.reporterId(), r.title(),
-                    RequestStore.statusLabel(status), null));
-        }
+        audience.notify(r, RequestStore.statusLabel(status), null); // the reporter and, for inspection repairs, the Room's residents
     }
 
     @Override
@@ -103,16 +109,30 @@ class JdbcMaintenanceRequests implements MaintenanceRequests {
 
     @Override
     public List<StudentItem> ofStudent(long studentId, Long termId) {
-        List<RequestStore.Request> rows = jdbc.sql("SELECT * FROM mnt_request WHERE reporter_id = :student"
-                + (termId != null ? " AND term_id = :term" : "") + " ORDER BY reported_at DESC, id DESC")
-                .params(termId != null ? Map.of("student", studentId, "term", termId) : Map.of("student", studentId))
-                .query(RequestStore::request).list();
+        // The student's own requests, and those the back office opened in the Room they live in now (inspection
+        // findings): open ones, and the ones of the Term they live there.
+        Residences.Residence home = residences.current(studentId).filter(Residences.Residence::resident).orElse(null);
+        Map<String, Object> params = new java.util.HashMap<>(Map.of("student", studentId));
+        String room = "";
+        if (home != null) {
+            room = " OR (source <> 'STUDENT' AND room_id = :room"
+                    + " AND (status IN ('SUBMITTED', 'ASSIGNED', 'IN_PROGRESS') OR term_id = :homeTerm))";
+            params.put("room", home.roomId());
+            params.put("homeTerm", home.termId());
+        }
+        if (termId != null) {
+            params.put("term", termId);
+        }
+        List<RequestStore.Request> rows = jdbc.sql("SELECT * FROM mnt_request WHERE (reporter_id = :student" + room
+                + ")" + (termId != null ? " AND term_id = :term" : "") + " ORDER BY reported_at DESC, id DESC")
+                .params(params).query(RequestStore::request).list();
         Map<Long, String> names = users.displayNames(rows.stream().map(RequestStore.Request::assigneeId)
                 .filter(Objects::nonNull).collect(Collectors.toSet()));
         return rows.stream().map(r -> new StudentItem(r.code(), r.title(),
                 labels.label("MAINTENANCE_LOCATION", r.location()), labels.label("MAINTENANCE_CATEGORY", r.category()),
                 r.reportedAt(), RequestStore.statusLabel(r.status()),
                 r.assigneeId() == null ? null : names.get(r.assigneeId()),
-                RequestStore.visitWindow(r.visitStart(), r.visitEnd()))).toList();
+                RequestStore.visitWindow(r.visitStart(), r.visitEnd()),
+                r.source().equals("STUDENT") && r.reporterId() == studentId)).toList();
     }
 }

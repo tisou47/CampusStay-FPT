@@ -51,8 +51,11 @@ class Push {
     return _available;
   }
 
-  /// The current FCM token, or null when push is not set up or Google Play services cannot give one.
-  static Future<String?> token() async {
+  /// The current FCM token, or null when push is not set up or Google Play services cannot give one; replaceable in
+  /// tests.
+  static Future<String?> Function() token = _fcmToken;
+
+  static Future<String?> _fcmToken() async {
     if (!_available) return null;
     try {
       // The API sends to FCM registration tokens (A-05), not to the installation ids of register()/onRegistered.
@@ -93,6 +96,7 @@ class Push {
     try {
       // The token itself goes too (MOB-03): a later send gets UNREGISTERED and the API disables it, even if the
       // unregister call above did not reach the server.
+      // ignore: deprecated_member_use
       await FirebaseMessaging.instance.deleteToken();
     } catch (_) {
       // best effort

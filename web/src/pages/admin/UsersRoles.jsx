@@ -28,7 +28,7 @@ function UserModal({ user, roles, scopes, onClose }) {
   const isNew = !user.id
   const [form, setForm] = useState({ name: user.name ?? '', email: user.email ?? '', role: user.role ?? roles[0] ?? '', scope: user.scope ?? scopes[0] ?? '', status: user.status ?? 'Invited' })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const save = useMutation(() => (isNew ? api.admin.users.invite({ name: form.name.trim(), email: form.email.trim(), role: form.role, scope: form.scope }) : api.admin.users.update(user.id, form)), {
+  const save = useMutation(() => (isNew ? api.admin.users.invite({ name: form.name.trim(), email: form.email.trim().toLowerCase(), role: form.role, scope: form.scope }) : api.admin.users.update(user.id, form)), {
     invalidates: ['admin-users'],
     onSuccess: () => {
       notify({ title: isNew ? t('Invite sent') : t('{name} updated', { name: form.name }), message: isNew ? t('{email} can sign in after accepting the invite.', { email: form.email }) : 'The change is written to the audit log.' })
@@ -45,7 +45,7 @@ function UserModal({ user, roles, scopes, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" icon={Check} disabled={!form.name.trim() || !form.email.trim().endsWith('@fpt.edu.vn') || save.pending} onClick={() => save.run()}>
+          <Button variant="primary" icon={Check} disabled={!form.name.trim() || !form.email.trim().toLowerCase().endsWith('@fpt.edu.vn') || save.pending} onClick={() => save.run()}>
             {isNew ? t('Send invite') : t('Save')}
           </Button>
         </>
@@ -112,18 +112,19 @@ export default function UsersRoles() {
     <>
       <PageHeader
         title="Users and Roles"
-        description="Staff, manager and admin accounts. Students sign in with FPT accounts and are not created here."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setEditing({})} disabled={!d}>
             Invite user
           </Button>
         }
       />
-      <div className="flex shrink-0 items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select wrapperClassName="w-44" aria-label={t('Role')} value={role} onChange={filter(setRole)} options={[{ value: '', label: 'Role: All' }, ...(d?.roles ?? []).map((r) => ({ value: r, label: t('Role: {r}', { r: t(r) }) }))]} />
-        <Select wrapperClassName="w-35" aria-label={t('Block')} value={block} onChange={filter(setBlock)} options={[{ value: '', label: 'Block: All' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block: {b}', { b }) }))]} />
-        <Select wrapperClassName="w-38" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={[{ value: '', label: 'Status: All' }, ...['Active', 'Invited', 'Disabled'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) }))]} />
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <SearchInput wrapperClassName="min-w-72 flex-1" aria-label={t('Search')} placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Role')} value={role} onChange={filter(setRole)} options={[{ value: '', label: 'Role: All' }, ...(d?.roles ?? []).map((r) => ({ value: r, label: t('Role: {r}', { r: t(r) }) }))]} />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Block')} value={block} onChange={filter(setBlock)} options={[{ value: '', label: 'Block: All' }, ...(d?.blocks ?? []).map((b) => ({ value: b, label: t('Block: {b}', { b }) }))]} />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Status')} value={status} onChange={filter(setStatus)} options={[{ value: '', label: 'Status: All' }, ...['Active', 'Invited', 'Disabled'].map((s) => ({ value: s, label: t('Status: {s}', { s: t(s) }) }))]} />
+        </div>
       </div>
       <div className="flex min-h-0 flex-1 items-stretch gap-4">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">

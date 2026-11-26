@@ -35,7 +35,7 @@ function RuleModal({ rule, data, block, onClose }) {
     fallbackId: rule.fallbackId ?? '',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const save = useMutation(() => (isNew ? api.routing.create({ ...form, block, active: true }) : api.routing.save(rule.id, { ...form, active: true })), {
+  const save = useMutation(() => (isNew ? api.routing.create({ ...form, block, active: true }) : api.routing.save(rule.id, { ...form, active: rule.active ?? true })), {
     invalidates: ['routing', 'dashboard'],
     onSuccess: () => {
       const name = data.staff.find((s) => s.id === form.assigneeId)?.name

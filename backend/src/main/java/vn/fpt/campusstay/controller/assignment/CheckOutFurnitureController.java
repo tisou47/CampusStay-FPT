@@ -90,6 +90,11 @@ class CheckOutFurnitureController {
         return furniture.decide(allocationId, itemId, Boolean.TRUE.equals(body.keep()), body.note());
     }
 
+    @PostMapping("/check-out-reviews/claims/{claimId}")
+    CheckOutFurnitureService.Charges decideClaim(@PathVariable String claimId, @Valid @RequestBody DecisionRequest body) {
+        return furniture.decideClaim(claimId, Boolean.TRUE.equals(body.keep()), body.note());
+    }
+
     @GetMapping("/students/me/check-out")
     CheckOutFurnitureService.Charges mine() {
         return furniture.mine();

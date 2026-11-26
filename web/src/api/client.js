@@ -12,6 +12,7 @@
 
 import { sessionStore } from '@/lib/sessionStore'
 import { getLang, t } from '@/i18n'
+import { parseSse } from '@/lib/sse'
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
 const SESSION_KEY = 'campusstay-session'
@@ -59,6 +60,24 @@ function buildUrl(path, query) {
 let shiftConfirmer = null
 // Changes refused at the same moment share one question, so a second one never replaces the first dialog.
 let pendingConfirm = null
+// Once confirmed, the question is not asked again in the same sign-in: later changes carry X-Shift-Acknowledged at
+// once. The API still records each one as made outside the shift for the Managers. Kept per session token, so a
+// new sign-in (or another account) asks again.
+const SHIFT_ACK_KEY = 'campusstay.shiftAck'
+function shiftAcknowledged(token) {
+  try {
+    return !!token && sessionStorage.getItem(SHIFT_ACK_KEY) === token.slice(-24)
+  } catch {
+    return false
+  }
+}
+function rememberShiftAck(token) {
+  try {
+    if (token) sessionStorage.setItem(SHIFT_ACK_KEY, token.slice(-24))
+  } catch {
+    /* storage blocked: the dialog simply comes back next time */
+  }
+}
 
 export function setShiftConfirmer(fn) {
   shiftConfirmer = fn
@@ -86,6 +105,7 @@ export async function request(path, { method = 'GET', query, body, signal, heade
         'Accept-Language': getLang(),
         ...(body != null && !isForm && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
+        ...(method !== 'GET' && shiftAcknowledged(token) && { 'X-Shift-Acknowledged': 'true' }),
         ...headers,
       },
       body: body == null ? undefined : isForm ? body : JSON.stringify(body),
@@ -107,6 +127,7 @@ export async function request(path, { method = 'GET', query, body, signal, heade
   }
   if (res.status === 428 && data?.code === 'SHIFT_CONFIRM_REQUIRED' && shiftConfirmer && !headers?.['X-Shift-Acknowledged']) {
     if (await confirmShift({ message: data.message, ...data.details })) {
+      rememberShiftAck(token)
       return request(path, { method, query, body, signal, headers: { ...headers, 'X-Shift-Acknowledged': 'true' } })
     }
     throw new ApiError(t('Cancelled: nothing was changed.'), { status: 428, code: 'SHIFT_CANCELLED' })
@@ -148,6 +169,8 @@ export async function download(path, { query, fallbackName = 'export.csv' } = {}
   } catch {
     throw new ApiError(t('Cannot reach the CampusStay server. Check your connection and try again.'))
   }
+  // An expired session signs out here too, as request() does (WEB-STU-14, WEB-ADM-15).
+  if (res.status === 401) writeSession(null)
   if (!res.ok) throw new ApiError(t('Export failed ({status}).', { status: res.status }), { status: res.status })
   const name = /filename="?([^";]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName
   const url = URL.createObjectURL(await res.blob())
@@ -156,6 +179,59 @@ export async function download(path, { query, fallbackName = 'export.csv' } = {}
   link.download = name
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/**
+ * POSTs and reads a Server-Sent Events answer (D6): `onEvent(name, data)` gets each event with its JSON data.
+ * Errors before the stream starts come back as JSON and throw an ApiError, as request() does.
+ */
+export async function stream(path, body, { signal, onEvent } = {}) {
+  const token = readSession()?.token
+  let res
+  try {
+    res = await fetch(buildUrl(path), {
+      method: 'POST',
+      signal,
+      headers: {
+        Accept: 'text/event-stream, application/json',
+        'Accept-Language': getLang(),
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify(body),
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') throw err
+    throw new ApiError(t('Cannot reach the CampusStay server. Check your connection and try again.'))
+  }
+  if (res.status === 401) writeSession(null)
+  const type = res.headers.get('content-type') ?? ''
+  if (!type.includes('text/event-stream')) {
+    const data = type.includes('application/json') ? await res.json().catch(() => null) : null
+    if (!res.ok) {
+      throw new ApiError(data?.message ?? t('Request failed ({status}).', { status: res.status }), { status: res.status, code: data?.code, details: data?.details })
+    }
+    return data
+  }
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  for (;;) {
+    const { value, done } = await reader.read()
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done })
+    const { events, rest } = parseSse(done ? `${buffer}\n\n` : buffer)
+    buffer = rest
+    for (const e of events) {
+      let data = null
+      try {
+        data = e.data ? JSON.parse(e.data) : {}
+      } catch {
+        data = { text: e.data }
+      }
+      onEvent?.(e.event, data)
+    }
+    if (done) return null
+  }
 }
 
 export const http = {

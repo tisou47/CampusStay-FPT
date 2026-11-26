@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ArrowRightLeft, CalendarDays, ClipboardList, History, Pencil, Route, UserPlus, Send, Users, X } from 'lucide-react'
+import { ArrowRightLeft, CalendarDays, ClipboardList, History, Pencil, Route, UserPlus, Send, Users } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useSession } from '@/app/session'
@@ -15,6 +15,7 @@ import { Drawer, Modal } from '@/components/ui/Overlay'
 import { TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, TwoLine } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
+import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { t, tr } from '@/i18n'
 
@@ -84,105 +85,6 @@ const HANDLE_GROUPS = [
   },
 ]
 
-const PRESETS = [
-  { key: 'morning', label: 'Morning', start: '07:00', end: '15:00' },
-  { key: 'afternoon', label: 'Afternoon', start: '15:00', end: '23:00' },
-  { key: 'night', label: 'Night', start: '23:00', end: '07:00' },
-]
-const TIMES = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
-
-/**
- * A Staff member's weekly shifts as a week: one line per day with its shifts as chips. A shift is added from the
- * day's list (Morning, Afternoon, Night or custom hours, 24-hour clock); an end before the start runs past midnight.
- */
-function ShiftEditor({ shifts, onChange }) {
-  const [custom, setCustom] = useState(null)
-  const add = (days, start, end) => {
-    const fresh = days.filter((d) => !shifts.some((s) => s.weekday === d && s.start === start)).map((weekday) => ({ weekday, start, end }))
-    if (fresh.length) onChange([...shifts, ...fresh])
-  }
-  const remove = (x) => onChange(shifts.filter((s) => s !== x))
-  const span = (s) => `${s.start}–${s.end}`
-  return (
-    <fieldset className="flex flex-col gap-3">
-      <legend className="mb-1 text-base font-medium text-fg">{t('Default weekly shifts')}</legend>
-      <p className="text-sm text-fg-secondary">
-        {t('Used by every week you do not plan on Work schedule. Outside the shifts of a week, every change this person makes asks them to confirm and is marked in the staff activity log.')}
-      </p>
-      <div className="flex flex-wrap items-center gap-2 rounded-lg bg-subtle px-3 py-2">
-        <span className="text-sm font-medium text-fg">{t('Mon–Fri:')}</span>
-        {PRESETS.map((p) => (
-          <Button key={p.key} size="sm" onClick={() => add([1, 2, 3, 4, 5], p.start, p.end)}>
-            {`${t(p.label)} ${p.start}–${p.end}`}
-          </Button>
-        ))}
-        {shifts.length > 0 && (
-          <Button size="sm" variant="text" className="ml-auto" onClick={() => onChange([])}>
-            Clear all
-          </Button>
-        )}
-      </div>
-      <div className="flex flex-col rounded-lg border border-line">
-        {WEEKDAYS.map((name, i) => {
-          const day = i + 1
-          const mine = shifts.filter((s) => s.weekday === day).sort((a, b) => a.start.localeCompare(b.start))
-          return (
-            <div key={day} className="flex flex-col gap-2 border-b border-line px-3 py-2 last:border-b-0">
-              <div className="flex items-center gap-3">
-                <span className="w-9 shrink-0 font-medium text-fg">{t(name)}</span>
-                <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-                  {mine.length === 0 && <span className="text-sm text-fg-tertiary">{t('Day off')}</span>}
-                  {mine.map((s) => (
-                    <span key={`${s.start}-${s.end}`} className="inline-flex h-7 items-center gap-1 rounded-full bg-primary-subtle pr-1 pl-2.5 text-sm font-medium text-fg-brand tabular">
-                      {span(s)}
-                      {s.end < s.start && <span className="font-normal text-fg-secondary">({t('until {day} morning', { day: t(WEEKDAYS[s.weekday % 7]) })})</span>}
-                      <button type="button" onClick={() => remove(s)} aria-label={t('Remove {span}', { span: span(s) })} className="rounded-full p-0.5 hover:bg-primary/15">
-                        <X size={14} aria-hidden="true" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <Select
-                  aria-label={t('Add a shift on {day}', { day: t(name) })}
-                  wrapperClassName="w-44 shrink-0"
-                  value=""
-                  onChange={(e) => {
-                    const v = e.target.value
-                    if (v === 'custom') setCustom({ weekday: day, start: '08:00', end: '17:00' })
-                    else {
-                      const p = PRESETS.find((x) => x.key === v)
-                      if (p) add([day], p.start, p.end)
-                    }
-                  }}
-                  options={[
-                    { value: '', label: t('+ Add a shift') },
-                    ...PRESETS.map((p) => ({ value: p.key, label: `${t(p.label)} ${p.start}–${p.end}` })),
-                    { value: 'custom', label: t('Custom hours…') },
-                  ]}
-                />
-              </div>
-              {custom?.weekday === day && (
-                <div className="flex flex-wrap items-center gap-2 pl-12">
-                  <Select aria-label={t('Start')} wrapperClassName="w-24 shrink-0" value={custom.start} onChange={(e) => setCustom({ ...custom, start: e.target.value })} options={TIMES} />
-                  <span aria-hidden="true">–</span>
-                  <Select aria-label={t('End')} wrapperClassName="w-24 shrink-0" value={custom.end} onChange={(e) => setCustom({ ...custom, end: e.target.value })} options={TIMES} />
-                  {custom.end < custom.start && <span className="text-sm text-fg-secondary">({t('overnight')})</span>}
-                  <Button size="sm" variant="primary" disabled={custom.start === custom.end} onClick={() => (add([day], custom.start, custom.end), setCustom(null))}>
-                    Add
-                  </Button>
-                  <Button size="sm" variant="text" onClick={() => setCustom(null)}>
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </fieldset>
-  )
-}
-
 function EditModal({ person, handleOptions, onClose }) {
   const { notify } = useToast()
   const [handles, setHandles] = useState(new Set(person.handles))
@@ -194,12 +96,9 @@ function EditModal({ person, handleOptions, onClose }) {
       return next
     })
   const isStaff = person.role === 'Staff'
-  const [shifts, setShifts] = useState(person.shifts ?? [])
+  // Shifts are edited on Work schedule only (user decision 25/11/2026): this dialog shows them and links there.
   const save = useMutation(
-    async () => {
-      await api.blockStaff.update(person.id, { handles: handleOptions.filter((h) => handles.has(h)) })
-      if (isStaff) await api.blockStaff.setShifts(person.id, { shifts })
-    },
+    () => api.blockStaff.update(person.id, { handles: handleOptions.filter((h) => handles.has(h)) }),
     {
       invalidates: ['block-staff', 'routing', 'staff-activity'],
       onSuccess: () => {
@@ -219,7 +118,7 @@ function EditModal({ person, handleOptions, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => save.run()} disabled={save.pending || shifts.some((s) => !s.start || !s.end || s.start === s.end)}>
+          <Button variant="primary" onClick={() => save.run()} disabled={save.pending}>
             Save
           </Button>
         </>
@@ -252,7 +151,28 @@ function EditModal({ person, handleOptions, onClose }) {
             ))}
         </div>
       </fieldset>
-      {isStaff && <ShiftEditor shifts={shifts} onChange={setShifts} />}
+      {isStaff && (
+        <section className="flex flex-col gap-2 rounded-lg border border-line bg-subtle/50 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-base font-medium text-fg">{t('Work shifts')}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" icon={CalendarDays} to="/manager/staff-schedule?view=this-week" onClick={onClose}>
+                This week’s schedule
+              </Button>
+              <Button size="sm" to="/manager/staff-schedule?view=default" onClick={onClose}>
+                Default weekly shifts
+              </Button>
+            </div>
+          </div>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+            <dt className="text-fg-secondary">{t('This week')}</dt>
+            <dd className="text-fg">{shiftSummary(person.weekShifts) ?? t('No shift this week')}</dd>
+            <dt className="text-fg-secondary">{t('Default weekly shifts')}</dt>
+            <dd className="text-fg">{shiftSummary(person.shifts) ?? t('None set')}</dd>
+          </dl>
+          <p className="text-xs text-fg-tertiary">{t('Shifts are changed on Work schedule: a week planned there replaces the default weekly shifts for that week.')}</p>
+        </section>
+      )}
       <p className="text-sm text-fg-secondary">
         {t(person.onDuty ? 'On duty now' : 'Off duty now')} · {t('Duty follows sign-in: signing in starts the shift, signing out ends it.')}
       </p>
@@ -270,21 +190,41 @@ function WorkDrawer({ person, staff, onClose }) {
   const items = work.data?.items ?? []
   const key = (i) => `${i.type}:${i.id}`
 
-  // Receivers: the others of the list, on duty first, then the least loaded.
+  // What the receiver needs for the items ticked (all of them while none is ticked): to work in their Blocks and to
+  // handle their kinds of work, as the server checks. Who fits comes first, on duty first, then the least loaded;
+  // the others are listed with the reason and cannot be chosen.
+  const chosen = selected.size ? items.filter((i) => selected.has(key(i))) : items
+  const needBlocks = [...new Set(chosen.map((i) => i.block).filter(Boolean))]
+  const needHandles = [...new Set(chosen.map((i) => i.handle).filter(Boolean))]
   const receivers = useMemo(
     () =>
       staff
         .filter((s) => s.id !== person.id)
-        .sort((a, b) => (a.onDuty === b.onDuty ? a.open - b.open || a.name.localeCompare(b.name) : a.onDuty ? -1 : 1)),
-    [staff, person.id],
+        .map((s) => {
+          const missingBlocks = needBlocks.filter((b) => !s.blocks.includes(b))
+          const missingHandles = needHandles.filter((h) => !s.handles.includes(h))
+          return { ...s, missingBlocks, missingHandles, fits: !missingBlocks.length && !missingHandles.length }
+        })
+        .sort((a, b) => b.fits - a.fits || b.onDuty - a.onDuty || a.open - b.open || a.name.localeCompare(b.name)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [staff, person.id, needBlocks.join(), needHandles.join()],
   )
-  const receiver = receivers.find((s) => s.id === to)
+  const fitting = receivers.filter((s) => s.fits)
+  // A receiver chosen before the ticks changed may no longer fit: then nobody is chosen.
+  const receiver = receivers.find((s) => s.id === to && s.fits)
+  const why = (s) =>
+    [
+      s.missingBlocks.length ? t('not in Block {list}', { list: s.missingBlocks.join(', ') }) : null,
+      s.missingHandles.length ? t('does not handle {list}', { list: s.missingHandles.map(tr).join(', ') }) : null,
+    ]
+      .filter(Boolean)
+      .join('; ')
 
   const move = useMutation(
     () =>
       api.blockStaff.reassign(person.id, {
         items: items.filter((i) => selected.has(key(i))).map((i) => ({ type: i.type, id: i.id })),
-        toStaffId: to,
+        toStaffId: receiver?.id,
         note: note.trim(),
       }),
     {
@@ -317,7 +257,7 @@ function WorkDrawer({ person, staff, onClose }) {
       footer={
         <>
           <Button onClick={onClose}>Close</Button>
-          <Button variant="primary" icon={ArrowRightLeft} onClick={() => move.run()} disabled={move.pending || selected.size === 0 || !to || !note.trim()}>
+          <Button variant="primary" icon={ArrowRightLeft} onClick={() => move.run()} disabled={move.pending || selected.size === 0 || !receiver || !note.trim()}>
             {t('Reassign selected ({n})', { n: selected.size })}
           </Button>
         </>
@@ -352,19 +292,57 @@ function WorkDrawer({ person, staff, onClose }) {
               </li>
             ))}
           </ul>
-          <Field label="Move to" required helper="The receiver must work in the item's Block and handle its kind of work.">
+          <Field
+            label="Move to"
+            required
+            helper={
+              needBlocks.length || needHandles.length
+                ? t('{n} can take {what}: they work in Block {blocks} and handle {handles}.', {
+                    n: fitting.length,
+                    what: selected.size ? t('the work ticked') : t('this work'),
+                    blocks: needBlocks.join(', ') || '—',
+                    handles: needHandles.map(tr).join(', ') || '—',
+                  })
+                : 'The receiver must work in the item’s Block and handle its kind of work.'
+            }
+          >
             {(id) => (
               <Select
                 id={id}
-                value={to}
+                value={receiver?.id ?? ''}
                 onChange={(e) => setTo(e.target.value)}
                 options={[
-                  { value: '', label: t('Choose a staff member') },
-                  ...receivers.map((s) => ({ value: s.id, label: `${s.name} · ${t('{n} open', { n: s.open })} · ${t(s.onDuty ? 'On duty' : 'Off duty')}` })),
+                  { value: '', label: fitting.length ? t('Choose a staff member') : t('Nobody fits this work') },
+                  ...receivers.map((s) => ({
+                    value: s.id,
+                    disabled: !s.fits,
+                    label: s.fits
+                      ? `${s.name} · ${t('{n} open', { n: s.open })} · ${t(s.onDuty ? 'On duty' : 'Off duty')}`
+                      : `${s.name} — ${why(s)}`,
+                  })),
                 ]}
               />
             )}
           </Field>
+          {fitting.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm text-fg-secondary">{t('Suggested:')}</span>
+              {fitting.slice(0, 3).map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setTo(s.id)}
+                  className={cx(
+                    'rounded-full border px-2.5 py-0.5 text-sm transition-colors',
+                    receiver?.id === s.id ? 'border-primary bg-primary-subtle font-medium text-fg-brand' : 'border-line text-fg hover:bg-subtle',
+                  )}
+                >
+                  {s.name} · {t('{n} open', { n: s.open })}
+                  {s.onDuty ? ` · ${t('On duty')}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
           <Field label="Why do you move this work?" required error={move.error?.fields?.note} helper="The receiver reads it; the Audit Log keeps it.">
             {(id) => <Textarea id={id} rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />}
           </Field>
@@ -426,6 +404,8 @@ export default function BlockStaff() {
   const queue = query.data?.queue ?? []
   const waiting = queue.reduce((n, q) => n + q.count, 0)
   const staff = query.data?.items ?? []
+  // Who needs attention first: overdue work, then the most open work, then by name.
+  const sorted = [...staff].sort((a, b) => (b.overdue ?? 0) - (a.overdue ?? 0) || (b.open ?? 0) - (a.open ?? 0) || a.name.localeCompare(b.name))
 
   return (
     <>
@@ -468,80 +448,82 @@ export default function BlockStaff() {
         </KpiTile>
       </div>
       <WeekHandover block={block} />
-      <Table fill className="min-h-[420px] shrink-0">
+      <Table fill className="min-h-[420px] shrink-0" tableClassName="table-fixed">
         <THead>
           <tr>
-            <Th className="sticky left-0 z-20 min-w-60 bg-subtle">Staff</Th>
-            <Th className="min-w-56">Handles</Th>
-            {KINDS.map((k) => (
-              <Th key={k} className="w-24 whitespace-nowrap text-right">
-                {k}
-              </Th>
-            ))}
-            <Th className="w-20 whitespace-nowrap text-right">Overdue</Th>
-            <Th className="w-20 whitespace-nowrap text-right">Oldest</Th>
-            <Th className="w-28 whitespace-nowrap text-right">Resolved (7 days)</Th>
-            <Th className="w-28 whitespace-nowrap">Status</Th>
-            <Th className="min-w-48">Work shift</Th>
-            <Th className="sticky right-0 z-20 w-32 bg-subtle">
+            <Th>Staff</Th>
+            <Th className="w-[21%]">Handles</Th>
+            <Th className="w-[19%]">Open work</Th>
+            <Th className="w-[10%] text-right">Resolved (7 days)</Th>
+            <Th className="w-[17%]">Duty and shift</Th>
+            <Th className="w-28">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={12} emptyIcon={Users} emptyTitle="No staff in these blocks" />
-          {staff.map((p) => (
-            <Tr key={p.id} className="[&>td]:min-h-14">
-              <Td className="sticky left-0 z-[1] bg-surface">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <Avatar name={p.name} />
-                  <button type="button" onClick={() => setViewing(p)} className="min-w-0 text-left hover:underline">
-                    <TwoLine primary={p.name} secondary={`${tr(p.title)} · ${t('Blocks {codes}', { codes: p.blocks.join(', ') })}`} />
-                  </button>
-                  {p.overloaded && <Tag tone="warning">Overloaded</Tag>}
-                </div>
-              </Td>
-              <Td>
-                {p.handles.length ? (
-                  <div className="flex max-w-72 flex-wrap gap-1 py-1">
-                    {p.handles.map((h) => (
-                      <Tag key={h}>{tr(h)}</Tag>
-                    ))}
+          <TableStatus query={query} colSpan={6} emptyIcon={Users} emptyTitle="No staff in these blocks" />
+          {sorted.map((p) => {
+            const kinds = KINDS.filter((k) => p.openByType?.[k] > 0)
+            return (
+              <Tr key={p.id} className="[&>td]:h-16">
+                <Td>
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <Avatar name={p.name} />
+                    <button type="button" onClick={() => setViewing(p)} className="min-w-0 text-left hover:underline">
+                      <TwoLine primary={p.name} secondary={`${t('Blocks {codes}', { codes: p.blocks.join(', ') })} · ${tr(p.title)}`} />
+                    </button>
+                    {p.overloaded && <Tag tone="warning">Overloaded</Tag>}
                   </div>
-                ) : (
-                  <span className="text-fg-tertiary">{t('Nothing yet')}</span>
-                )}
-              </Td>
-              {KINDS.map((k) => (
-                <Td key={k} className="text-right tabular">
-                  {p.openByType?.[k] ?? 0}
                 </Td>
-              ))}
-              <Td className="text-right tabular">{p.overdue > 0 ? <Tag tone="error">{String(p.overdue)}</Tag> : 0}</Td>
-              <Td className={p.oldestOpenAt ? 'text-right tabular' : 'text-right text-fg-tertiary'}>{oldest(p.oldestOpenAt)}</Td>
-              <Td className="text-right tabular">{p.resolved7d ?? '—'}</Td>
-              <Td className="whitespace-nowrap">{p.onDuty ? <Tag tone="success">On duty</Tag> : <Tag>Off</Tag>}</Td>
-              <Td>
-                {p.role !== 'Staff' ? (
-                  <span className="text-fg-tertiary">—</span>
-                ) : p.weekShifts?.length ? (
-                  <div className="flex flex-col items-start gap-0.5 py-1">
-                    {p.inShift ? <Tag tone="success">In shift</Tag> : <Tag tone="warning">Outside shift</Tag>}
-                    <span className="text-sm text-fg-secondary">{shiftSummary(p.weekShifts)}</span>
+                <Td>
+                  {p.handles.length ? (
+                    <p className="line-clamp-2 text-sm text-fg-secondary" title={p.handles.map(tr).join(', ')}>
+                      {p.handles.map(tr).join(', ')}
+                    </p>
+                  ) : (
+                    <span className="text-fg-tertiary">{t('Nothing yet')}</span>
+                  )}
+                </Td>
+                <Td>
+                  {p.open > 0 ? (
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-fg tabular">{t('{n} open', { n: p.open })}</span>
+                        {p.overdue > 0 && <Tag tone="error">{t('{n} overdue', { n: p.overdue })}</Tag>}
+                      </div>
+                      <span className="truncate text-sm text-fg-tertiary">
+                        {[...kinds.map((k) => `${t(k)} ${p.openByType[k]}`), p.oldestOpenAt && t('oldest {age}', { age: oldest(p.oldestOpenAt) })].filter(Boolean).join(' · ')}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-fg-tertiary">{t('No open work')}</span>
+                  )}
+                </Td>
+                <Td className="text-right tabular">{p.resolved7d ?? '—'}</Td>
+                <Td>
+                  <div className="flex min-w-0 flex-col items-start gap-0.5">
+                    {p.onDuty ? <Tag tone="success">On duty</Tag> : <Tag>Off</Tag>}
+                    {p.role === 'Staff' &&
+                      (p.weekShifts?.length ? (
+                        <span className="max-w-full truncate text-sm text-fg-secondary" title={shiftSummary(p.weekShifts)}>
+                          {p.inShift ? t('In shift') : t('Outside shift')} · {shiftSummary(p.weekShifts)}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-warning-fg">{t('No shift this week')}</span>
+                      ))}
                   </div>
-                ) : (
-                  <Tag tone="warning">No shift set</Tag>
-                )}
-              </Td>
-              <Td className="sticky right-0 z-[1] bg-surface">
-                <div className="flex justify-end gap-0.5">
-                  <IconButton icon={ClipboardList} aria-label={t('Work')} onClick={() => setViewing(p)} />
-                  {p.role === 'Staff' && <IconButton icon={History} aria-label={t('Activity')} onClick={() => navigate(`/manager/staff-activity?staff=${p.id}`)} />}
-                  <IconButton icon={Pencil} aria-label={t('Edit')} onClick={() => setEditing(p)} />
-                </div>
-              </Td>
-            </Tr>
-          ))}
+                </Td>
+                <Td>
+                  <div className="flex justify-end gap-0.5">
+                    <IconButton icon={ClipboardList} aria-label={t('Work')} onClick={() => setViewing(p)} />
+                    {p.role === 'Staff' && <IconButton icon={History} aria-label={t('Activity')} onClick={() => navigate(`/manager/staff-activity?staff=${p.id}`)} />}
+                    <IconButton icon={Pencil} aria-label={t('Edit')} onClick={() => setEditing(p)} />
+                  </div>
+                </Td>
+              </Tr>
+            )
+          })}
         </TBody>
       </Table>
       {editing && <EditModal person={editing} handleOptions={query.data?.handleOptions ?? editing.handles} onClose={() => setEditing(null)} />}

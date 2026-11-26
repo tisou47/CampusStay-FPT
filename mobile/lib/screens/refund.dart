@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -21,6 +22,7 @@ class RefundAccount extends ChangeNotifier {
 
   /// Loads the saved account and the banks; errors leave the fields empty.
   Future<void> load() async {
+    error = null;
     try {
       final results = await Future.wait([Api.get('/students/me/refund-account'), Api.get('/banks')]);
       saved = results[0];
@@ -256,7 +258,15 @@ class _RefundAccountCardState extends State<RefundAccountCard> {
       listenable: _account,
       builder: (context, _) {
         final saved = _account.saved;
-        if (saved == null) return const SizedBox.shrink();
+        if (saved == null) {
+          // MOB-33: a failed load says so, so the student can still reach the refund account.
+          return _account.loaded && _account.error != null
+              ? Section(
+                  title: t('Refund account', 'Tài khoản hoàn tiền'),
+                  children: [RetryRow(what: t('the refund account', 'tài khoản hoàn tiền'), retry: _account.load)],
+                )
+              : const SizedBox.shrink();
+        }
         final pending = widget.pendingAmount;
         final blocking = pending > 0 && !_account.complete;
         return Panel(

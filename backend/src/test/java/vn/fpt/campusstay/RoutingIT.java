@@ -212,4 +212,18 @@ class RoutingIT {
         assertThat(row.due()).isEqualTo(decisionsDue);
         assertThat(row.submitted()).isBefore(row.due());
     }
+
+    /** TC-REQ-500: a Maintenance rule limited to a category, changed to Room change, then covers all (BE-OPS-11). */
+    @Test
+    void typeChangeDropsTheCategory() throws Exception {
+        String manager = bearer(mvc, MANAGER_B);
+        String id = rule(manager, """
+                {"block":"B","type":"Maintenance","scope":"Electrical","assigneeId":"%d"}"""
+                .formatted(stay.userId(STAFF_B1)));
+        putAs("/routing-rules/" + id, manager, "{\"type\":\"Room change\"}").andExpect(status().isNoContent());
+        getAs("/routing-rules?block=B", manager)
+                .andExpect(jsonPath("$.rules[?(@.id == '" + id + "')].scope").value(hasItem("All")));
+        // Other tests count the Block's rules.
+        jdbc.sql("DELETE FROM req_routing_rule WHERE id = :id").param("id", Long.parseLong(id)).update();
+    }
 }

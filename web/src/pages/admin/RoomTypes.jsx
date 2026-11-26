@@ -118,7 +118,6 @@ export default function RoomTypes() {
     <>
       <PageHeader
         title="Room types"
-        description="Number of beds per room and the base price per bed for one term. Room tier surcharges are added on top."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setParams({ edit: 'new' })}>
             New room type

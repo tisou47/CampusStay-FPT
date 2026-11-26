@@ -184,7 +184,7 @@ With `PAYMENT_BANK_NAME`, `PAYMENT_BANK_CODE` (e.g. `MBBank`), `PAYMENT_ACCOUNT_
 ### 3.4 Google sign-in (ADR-14)
 1. Google Cloud Console (the Firebase project can be reused) → OAuth consent screen: user type External, scopes `openid`, `email`, `profile` only, then **Publish app**. In "Testing" status only the test users you list can sign in.
 2. Credentials → OAuth client ID, type Web application → Authorized JavaScript origins: the Vercel production URL (and `http://localhost:5173` for development). **Authorized redirect URIs:** the sign-in page of each, `https://campusstay-fpt-ten.vercel.app/signin` and `http://localhost:5173/signin`: when a browser blocks the Google popup the web uses Google's redirect flow and comes back there (A-22); without them Google answers "Error 400: redirect_uri_mismatch". Google accepts no wildcards, so preview deployments sign in with email and password only.
-3. Client id and secret into the VPS's `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), client id into Vercel (`VITE_GOOGLE_CLIENT_ID`), then redeploy the web. Done 25/10/2026 (the client JSON stays in `C:\Users\DELL\.campusstay\google-oauth.json`; the VM's previous settings are in `.env.bak-20261025`).
+3. Client id and secret into the VPS's `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), client id into Vercel (`VITE_GOOGLE_CLIENT_ID`), then redeploy the web. Done 25/10/2026 (the client JSON stays on the project owner's machine, outside the repository; the VM's previous settings are in `.env.bak-20261025`).
 4. Only `@fpt.edu.vn` accounts that already exist in CampusStay can sign in: give a test account your FPT email (backend/README.md). Android needs its own OAuth client of type Android (package name + SHA-1 of the release key).
 
 ## 4. Operations (on the VPS, as `deploy`, in `/opt/campusstay`)
@@ -248,6 +248,20 @@ A failing `mvn verify` stops the run before the image, so the running version st
 | Monthly | VM CPU credits (B-series) | Azure → the VM → Metrics → *CPU Credits Remaining*: at 0 the VM is throttled (long assignment runs or exports use credits) |
 | Automatic, check monthly | HTTPS certificate | Caddy renews it; `echo \| openssl s_client -connect <API_DOMAIN>:443 2>/dev/null \| openssl x509 -noout -enddate` |
 | Before each review or the defense | Backups and a test restore | §1.11 cron (uploaded files), a one-off database dump (A.4) copied to your computer |
+| Weekly | Scheduled jobs, server errors, uploads, email outbox | Admin › System health (`GET /api/admin/system/health`, Admin only); the API log is one JSON (ECS) line per event, e.g. `docker compose logs api | grep '"log.level":"ERROR"'` |
+
+### 6.3 Wave 3 settings to apply (owner)
+- **CORS (BE-AUTH-09):** replace the `*` preview pattern in `/opt/campusstay/.env` with the `regex:` entries of `.env.example` (`CORS_ALLOWED_ORIGINS`), then `docker compose up -d api`. A `*` admits any Vercel project named to fit it.
+- **Profile (BE-AUTH-10):** the image's default profile is now `prod`; `docker-compose.yml` still sets `SPRING_PROFILES_ACTIVE=prod`. Swagger UI and `/v3/api-docs` are off in production (BE-AUTH-07); generate the Postman collection from a local dev backend.
+
+## 7. After the defense (owner only, D7)
+Production changes: the project owner does them (Claude Code has no SSH to the server). Until the defense the demo password `123` and the demo tools stay on purpose (decision 25/11/2026).
+1. **Rotate the demo passwords.** Every account of the base data (`admin01`…, `manager01`…, `staffa01`…, the demo students) signs in with `123`. As `admin01`, give each back-office account that stays in use a new invitation (Admin › Users and Roles, the reset/invite link) or disable it; disable the fictional students that are not needed. Then change `admin01`'s own password last, to a long random one kept in a password manager. Check: signing in with `123` fails for every account that remains active.
+2. **Turn off the demo tools.** Remove `DEMO_TOOLS=true` from `/opt/campusstay/.env` (or set `false`), `docker compose up -d api`. Check: Admin › System › Demo data says the tools are off, `POST /api/admin/demo/...` answers an error.
+3. **Remove the unused payment simulator settings.** Delete `PAYMENT_SIMULATOR` from the server's `.env` and `VITE_PAYMENT_SIMULATOR` from the Vercel project (Settings → Environment Variables), then redeploy the web (they are not read since v2 phase 5).
+4. **Delete stale GitHub branches (REPO-11).** On GitHub → Branches, delete merged `feat/*`, `fix/*` and `test/*` branches (or `git push origin --delete <branch>` for each); keep `main`. Check that no open pull request uses them first.
+5. **Release signing for the Android app.** Create an upload key (`keytool -genkey -v -keystore campusstay-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`), keep it and its passwords outside the repository (password manager and an offline copy), point `mobile/android/key.properties` at it (never committed), and build `flutter build appbundle --release`. A lost key cannot be replaced for an app already on Play.
+6. **Afterwards:** check `GET /api/actuator/health` is UP and Admin › System health shows the jobs running, and write the date of each step in `docs/CHANGELOG.md`.
 
 ## Appendix A. Azure for Students
 The stack runs on an Azure VM like on any VPS. Two layouts:

@@ -1,4 +1,4 @@
-﻿import { Bed, Building, Calendar, CalendarCheck, Check, CheckCircle2, Circle, Clock, CreditCard, ExternalLink, FileText, KeyRound, ShieldCheck } from 'lucide-react'
+import { Bed, Building, Calendar, CalendarCheck, Check, CheckCircle2, Circle, Clock, CreditCard, ExternalLink, FileText, KeyRound, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, Note, ProgressBar } from '@/components/ui/Display'
 import { cx } from '@/lib/cx'

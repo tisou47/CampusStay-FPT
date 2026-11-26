@@ -1,5 +1,6 @@
 import 'dart:io';
 
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -66,7 +67,7 @@ class _RequestsListState extends State<RequestsList> {
               final items = d.objects('items');
               final counts = d.obj('counts');
               final resolved = _kind == 'maintenance'
-                  ? items.where((r) => r.str('status') == 'Resolved').firstOrNull
+                  ? items.where(_canConfirm).firstOrNull
                   : null;
               return Cards(
                 bottom: 96,
@@ -157,9 +158,13 @@ class _RequestsListState extends State<RequestsList> {
   }
 }
 
-Widget _maintenanceStatus(String? status) => status == 'Resolved'
+/// A request the dormitory office opened in the student's Room (an inspection finding, `reportedByYou: false`) is
+/// followed and, once Resolved, confirmed or reopened by any student living there.
+bool _canConfirm(Json r) => r.str('status') == 'Resolved';
+
+Widget _maintenanceStatus(Json r) => _canConfirm(r)
     ? Tag(t('Resolved · confirm the fix', 'Đã xử lý · hãy xác nhận'), tone: Tone.success)
-    : StatusChip(status);
+    : StatusChip(r.str('status'));
 
 /// Runs one answer at a time: [builder] gets whether one is running and the way to start one (MOB-25).
 class _OneAtATime extends StatefulWidget {
@@ -315,7 +320,7 @@ class MaintenanceScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      _maintenanceStatus(status),
+                      _maintenanceStatus(r),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -390,7 +395,7 @@ class MaintenanceScreen extends StatelessWidget {
                       ),
                   ],
                 ),
-              if (status == 'Resolved')
+              if (_canConfirm(r))
                 _OneAtATime(
                   builder: (busy, run) => Row(
                     spacing: 8,
@@ -620,7 +625,7 @@ class _MaintenanceFormState extends State<_MaintenanceForm> {
                       style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
                       onPressed: () async {
                         final picked = await pickImages(_maxPhotos - _photos.length);
-                        setState(() => _photos.addAll(picked));
+                        if (mounted) setState(() => _photos.addAll(picked));
                       },
                       child: const Icon(Icons.add_a_photo_outlined),
                     ),
@@ -1111,6 +1116,9 @@ class _SwapBoardState extends State<_SwapBoard> {
                   value: _block ?? '',
                   onChanged: (v) => setState(() => _block = v == null || v.isEmpty ? null : v),
                 ),
+                // MOB-33: without the catalog the lists below are empty; say why and offer a retry.
+                if (catalog == null)
+                  RetryRow(what: t('the Room Types and Classes', 'loại và hạng phòng'), retry: reload),
                 Choice<String>(
                   name: t('Room Type', 'Loại phòng'),
                   values: [for (final r in types) r.text('id')],

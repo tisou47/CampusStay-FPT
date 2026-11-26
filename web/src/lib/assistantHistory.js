@@ -16,3 +16,18 @@ export function clearAssistantHistory() {
     // storage refused: nothing was kept
   }
 }
+
+/** The longest turn the API takes (AssistantController: 2000 characters). */
+export const MAX_TURN = 2000
+
+/**
+ * The turns sent with a question: the last `count`, without error bubbles, and without any turn over MAX_TURN, which
+ * the API would refuse on every later question (WEB-STU-37). A signed answer cannot be cut (its signature would no
+ * longer match), so a too-long one is left out whole.
+ */
+export function turnsToSend(messages, count = 20) {
+  return messages
+    .filter((m) => !m.error && typeof m.content === 'string' && m.content.length <= MAX_TURN)
+    .slice(-count)
+    .map(({ role, content, signature }) => (signature ? { role, content, signature } : { role, content }))
+}

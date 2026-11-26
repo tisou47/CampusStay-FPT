@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -78,6 +79,15 @@ public class ApplicationStore {
     public Optional<Application> find(long id, boolean lock) {
         return jdbc.sql("SELECT " + COLUMNS + " FROM app_application WHERE id = :id" + (lock ? " FOR UPDATE" : ""))
                 .param("id", id).query(ApplicationStore::map).optional();
+    }
+
+    /** The Applications with these ids, in one query (ids not found are left out), ordered by id. */
+    public List<Application> findAll(Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("SELECT " + COLUMNS + " FROM app_application WHERE id IN (:ids) ORDER BY id")
+                .param("ids", List.copyOf(ids)).query(ApplicationStore::map).list();
     }
 
     /** The student's live Application in the Term, if any (a forfeited one still counts: one per Term). */

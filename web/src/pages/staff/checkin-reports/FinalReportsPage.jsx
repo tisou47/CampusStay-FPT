@@ -24,6 +24,11 @@ const STATUS_TONE = {
   Cancelled: 'error',
 }
 
+const updatedAtMs = (r) => {
+  const at = r.finalizedAt ?? r.submittedAt ?? r.openedAt
+  return at ? new Date(at).getTime() : 0
+}
+
 export default function FinalReportsPage() {
   const navigate = useNavigate()
   const scope = useScopeQuery()
@@ -52,13 +57,15 @@ export default function FinalReportsPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return allRows.filter((r) => {
-      if (comparison && r.comparison !== comparison) return false
-      if (!q) return true
-      return [r.id, r.studentName, r.studentCode, r.room, r.block, r.status]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    })
+    return allRows
+      .filter((r) => {
+        if (comparison && r.comparison !== comparison) return false
+        if (!q) return true
+        return [r.id, r.studentName, r.studentCode, r.room, r.block, r.status]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q))
+      })
+      .sort((a, b) => updatedAtMs(b) - updatedAtMs(a) || String(b.id).localeCompare(String(a.id)))
   }, [allRows, search, comparison])
 
   const paged = useMemo(() => {

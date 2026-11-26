@@ -7,7 +7,8 @@ import { useSession } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { Button } from '@/components/ui/Button'
 import { DetailRows, Note, ProgressTimeline } from '@/components/ui/Display'
-import { Drawer } from '@/components/ui/Overlay'
+import { Field, Textarea } from '@/components/ui/Field'
+import { Drawer, Modal } from '@/components/ui/Overlay'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyBlock, QueryState, TableStatus } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr, stop } from '@/components/ui/Table'
@@ -24,15 +25,32 @@ import { t, tr } from '@/i18n'
 //   room-change item (next-Term requests: room change, swap, extension, end of stay):
 //     { id, typeLabel, summary, submittedAt, status, decision: { note, at } | null, invoiceId, invitationId }
 // GET /maintenance-requests/:id → { …item, room, description, events: [{ who, at, message }] }
-// POST /maintenance-requests/:id/confirm { fixed }
+// POST /maintenance-requests/:id/confirm { fixed, comment? } (comment: what is still wrong, read by Staff)
 
-function MaintenanceStatus({ status }) {
-  if (status === 'Resolved') return <Tag tone="success">Resolved · confirm the fix</Tag>
-  return <StatusTag status={status} />
+// reportedByYou false: the dormitory office opened it in the student's room (a room inspection finding). The student
+// follows it (Staff come into the room) and, like the reporter, confirms the fix or reopens it.
+const mine = (r) => r?.reportedByYou !== false
+const canConfirm = (r) => r?.status === 'Resolved'
+
+function MaintenanceStatus({ request }) {
+  if (canConfirm(request)) return <Tag tone="success">Resolved · confirm the fix</Tag>
+  return <StatusTag status={request.status} />
 }
 
 function progressOf(r) {
   const fixed = ['Resolved', 'Closed'].includes(r.status)
+  if (!mine(r)) {
+    return [
+      { title: 'Found in a room inspection', time: formatDateTime(r.reportedAt), state: 'done' },
+      {
+        title: r.assignee ? t('Assigned to {name}', { name: r.assignee }) : 'Assigned to maintenance staff',
+        time: r.status === 'Submitted' ? '—' : r.visitWindow ? t('Visit {window}', { window: r.visitWindow }) : 'Done',
+        state: r.status === 'Submitted' ? 'current' : 'done',
+      },
+      { title: 'Fixed by maintenance staff', time: r.status === 'In progress' ? 'Work in progress' : fixed ? 'Done' : '—', state: fixed ? 'done' : ['Assigned', 'In progress'].includes(r.status) ? 'current' : 'upcoming' },
+      { title: 'Confirmed by you', time: r.status === 'Closed' ? 'Closed' : '—', state: r.status === 'Closed' ? 'done' : r.status === 'Resolved' ? 'current' : 'upcoming' },
+    ]
+  }
   return [
     { title: 'Submitted', time: formatDateTime(r.reportedAt), state: 'done' },
     {
@@ -45,6 +63,31 @@ function progressOf(r) {
   ]
 }
 
+/** Reopening asks what is still wrong, so Staff know what to fix (WEB-STU-10). */
+function ReopenModal({ request, pending, onClose, onReopen }) {
+  const [comment, setComment] = useState('')
+  return (
+    <Modal
+      open={Boolean(request)}
+      onClose={onClose}
+      title={t('Reopen {id}?', { id: request?.id })}
+      description="The request goes back to the maintenance staff."
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" disabled={pending} onClick={() => onReopen(request, comment.trim())}>
+            {pending ? t('Saving…') : t('Reopen')}
+          </Button>
+        </>
+      }
+    >
+      <Field label="What is still wrong?" helper="Optional. The maintenance staff read it.">
+        {(id) => <Textarea id={id} rows={3} maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} />}
+      </Field>
+    </Modal>
+  )
+}
+
 function RequestDrawer({ id, onClose, onConfirm, confirming }) {
   const query = useQuery(['maintenance', id], ({ signal }) => api.maintenance.get(id, { signal }), { enabled: Boolean(id) })
   const r = query.data
@@ -53,10 +96,10 @@ function RequestDrawer({ id, onClose, onConfirm, confirming }) {
     <Drawer
       open={Boolean(id)}
       onClose={onClose}
-      title={r?.title ?? 'Maintenance request'}
+      title={r ? tr(r.title) : 'Maintenance request'}
       description={r ? [r.id, tr(r.category), tr(r.location)].filter(Boolean).join(' · ') : id}
       footer={
-        r?.status === 'Resolved' ? (
+        canConfirm(r) ? (
           <>
             <Button onClick={() => onConfirm(r, false)} disabled={confirming}>
               Not fixed yet
@@ -74,9 +117,14 @@ function RequestDrawer({ id, onClose, onConfirm, confirming }) {
         {(req) => (
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-3">
-              <MaintenanceStatus status={req.status} />
+              <MaintenanceStatus request={req} />
               <span className="text-sm text-fg-tertiary">{t('Reported {date}', { date: formatDateTime(req.reportedAt) })}</span>
             </div>
+            {!mine(req) && (
+              <p className="rounded-lg bg-info-bg px-3 py-2.5 text-sm text-fg-secondary">
+                {t('The dormitory office found this during a room inspection. Maintenance staff will come into your room to fix it.')}
+              </p>
+            )}
             <DetailRows
               rows={[
                 ['Room', req.room ?? '—'],
@@ -84,7 +132,7 @@ function RequestDrawer({ id, onClose, onConfirm, confirming }) {
                 ['Category', req.category ?? '—'],
                 ...(req.assignee ? [['Assigned to', req.assignee]] : []),
                 ...(req.visitWindow ? [['Visit window', req.visitWindow]] : []),
-                ['Description', req.description ?? '—'],
+                ['Description', req.description ? tr(req.description) : '—'],
               ]}
             />
             <div className="flex flex-col gap-3">
@@ -96,7 +144,7 @@ function RequestDrawer({ id, onClose, onConfirm, confirming }) {
                 <h3 className="text-h3 font-semibold text-fg">{t('Updates from the dormitory office')}</h3>
                 {updates.map((e) => (
                   <div key={`${e.at}-${e.message}`} className="flex flex-col gap-0.5 rounded-lg bg-subtle px-3 py-2.5">
-                    <p className="text-base text-fg">{e.message}</p>
+                    <p className="text-base text-fg">{tr(e.message)}</p>
                     <p className="text-sm text-fg-tertiary">
                       {e.who} · {formatDateTime(e.at)}
                     </p>
@@ -123,11 +171,13 @@ export default function MyRequests() {
   const items = query.data?.items ?? []
   const counts = query.data?.counts
 
-  const confirm = useMutation((r, fixed) => api.maintenance.confirm(r.id, { fixed }), {
+  const [reopening, setReopening] = useState(null)
+  const confirm = useMutation((r, fixed, comment) => api.maintenance.confirm(r.id, comment ? { fixed, comment } : { fixed }), {
     invalidates: ['requests', 'maintenance', 'home'],
     onSuccess: (_, r, fixed) => {
       notify(fixed ? { title: 'Thanks for confirming', message: t('{id} is now closed.', { id: r.id }) } : { type: 'info', title: 'Request reopened', message: t('{id} goes back to the maintenance staff.', { id: r.id }) })
       setOpenId(null)
+      setReopening(null)
     },
     onError: (e) => notifyError(e, 'Could not update the request'),
   })
@@ -189,7 +239,7 @@ export default function MyRequests() {
         }
       >
         {(data) => {
-          const resolved = tab === 'maintenance' ? data.items.find((r) => r.status === 'Resolved') : null
+          const resolved = tab === 'maintenance' ? data.items.find(canConfirm) : null
           return (
             <div className="flex flex-col gap-3 lg:hidden">
               <StatusList>
@@ -198,9 +248,9 @@ export default function MyRequests() {
                       <StatusRow
                         key={r.id}
                         icon={Wrench}
-                        value={r.title}
+                        value={tr(r.title)}
                         note={[r.id, r.visitWindow ? t('visit {window}', { window: r.visitWindow }) : tr(r.location)].filter(Boolean).join(' · ')}
-                        below={<MaintenanceStatus status={r.status} />}
+                        below={<MaintenanceStatus request={r} />}
                         onClick={() => setOpenId(r.id)}
                       />
                     ))
@@ -230,10 +280,10 @@ export default function MyRequests() {
               </StatusList>
               {resolved && (
                 <section className="flex flex-col gap-2 rounded-xl border border-green-100 bg-success-bg p-4">
-                  <h2 className="text-base font-medium text-fg">{t('Is “{title}” fixed?', { title: resolved.title })}</h2>
+                  <h2 className="text-base font-medium text-fg">{t('Is “{title}” fixed?', { title: tr(resolved.title) })}</h2>
                   <p className="text-sm text-fg-secondary">{t('Confirm to close {id}, or reopen it.', { id: resolved.id })}</p>
                   <div className="flex gap-2 pt-1 *:flex-1">
-                    <Button size="lg" onClick={() => confirm.run(resolved, false)} disabled={confirm.pending}>
+                    <Button size="lg" onClick={() => setReopening(resolved)} disabled={confirm.pending}>
                       Reopen
                     </Button>
                     <Button variant="primary" size="lg" onClick={() => confirm.run(resolved, true)} disabled={confirm.pending}>
@@ -268,18 +318,18 @@ export default function MyRequests() {
                 <Td className="font-medium text-fg-brand">{r.id}</Td>
                 <Td>
                   <div className="flex flex-col gap-0.5">
-                    <span className="font-medium">{r.title}</span>
+                    <span className="font-medium">{tr(r.title)}</span>
                     <span className="text-sm text-fg-tertiary">{tr(r.location)}</span>
                   </div>
                 </Td>
                 <Td>{tr(r.category)}</Td>
                 <Td>{formatDateTime(r.reportedAt)}</Td>
                 <Td>
-                  <MaintenanceStatus status={r.status} />
+                  <MaintenanceStatus request={r} />
                 </Td>
                 <Td onClick={stop}>
-                  {r.status === 'Resolved' ? (
-                    <Button onClick={() => confirm.run(r, true)} disabled={confirm.pending}>
+                  {canConfirm(r) ? (
+                    <Button onClick={() => setOpenId(r.id)}>
                       Confirm
                     </Button>
                   ) : (
@@ -355,7 +405,8 @@ export default function MyRequests() {
         />
       </div>
 
-      <RequestDrawer id={openId} onClose={() => setOpenId(null)} onConfirm={(r, fixed) => confirm.run(r, fixed)} confirming={confirm.pending} />
+      <RequestDrawer id={openId} onClose={() => setOpenId(null)} onConfirm={(r, fixed) => (fixed ? confirm.run(r, true) : setReopening(r))} confirming={confirm.pending} />
+      {reopening && <ReopenModal request={reopening} pending={confirm.pending} onClose={() => setReopening(null)} onReopen={(r, comment) => confirm.run(r, false, comment)} />}
     </StudentPage>
   )
 }

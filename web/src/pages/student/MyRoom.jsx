@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Bed, FileText, History, LogOut, Package } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useQuery } from '@/api/hooks'
@@ -172,7 +172,7 @@ export default function MyRoom() {
             title="No room assigned yet"
             action={
               <div className="flex flex-wrap justify-center gap-2">
-                <Button variant="primary" size="lg" to={data.application ? `/student/applications/${data.application.id}` : '/student/apply/term'}>
+                <Button variant="primary" size="lg" to={data.application ? `/student/applications/${data.application.id}` : '/student/apply/term'} disabled={!data.application && !term?.registrationOpen}>
                   {data.application ? t('View application') : t('Start application')}
                 </Button>
                 {/* After a check-out the room is gone, but its record stays reachable. */}

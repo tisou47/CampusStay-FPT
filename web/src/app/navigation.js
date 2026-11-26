@@ -1,4 +1,5 @@
 import {
+  Activity,
   ArrowRightLeft,
   Banknote,
   Bed,
@@ -20,7 +21,6 @@ import {
   GraduationCap,
   HandCoins,
   HeartHandshake,
-  Hourglass,
   House,
   KeyRound,
   Layers,
@@ -37,6 +37,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  TriangleAlert,
   Timer,
   Upload,
   User,
@@ -123,7 +124,7 @@ export const backOffice = {
       {
         title: 'Rooms',
         items: [
-          { label: 'Rooms and beds', icon: Building, to: '/staff/inventory' },
+          { label: 'Rooms and beds', icon: Building, to: '/staff/inventory', match: ['/staff/rooms'] },
           { label: 'Door codes', icon: KeyRound, to: '/staff/door-codes' },
           { label: 'Furniture', icon: Package, to: '/staff/furniture' },
           { label: 'Room transfers', icon: ArrowRightLeft, to: '/staff/moves' },
@@ -166,6 +167,7 @@ export const backOffice = {
             tabs: [
               { label: 'Students', to: '/manager/students' },
               { label: 'Import student list', to: '/manager/student-import' },
+              { label: 'Erasure requests', to: '/manager/erasure-requests' },
             ],
           },
           { label: 'Reconciliation', icon: FileSearch, to: '/manager/reconciliation' },
@@ -229,7 +231,7 @@ export const backOffice = {
       {
         title: 'Inventory',
         items: [
-          { label: 'Rooms and beds', icon: Building, to: '/manager/inventory' },
+          { label: 'Rooms and beds', icon: Building, to: '/manager/inventory', match: ['/manager/rooms'] },
           { label: 'Room tiers by term', icon: Layers, to: '/manager/room-classes' },
           { label: 'Furniture', icon: Package, to: '/manager/furniture' },
           { label: 'Door codes', icon: KeyRound, to: '/manager/door-codes' },
@@ -279,8 +281,6 @@ export const backOffice = {
         items: [
           { label: 'Room types', icon: Bed, to: '/admin/room-types' },
           { label: 'Room tiers', icon: Layers, to: '/admin/room-classes' },
-          { label: 'Deposit', icon: Banknote, to: '/admin/fees' },
-          { label: 'Utility', icon: Gauge, to: '/admin/utility' },
         ],
       },
       {
@@ -288,9 +288,7 @@ export const backOffice = {
         items: [
           { label: 'Who may apply', icon: CircleCheck, to: '/admin/eligibility' },
           { label: 'Roommate matching', icon: Users, to: '/admin/matching' },
-          { label: 'Deadlines and reminders', icon: Timer, to: '/admin/deadlines' },
           { label: 'Refunds, penalties and terminations', icon: Scale, to: '/admin/refunds' },
-          { label: 'Stay and renewal', icon: Hourglass, to: '/admin/stay' },
           { label: 'Inspection checklists', icon: ClipboardCheck, to: '/admin/inspection-checklists' },
         ],
       },
@@ -313,6 +311,7 @@ export const backOffice = {
           { label: 'System parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
           { label: 'Demo data', icon: RotateCcw, to: '/admin/demo' },
           { label: 'Audit log', icon: ScrollText, to: '/admin/audit-log' },
+          { label: 'System health', icon: Activity, to: '/admin/system-health' },
         ],
       },
     ],

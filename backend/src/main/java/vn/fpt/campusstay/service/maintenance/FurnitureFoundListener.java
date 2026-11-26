@@ -42,6 +42,7 @@ class FurnitureFoundListener {
         this.clock = clock;
     }
 
+    // Same transaction: the found damage becomes a request together with the inspection.
     @EventListener
     void on(FurnitureFoundDamaged e) {
         events.publishEvent(new vn.fpt.campusstay.event.FurnitureDamaged(e.furnitureItemId(), e.condition(),

@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -15,7 +16,8 @@ class RegistrationPeriodScreen extends StatefulWidget {
   final String termId;
 
   @override
-  State<RegistrationPeriodScreen> createState() => _RegistrationPeriodScreenState();
+  State<RegistrationPeriodScreen> createState() =>
+      _RegistrationPeriodScreenState();
 }
 
 class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
@@ -33,131 +35,181 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
     return groups;
   }
 
-  static String _tierKey(Json p) => '${p.str('roomTypeId')}:${p.str('roomClassId')}';
+  static String _tierKey(Json p) =>
+      '${p.str('roomTypeId')}:${p.str('roomClassId')}';
 
   @override
   Widget build(BuildContext context) {
-    return Loader<Json>(
-      fetch: () => Api.get('/registration-periods/${Uri.encodeComponent(widget.termId)}'),
-      builder: (context, d, reload) {
-        final groups = _groups(d);
-        // The first Room Type and its first tier start open, as on the web.
-        if (!_opened && groups.isNotEmpty) {
-          _opened = true;
-          _type = groups.keys.first;
-          _tier = _tierKey(groups.values.first.first);
-        }
-        final closes = d.objects('timeline').where((m) => m.str('key') == 'registrationClosesAt').firstOrNull;
-        final left = d.str('status') == 'Open' ? timeLeft(closes?.str('at')) : null;
-        final faq = d.objects('faq');
-        return SubPage(
-          title: d.text('name'),
-          bottom: d.str('status') == 'Open'
-              ? BusyButton(label: t('Apply now', 'Đăng ký ngay'), onPressed: () => push(context, const ApplyScreen()))
-              : null,
-          body: Cards(
+    // The top bar stays while the period loads or fails, so the back arrow is always there (MOB-34).
+    return SubPage(
+      title: t('Registration period', 'Kỳ đăng ký'),
+      body: Loader<Json>(
+        fetch: () => Api.get(
+          '/registration-periods/${Uri.encodeComponent(widget.termId)}',
+        ),
+        builder: (context, d, reload) {
+          final groups = _groups(d);
+          // The first Room Type and its first tier start open, as on the web.
+          if (!_opened && groups.isNotEmpty) {
+            _opened = true;
+            _type = groups.keys.first;
+            _tier = _tierKey(groups.values.first.first);
+          }
+          final closes = d
+              .objects('timeline')
+              .where((m) => m.str('key') == 'registrationClosesAt')
+              .firstOrNull;
+          final left = d.str('status') == 'Open'
+              ? timeLeft(closes?.str('at'))
+              : null;
+          final faq = d.objects('faq');
+          return Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      t(
-                        'Stay ${day(d.str('stayStart'))} – ${day(d.str('stayEnd'))}',
-                        'Ở từ ${day(d.str('stayStart'))} đến ${day(d.str('stayEnd'))}',
+              Expanded(
+                child: Cards(
+                  children: [
+                    Text(
+                      d.text('name'),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
                       ),
-                      style: const TextStyle(color: Tokens.fgSecondary),
                     ),
-                  ),
-                  Tag(
-                    label(d.str('status')),
-                    tone: switch (d.str('status')) {
-                      'Open' => Tone.success,
-                      'Opens soon' => Tone.info,
-                      _ => Tone.neutral,
-                    },
-                  ),
-                ],
-              ),
-              if (left != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Tokens.brandSubtle,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Tokens.primary.withValues(alpha: 0.25)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      spacing: 6,
+                    Row(
                       children: [
-                        const Icon(Icons.event_available_outlined, size: 15, color: Tokens.fgBrand),
-                        Flexible(
+                        Expanded(
                           child: Text(
-                            t('Registration closes in $left.', 'Đăng ký đóng sau $left.'),
-                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Tokens.fgBrand),
+                            t(
+                              'Stay ${day(d.str('stayStart'))} – ${day(d.str('stayEnd'))}',
+                              'Ở từ ${day(d.str('stayStart'))} đến ${day(d.str('stayEnd'))}',
+                            ),
+                            style: const TextStyle(color: Tokens.fgSecondary),
                           ),
+                        ),
+                        Tag(
+                          label(d.str('status')),
+                          tone: switch (d.str('status')) {
+                            'Open' => Tone.success,
+                            'Opens soon' => Tone.info,
+                            _ => Tone.neutral,
+                          },
                         ),
                       ],
                     ),
+                    if (left != null)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Tokens.brandSubtle,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: Tokens.primary.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 6,
+                            children: [
+                              const Icon(
+                                Icons.event_available_outlined,
+                                size: 15,
+                                color: Tokens.fgBrand,
+                              ),
+                              Flexible(
+                                child: Text(
+                                  t(
+                                    'Registration closes in $left.',
+                                    'Đăng ký đóng sau $left.',
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: Tokens.fgBrand,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    TabStrip(
+                      value: _tab,
+                      onChanged: (v) => setState(() => _tab = v),
+                      items: [
+                        (
+                          key: 'timeline',
+                          text: t('Timeline', 'Lịch trình'),
+                          icon: Icons.event_note_outlined,
+                          count: null,
+                          dot: false,
+                        ),
+                        (
+                          key: 'prices',
+                          text: t('Prices', 'Giá'),
+                          icon: Icons.bed_outlined,
+                          count: groups.isEmpty ? null : groups.length,
+                          dot: false,
+                        ),
+                        (
+                          key: 'rules',
+                          text: t('House rules', 'Nội quy'),
+                          icon: Icons.verified_user_outlined,
+                          count: null,
+                          dot: false,
+                        ),
+                        (
+                          key: 'faq',
+                          text: t('FAQ', 'Hỏi đáp'),
+                          icon: Icons.help_outline,
+                          count: faq.isEmpty ? null : faq.length,
+                          dot: false,
+                        ),
+                      ],
+                    ),
+                    Panel(
+                      child: switch (_tab) {
+                        'prices' => _prices(d, groups),
+                        'rules' => _rules(d),
+                        'faq' => _questions(faq),
+                        _ =>
+                          termSteps(d.objects('timeline')).isEmpty
+                              ? Text(
+                                  t(
+                                    'The dates of this Term are not published yet.',
+                                    'Lịch của học kỳ này chưa được công bố.',
+                                  ),
+                                  style: const TextStyle(
+                                    color: Tokens.fgTertiary,
+                                  ),
+                                )
+                              : RegistrationSteps(
+                                  timeline: d.objects('timeline'),
+                                ),
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              if (d.str('status') == 'Open')
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                    child: BusyButton(
+                      label: t('Apply now', 'Đăng ký ngay'),
+                      onPressed: () => push(context, const ApplyScreen()),
+                    ),
                   ),
                 ),
-              TabStrip(
-                value: _tab,
-                onChanged: (v) => setState(() => _tab = v),
-                items: [
-                  (
-                    key: 'timeline',
-                    text: t('Timeline', 'Lịch trình'),
-                    icon: Icons.event_note_outlined,
-                    count: null,
-                    dot: false,
-                  ),
-                  (
-                    key: 'prices',
-                    text: t('Prices', 'Giá'),
-                    icon: Icons.bed_outlined,
-                    count: groups.isEmpty ? null : groups.length,
-                    dot: false,
-                  ),
-                  (
-                    key: 'rules',
-                    text: t('House rules', 'Nội quy'),
-                    icon: Icons.verified_user_outlined,
-                    count: null,
-                    dot: false,
-                  ),
-                  (
-                    key: 'faq',
-                    text: t('FAQ', 'Hỏi đáp'),
-                    icon: Icons.help_outline,
-                    count: faq.isEmpty ? null : faq.length,
-                    dot: false,
-                  ),
-                ],
-              ),
-              Panel(
-                child: switch (_tab) {
-                  'prices' => _prices(d, groups),
-                  'rules' => _rules(d),
-                  'faq' => _questions(faq),
-                  _ =>
-                    termSteps(d.objects('timeline')).isEmpty
-                        ? Text(
-                            t(
-                              'The dates of this Term are not published yet.',
-                              'Lịch của học kỳ này chưa được công bố.',
-                            ),
-                            style: const TextStyle(color: Tokens.fgTertiary),
-                          )
-                        : RegistrationSteps(timeline: d.objects('timeline')),
-                },
-              ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -166,23 +218,40 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
   Widget _prices(Json d, Map<String, List<Json>> groups) {
     if (groups.isEmpty) {
       return Text(
-        t('The prices of this Term are not published yet.', 'Giá của học kỳ này chưa được công bố.'),
+        t(
+          'The prices of this Term are not published yet.',
+          'Giá của học kỳ này chưa được công bố.',
+        ),
         style: const TextStyle(color: Tokens.fgTertiary),
       );
     }
     final percent = d.number('depositPercent');
-    String places(num? n) => (n ?? 0) > 0 ? t('$n places', '$n chỗ') : t('No places for you', 'Không có chỗ cho bạn');
+    String places(num? n) => (n ?? 0) > 0
+        ? t('$n places', '$n chỗ')
+        : t('No places for you', 'Không có chỗ cho bạn');
 
-    Widget feeLine(String name, String value, {Color? color, bool strong = false}) => Padding(
+    Widget feeLine(
+      String name,
+      String value, {
+      Color? color,
+      bool strong = false,
+    }) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Expanded(
-            child: Text(name, style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary)),
+            child: Text(
+              name,
+              style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary),
+            ),
           ),
           Text(
             value,
-            style: TextStyle(fontSize: 13, fontWeight: strong ? FontWeight.w600 : FontWeight.w500, color: color),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: strong ? FontWeight.w600 : FontWeight.w500,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -243,8 +312,17 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Text(label(p.str('roomClass')), style: const TextStyle(fontWeight: FontWeight.w600)),
-                            Tag(places(n), tone: n > 0 ? Tone.success : Tone.neutral, dot: false),
+                            Text(
+                              label(p.str('roomClass')),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Tag(
+                              places(n),
+                              tone: n > 0 ? Tone.success : Tone.neutral,
+                              dot: false,
+                            ),
                           ],
                         ),
                         Text.rich(
@@ -252,7 +330,10 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                             children: [
                               TextSpan(
                                 text: money(p.number('price')),
-                                style: const TextStyle(fontWeight: FontWeight.w600, color: Tokens.fg),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Tokens.fg,
+                                ),
                               ),
                               TextSpan(
                                 text:
@@ -260,7 +341,10 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                               ),
                             ],
                           ),
-                          style: const TextStyle(fontSize: 12.5, color: Tokens.fgTertiary),
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: Tokens.fgTertiary,
+                          ),
                         ),
                       ],
                     ),
@@ -269,7 +353,9 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        open ? t('Hide details', 'Thu gọn') : t('View details', 'Xem chi tiết'),
+                        open
+                            ? t('Hide details', 'Thu gọn')
+                            : t('View details', 'Xem chi tiết'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -292,11 +378,17 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                    decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: Tokens.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        caption(Icons.payments_outlined, t('Fee breakdown', 'Chi tiết biểu phí')),
+                        caption(
+                          Icons.payments_outlined,
+                          t('Fee breakdown', 'Chi tiết biểu phí'),
+                        ),
                         feeLine(
                           t('Full Term Bed price', 'Giá giường trọn học kỳ'),
                           money(p.number('price')),
@@ -311,11 +403,18 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                         const Divider(height: 1),
                         feeLine(
                           t('Remaining balance', 'Tiền phòng còn lại'),
-                          money(((p.number('price') ?? 0) - (p.number('deposit') ?? 0)).clamp(0, double.infinity)),
+                          money(
+                            ((p.number('price') ?? 0) -
+                                    (p.number('deposit') ?? 0))
+                                .clamp(0, double.infinity),
+                          ),
                         ),
                         const Divider(height: 1),
                         feeLine(
-                          t('Utility Deposit (refundable)', 'Cọc điện nước (hoàn lại khi trả phòng)'),
+                          t(
+                            'Utility Deposit (refundable)',
+                            'Cọc điện nước (hoàn lại khi trả phòng)',
+                          ),
                           money(d.number('utilityDeposit')),
                         ),
                       ],
@@ -324,14 +423,20 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: Tokens.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       spacing: 8,
                       children: [
                         caption(
                           Icons.inventory_2_outlined,
-                          t('Included furniture & amenities', 'Nội thất & tiện nghi trang bị'),
+                          t(
+                            'Included furniture & amenities',
+                            'Nội thất & tiện nghi trang bị',
+                          ),
                         ),
                         if (furniture.isNotEmpty)
                           Wrap(
@@ -340,7 +445,10 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                             children: [
                               for (final f in furniture)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Tokens.brandSubtle,
                                     borderRadius: BorderRadius.circular(8),
@@ -349,12 +457,19 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     spacing: 5,
                                     children: [
-                                      const Icon(Icons.inventory_2_outlined, size: 13, color: Tokens.fgBrand),
+                                      const Icon(
+                                        Icons.inventory_2_outlined,
+                                        size: 13,
+                                        color: Tokens.fgBrand,
+                                      ),
                                       Text(
                                         (f.number('quantity') ?? 1) > 1
                                             ? '${f.number('quantity')} × ${furnitureName(f)}'
                                             : furnitureName(f),
-                                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+                                        style: const TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -366,7 +481,10 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                             'Standard dormitory bed, desk, wardrobe and shared room fixtures.',
                             'Trang bị tiêu chuẩn gồm giường, bàn học, tủ quần áo và thiết bị chung của phòng.',
                           ),
-                          style: const TextStyle(fontSize: 12, color: Tokens.fgTertiary),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Tokens.fgTertiary,
+                          ),
                         ),
                       ],
                     ),
@@ -384,7 +502,10 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: Tokens.brandSubtle,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: 4,
@@ -393,14 +514,21 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: 8,
                 children: [
-                  const Icon(Icons.info_outline, size: 16, color: Tokens.fgBrand),
+                  const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Tokens.fgBrand,
+                  ),
                   Expanded(
                     child: Text(
                       t(
                         'Select a Room Type to view its Room tiers, then a tier to see its furniture and fee breakdown.',
                         'Bấm chọn loại phòng để xem các hạng phòng, sau đó bấm vào hạng phòng để xem nội thất và biểu phí.',
                       ),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -423,7 +551,9 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
             child: Column(
               children: [
                 Material(
-                  color: _type == type ? Tokens.brandSubtle : Tokens.subtle.withValues(alpha: 0.3),
+                  color: _type == type
+                      ? Tokens.brandSubtle
+                      : Tokens.subtle.withValues(alpha: 0.3),
                   child: InkWell(
                     onTap: () => setState(() {
                       if (_type == type) {
@@ -442,13 +572,17 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: _type == type ? Tokens.primary : Tokens.surface,
+                              color: _type == type
+                                  ? Tokens.primary
+                                  : Tokens.surface,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.bed_outlined,
                               size: 20,
-                              color: _type == type ? Colors.white : Tokens.fgBrand,
+                              color: _type == type
+                                  ? Colors.white
+                                  : Tokens.fgBrand,
                             ),
                           ),
                           Expanded(
@@ -456,11 +590,19 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               spacing: 2,
                               children: [
-                                Text(label(type), style: const TextStyle(fontWeight: FontWeight.w600)),
+                                Text(
+                                  label(type),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                                 Text(
                                   '${t('${lines.length} tiers', '${lines.length} hạng phòng')} · '
                                   '${places(lines.fold<num>(0, (s, l) => s + (l.number('places') ?? 0)))}',
-                                  style: const TextStyle(fontSize: 12, color: Tokens.fgSecondary),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Tokens.fgSecondary,
+                                  ),
                                 ),
                                 Text(
                                   '${t('From', 'Từ')} ${money(lines.map((l) => l.number('price') ?? 0).reduce((a, b) => a < b ? a : b))} '
@@ -475,8 +617,12 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                             ),
                           ),
                           Icon(
-                            _type == type ? Icons.expand_less : Icons.expand_more,
-                            color: _type == type ? Tokens.fgBrand : Tokens.fgSecondary,
+                            _type == type
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            color: _type == type
+                                ? Tokens.fgBrand
+                                : Tokens.fgSecondary,
                           ),
                         ],
                       ),
@@ -484,7 +630,10 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                   ),
                 ),
                 if (_type == type)
-                  for (var i = 0; i < lines.length; i++) ...[const Divider(height: 1), tier(lines[i])],
+                  for (var i = 0; i < lines.length; i++) ...[
+                    const Divider(height: 1),
+                    tier(lines[i]),
+                  ],
               ],
             ),
           ),
@@ -500,10 +649,15 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
 
   /// House rules (web `RulesAndDocumentsTab`): one numbered line per rule, the key money rules, and the documents.
   Widget _rules(Json d) {
-    final lines = (d.str('houseRules') ?? '').split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).map((l) {
-      final cleaned = l.replaceFirst(RegExp(r'^[•\-*\d.)\s]+'), '').trim();
-      return cleaned.isEmpty ? l : cleaned;
-    }).toList();
+    final lines = (d.str('houseRules') ?? '')
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .map((l) {
+          final cleaned = l.replaceFirst(RegExp(r'^[•\-*\d.)\s]+'), '').trim();
+          return cleaned.isEmpty ? l : cleaned;
+        })
+        .toList();
     final docs = d.objects('documents');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -512,18 +666,28 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
         Row(
           spacing: 8,
           children: [
-            const Icon(Icons.verified_user_outlined, size: 18, color: Tokens.fgBrand),
+            const Icon(
+              Icons.verified_user_outlined,
+              size: 18,
+              color: Tokens.fgBrand,
+            ),
             Expanded(
               child: Text(
                 t('Dormitory house rules', 'Nội quy lưu trú ký túc xá'),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
         ),
         if (lines.isEmpty)
           Text(
-            t('The house rules of this Term are not published yet.', 'Nội quy của học kỳ này chưa được công bố.'),
+            t(
+              'The house rules of this Term are not published yet.',
+              'Nội quy của học kỳ này chưa được công bố.',
+            ),
             style: const TextStyle(color: Tokens.fgTertiary),
           )
         else
@@ -542,19 +706,34 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                     width: 24,
                     height: 24,
                     alignment: Alignment.center,
-                    decoration: const BoxDecoration(color: Tokens.brandSubtle, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                      color: Tokens.brandSubtle,
+                      shape: BoxShape.circle,
+                    ),
                     child: Text(
                       '${i + 1}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Tokens.fgBrand),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Tokens.fgBrand,
+                      ),
                     ),
                   ),
-                  Expanded(child: Text(lines[i], style: const TextStyle(fontSize: 13.5, height: 1.45))),
+                  Expanded(
+                    child: Text(
+                      lines[i],
+                      style: const TextStyle(fontSize: 13.5, height: 1.45),
+                    ),
+                  ),
                 ],
               ),
             ),
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: Tokens.brandSubtle,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: 8,
@@ -568,12 +747,18 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                   Expanded(
                     child: Text(
                       t('Deposit due on submit', 'Tiền đặt cọc khi nộp đơn'),
-                      style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Tokens.fgSecondary,
+                      ),
                     ),
                   ),
                   Text(
                     '${d.number('depositPercent') ?? '—'}%',
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: Tokens.fgBrand),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Tokens.fgBrand,
+                    ),
                   ),
                 ],
               ),
@@ -581,11 +766,20 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      t('Utility Deposit before check-in', 'Cọc điện nước trước khi nhận phòng'),
-                      style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary),
+                      t(
+                        'Utility Deposit before check-in',
+                        'Cọc điện nước trước khi nhận phòng',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Tokens.fgSecondary,
+                      ),
                     ),
                   ),
-                  Text(money(d.number('utilityDeposit')), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    money(d.number('utilityDeposit')),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             ],
@@ -607,8 +801,14 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
               ),
               if (docs.isEmpty)
                 Text(
-                  t('No documents attached for this Term.', 'Học kỳ này chưa có tài liệu đính kèm.'),
-                  style: const TextStyle(fontSize: 12.5, color: Tokens.fgTertiary),
+                  t(
+                    'No documents attached for this Term.',
+                    'Học kỳ này chưa có tài liệu đính kèm.',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: Tokens.fgTertiary,
+                  ),
                 )
               else
                 for (final doc in docs)
@@ -619,19 +819,33 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                       borderRadius: BorderRadius.circular(8),
                       onTap: () => openUrl(doc.text('url')),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         child: Row(
                           spacing: 8,
                           children: [
-                            const Icon(Icons.description_outlined, size: 16, color: Tokens.fgBrand),
+                            const Icon(
+                              Icons.description_outlined,
+                              size: 16,
+                              color: Tokens.fgBrand,
+                            ),
                             Expanded(
                               child: Text(
                                 doc.text('title'),
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w500, color: Tokens.link),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Tokens.link,
+                                ),
                               ),
                             ),
-                            const Icon(Icons.open_in_new, size: 15, color: Tokens.link),
+                            const Icon(
+                              Icons.open_in_new,
+                              size: 15,
+                              color: Tokens.link,
+                            ),
                           ],
                         ),
                       ),
@@ -648,7 +862,10 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
   Widget _questions(List<Json> faq) {
     if (faq.isEmpty) {
       return Text(
-        t('No questions yet. Ask the dormitory office.', 'Chưa có câu hỏi. Hãy hỏi văn phòng ký túc xá.'),
+        t(
+          'No questions yet. Ask the dormitory office.',
+          'Chưa có câu hỏi. Hãy hỏi văn phòng ký túc xá.',
+        ),
         style: const TextStyle(color: Tokens.fgTertiary),
       );
     }
@@ -682,13 +899,22 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                     child: Row(
                       spacing: 10,
                       children: [
-                        const Icon(Icons.help_outline, size: 17, color: Tokens.fgBrand),
+                        const Icon(
+                          Icons.help_outline,
+                          size: 17,
+                          color: Tokens.fgBrand,
+                        ),
                         Expanded(
-                          child: Text(faq[i].text('question'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                          child: Text(
+                            faq[i].text('question'),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                         Icon(
                           _faq == i ? Icons.expand_less : Icons.expand_more,
-                          color: _faq == i ? Tokens.fgBrand : Tokens.fgSecondary,
+                          color: _faq == i
+                              ? Tokens.fgBrand
+                              : Tokens.fgSecondary,
                         ),
                       ],
                     ),
@@ -700,7 +926,11 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
                     padding: const EdgeInsets.fromLTRB(39, 10, 14, 12),
                     child: Text(
                       faq[i].text('answer'),
-                      style: const TextStyle(fontSize: 13.5, height: 1.45, color: Tokens.fgSecondary),
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        height: 1.45,
+                        color: Tokens.fgSecondary,
+                      ),
                     ),
                   ),
                 ],
@@ -713,21 +943,33 @@ class _RegistrationPeriodScreenState extends State<RegistrationPeriodScreen> {
 }
 
 /// One step of a Term's schedule: the timeline key, its name, its dates as text, and the campus days it spans.
-typedef TermStep = ({String key, String label, String text, DateTime start, DateTime? end});
+typedef TermStep = ({
+  String key,
+  String label,
+  String text,
+  DateTime start,
+  DateTime? end,
+});
 
 /// The campus day (UTC+7) an instant or date falls on, as its start.
 DateTime? _campusDay(String? iso) {
   final at = DateTime.tryParse(iso ?? '');
   if (at == null) return null;
-  final campus = at.isUtc || iso!.length > 10 ? at.toUtc().add(const Duration(hours: 7)) : at;
+  final campus = at.isUtc || iso!.length > 10
+      ? at.toUtc().add(const Duration(hours: 7))
+      : at;
   return DateTime.utc(campus.year, campus.month, campus.day);
 }
 
 /// The `timeline` of `GET /registration-periods/{termId}` as steps (web `scheduleRows`): the registration opening and
 /// closing become one window; a range of days ends at the end of its last day.
 List<TermStep> termSteps(List<Json> timeline) {
-  final opens = timeline.where((m) => m.str('key') == 'registrationOpensAt').firstOrNull;
-  final closes = timeline.where((m) => m.str('key') == 'registrationClosesAt').firstOrNull;
+  final opens = timeline
+      .where((m) => m.str('key') == 'registrationOpensAt')
+      .firstOrNull;
+  final closes = timeline
+      .where((m) => m.str('key') == 'registrationClosesAt')
+      .firstOrNull;
   final rows = <TermStep>[];
   if (opens != null || closes != null) {
     final start = _campusDay((opens ?? closes)!.str('at'));
@@ -753,7 +995,9 @@ List<TermStep> termSteps(List<Json> timeline) {
       label: label(m.text('label')),
       text: m.str('at') != null
           ? moment(m.str('at'))
-          : (m.str('until') != null ? range(m.str('date'), m.str('until')) : day(m.str('date'))),
+          : (m.str('until') != null
+                ? range(m.str('date'), m.str('until'))
+                : day(m.str('date'))),
       start: start,
       end: until?.add(const Duration(days: 1)),
     ));
@@ -822,8 +1066,11 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
     final current = steps.indexWhere((r) => (r.end ?? r.start).isAfter(now));
     final active = current == -1 ? steps.length - 1 : current;
     final picked = _picked ?? active;
-    String state(int i) =>
-        i == current ? 'current' : (!(steps[i].end ?? steps[i].start).isAfter(now) ? 'done' : 'upcoming');
+    String state(int i) => i == current
+        ? 'current'
+        : (!(steps[i].end ?? steps[i].start).isAfter(now)
+              ? 'done'
+              : 'upcoming');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -853,7 +1100,9 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
                                     height: 2,
                                     color: i == 0
                                         ? Colors.transparent
-                                        : (i <= active || current == -1 ? Tokens.primary : Tokens.line),
+                                        : (i <= active || current == -1
+                                              ? Tokens.primary
+                                              : Tokens.line),
                                   ),
                                 ),
                                 Expanded(
@@ -861,7 +1110,9 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
                                     height: 2,
                                     color: i == steps.length - 1
                                         ? Colors.transparent
-                                        : (i < active || current == -1 ? Tokens.primary : Tokens.line),
+                                        : (i < active || current == -1
+                                              ? Tokens.primary
+                                              : Tokens.line),
                                   ),
                                 ),
                               ],
@@ -878,23 +1129,42 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
                                   _ => Tokens.surface,
                                 },
                                 border: Border.all(
-                                  color: state(i) == 'upcoming' ? Tokens.lineStrong : Tokens.primary,
+                                  color: state(i) == 'upcoming'
+                                      ? Tokens.lineStrong
+                                      : Tokens.primary,
                                   width: 2,
                                 ),
                                 boxShadow: i == picked
-                                    ? [BoxShadow(color: Tokens.primary.withValues(alpha: 0.18), spreadRadius: 4)]
+                                    ? [
+                                        BoxShadow(
+                                          color: Tokens.primary.withValues(
+                                            alpha: 0.18,
+                                          ),
+                                          spreadRadius: 4,
+                                        ),
+                                      ]
                                     : null,
                               ),
                               child: switch (state(i)) {
-                                'done' => const Icon(Icons.check, size: 18, color: Colors.white),
+                                'done' => const Icon(
+                                  Icons.check,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
                                 'current' => Container(
                                   width: 10,
                                   height: 10,
-                                  decoration: const BoxDecoration(color: Tokens.primary, shape: BoxShape.circle),
+                                  decoration: const BoxDecoration(
+                                    color: Tokens.primary,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
                                 _ => Text(
                                   '${i + 1}',
-                                  style: const TextStyle(fontWeight: FontWeight.w600, color: Tokens.fgTertiary),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Tokens.fgTertiary,
+                                  ),
                                 ),
                               },
                             ),
@@ -903,7 +1173,11 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
                       ),
                       Text(
                         t('Step ${i + 1}', 'Bước ${i + 1}').toUpperCase(),
-                        style: const TextStyle(fontSize: 10.5, letterSpacing: 0.4, color: Tokens.fgTertiary),
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          letterSpacing: 0.4,
+                          color: Tokens.fgTertiary,
+                        ),
                       ),
                       Text(
                         _meta(steps[i].key)?.$1 ?? steps[i].label,
@@ -913,7 +1187,9 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
                           fontWeight: FontWeight.w600,
                           color: state(i) == 'current'
                               ? Tokens.fgBrand
-                              : (state(i) == 'upcoming' && i != picked ? Tokens.fgSecondary : Tokens.fg),
+                              : (state(i) == 'upcoming' && i != picked
+                                    ? Tokens.fgSecondary
+                                    : Tokens.fg),
                         ),
                       ),
                     ],
@@ -925,7 +1201,9 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: state(picked) == 'current' ? Tokens.brandSubtle : Tokens.subtle.withValues(alpha: 0.7),
+            color: state(picked) == 'current'
+                ? Tokens.brandSubtle
+                : Tokens.subtle.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -939,14 +1217,28 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
                 children: [
                   switch (state(picked)) {
                     'current' => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Tokens.primary, borderRadius: BorderRadius.circular(999)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Tokens.primary,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                       child: Text(
                         t('In progress', 'Đang diễn ra'),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                    'done' => Tag(t('Completed', 'Đã hoàn thành'), tone: Tone.success, dot: false),
+                    'done' => Tag(
+                      t('Completed', 'Đã hoàn thành'),
+                      tone: Tone.success,
+                      dot: false,
+                    ),
                     _ => Tag(t('Upcoming', 'Sắp tới'), dot: false),
                   },
                   Text(
@@ -958,17 +1250,31 @@ class _RegistrationStepsState extends State<RegistrationSteps> {
               Row(
                 spacing: 6,
                 children: [
-                  const Icon(Icons.event_outlined, size: 15, color: Tokens.fgBrand),
+                  const Icon(
+                    Icons.event_outlined,
+                    size: 15,
+                    color: Tokens.fgBrand,
+                  ),
                   Expanded(
                     child: Text(
                       steps[picked].text,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Tokens.fgBrand),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Tokens.fgBrand,
+                      ),
                     ),
                   ),
                 ],
               ),
               if (_meta(steps[picked].key) != null)
-                Text(_meta(steps[picked].key)!.$3, style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary)),
+                Text(
+                  _meta(steps[picked].key)!.$3,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Tokens.fgSecondary,
+                  ),
+                ),
             ],
           ),
         ),

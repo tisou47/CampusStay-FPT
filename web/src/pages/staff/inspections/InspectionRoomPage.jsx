@@ -14,6 +14,7 @@ import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
+import { parseReading } from '@/lib/numbers'
 import { conditionName, conditionOptions, conditionTone } from '@/lib/furniture'
 import { t, tr } from '@/i18n'
 import { printRoom, roomItems } from './inspectionPrint'
@@ -73,9 +74,8 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
   const meterError = (key, unit) => {
     const raw = String(meters[key] ?? '').trim()
     if (raw === '') return t('Enter the reading ({unit}).', { unit })
-    const value = Number(raw)
-    if (!Number.isFinite(value)) return t('Enter a valid number.')
-    if (value < 0) return t('The reading cannot be negative.')
+    const value = parseReading(raw)
+    if (Number.isNaN(value)) return Number(raw) < 0 ? t('The reading cannot be negative.') : t('Enter a valid number.')
     const last = room.previousMeters?.[key]
     if (!meters.replaced && last != null && value < Number(last)) {
       return t('Lower than the last reading ({value} {unit}). Read the meter again.', { value: formatNumber(last), unit })
@@ -127,7 +127,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
         }),
         meters:
           meters.electricity !== '' || meters.water !== ''
-            ? { electricity: Number(meters.electricity), water: Number(meters.water), replaced: meters.replaced }
+            ? { electricity: parseReading(meters.electricity), water: parseReading(meters.water), replaced: meters.replaced }
             : undefined,
       }),
     {
@@ -292,9 +292,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
               }
             >
               <Input
-                type="number"
-                min="0"
-                step="0.1"
+                inputMode="decimal"
                 disabled={done}
                 invalid={!done && touched.electricity && Boolean(electricityError)}
                 value={meters.electricity}
@@ -321,9 +319,7 @@ function RoomInspectionForm({ run, room, nextTodoRoom }) {
               }
             >
               <Input
-                type="number"
-                min="0"
-                step="0.1"
+                inputMode="decimal"
                 disabled={done}
                 invalid={!done && touched.water && Boolean(waterError)}
                 value={meters.water}

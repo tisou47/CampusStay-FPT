@@ -41,7 +41,10 @@ import vn.fpt.campusstay.service.setting.Parameters;
  * accept goes to a Manager, who keeps or drops it the same day; until then it is not charged. Shared items are
  * charged for damage the student acknowledged ({@link #claim}); damage Staff record on a shared item at the check-out
  * is split evenly among the Room's residents, and the roommates' shares are invoiced when the check-out is completed
- * ({@link #chargeRoommates}). There is no dispute window afterwards.
+ * ({@link #chargeRoommates}). Two ways to disagree, at two moments: the leaving student disagrees with the charges on
+ * the app before agreeing ({@link #disputeMine}, answered by the Staff who recorded them, {@link #answerDispute}); a
+ * roommate declines a shared-item share attributed to them ({@link #answerClaim}), which a Manager then keeps or drops
+ * ({@link #decideClaim}). There is no dispute window after the check-out is completed.
  */
 @Service
 public class CheckOutFurnitureService {
@@ -106,8 +109,9 @@ public class CheckOutFurnitureService {
             long amount, Instant dueAt) {
     }
 
+    /** @param claimId set for shared damage the student declined (decided at {@link #decideClaim}), else null */
     public record ReviewRow(String allocationId, String itemId, String assetCode, String type, String room,
-            String studentName, String condition, long amount, String note) {
+            String studentName, String condition, long amount, String note, String claimId) {
     }
 
     private record Target(long allocationId, long termId, long studentId, long bedId, long roomId, String roomCode,
@@ -303,7 +307,7 @@ public class CheckOutFurnitureService {
 
     /**
      * Invoices each roommate their share of the shared items' damage split at this check-out: one DAMAGE Invoice per
-     * roommate and item, due in 7 days like a charge a Manager keeps after the check-out, which tells them on the
+     * roommate and item, due in {@code checkout.damage_due_days} like a charge a Manager keeps after the check-out, which tells them on the
      * app; unpaid, it becomes Overdue like every other charge. Called when the check-out is completed (lines a Manager
      * has not kept are left out) and when a Manager keeps a line afterwards ({@code onlyItem}).
      *
@@ -345,7 +349,7 @@ public class CheckOutFurnitureService {
         Map<Long, Inventory.FurnitureLine> furniture = new HashMap<>();
         inventory.furnitureLines(t.roomId()).forEach(l -> furniture.put(l.id(), l));
         Instant now = Instant.now(clock);
-        int days = 7; // as a charge a Manager keeps after the check-out (decide)
+        int days = parameters.intValue("checkout.damage_due_days"); // as a charge a Manager keeps (decide)
         int issued = 0;
         for (Split split : splits) {
             long share = CheckOutCharges.roommateShare(split.full(), split.sharedWith());
@@ -383,30 +387,43 @@ public class CheckOutFurnitureService {
         currentUser.require(Permission.DESK);
         java.util.Set<Long> buildings = blockScope.resolve(block).ids();
         record Raw(long allocationId, long studentId, long bedId, long termId, long itemId, String condition,
-                long amount, String note) {
+                long amount, String note, Long claimId) {
         }
         List<Raw> raws = jdbc.sql("""
                 SELECT c.allocation_id, a.student_id, a.bed_id, a.term_id, d.furniture_item_id, d.condition, d.amount,
-                       d.note
+                       d.note, NULL::bigint AS claim_id, c.updated_at AS waiting_since
                 FROM asg_check_out_damage d JOIN asg_check_out c ON c.id = d.check_out_id
                 JOIN asg_allocation a ON a.id = c.allocation_id
-                WHERE d.manager_review = 'PENDING' ORDER BY c.updated_at, d.furniture_item_id
+                WHERE d.manager_review = 'PENDING'
+                UNION ALL
+                SELECT k.allocation_id, a.student_id, a.bed_id, a.term_id, k.furniture_item_id, k.condition, k.amount,
+                       k.note, k.id, k.answered_at
+                FROM asg_damage_claim k JOIN asg_allocation a ON a.id = k.allocation_id
+                WHERE k.status = 'DECLINED' AND k.manager_review IS NULL
+                ORDER BY waiting_since, furniture_item_id
                 """).query((rs, i) -> new Raw(rs.getLong("allocation_id"), rs.getLong("student_id"), rs.getLong("bed_id"),
                         rs.getLong("term_id"), rs.getLong("furniture_item_id"), rs.getString("condition"),
-                        rs.getLong("amount"), rs.getString("note")))
+                        rs.getLong("amount"), rs.getString("note"), rs.getObject("claim_id", Long.class)))
                 .list();
         List<ReviewRow> rows = new ArrayList<>();
         Map<Long, String> names = users.displayNames(raws.stream().map(Raw::studentId).toList());
+        // One Bed lookup per Term and one furniture list per Room (BE-ASG-18), not one of each per line.
+        Map<Long, Map<Long, Inventory.BedSlot>> bedsByTerm = new HashMap<>();
+        raws.stream().collect(java.util.stream.Collectors.groupingBy(Raw::termId,
+                java.util.stream.Collectors.mapping(Raw::bedId, java.util.stream.Collectors.toSet())))
+                .forEach((term, ids) -> bedsByTerm.put(term, inventory.beds(term, ids)));
+        Map<Long, List<Inventory.FurnitureLine>> linesByRoom = new HashMap<>();
         for (Raw r : raws) {
-            Inventory.BedSlot bed = inventory.beds(r.termId(), List.of(r.bedId())).get(r.bedId());
+            Inventory.BedSlot bed = bedsByTerm.get(r.termId()).get(r.bedId());
             if (bed == null || !buildings.contains(bed.buildingId())) {
                 continue;
             }
-            Inventory.FurnitureLine line = inventory.furnitureLines(bed.roomId()).stream()
+            Inventory.FurnitureLine line = linesByRoom.computeIfAbsent(bed.roomId(), inventory::furnitureLines).stream()
                     .filter(l -> l.id() == r.itemId()).findFirst().orElse(null);
             rows.add(new ReviewRow(String.valueOf(r.allocationId()), "furniture-" + r.itemId(),
                     line == null ? null : line.assetCode(), line == null ? null : line.type(), bed.roomCode(),
-                    names.get(r.studentId()), StudentHandoverService.label(r.condition()), r.amount(), r.note()));
+                    names.get(r.studentId()), StudentHandoverService.label(r.condition()), r.amount(), r.note(),
+                    r.claimId() == null ? null : String.valueOf(r.claimId())));
         }
         return rows;
     }
@@ -442,7 +459,8 @@ public class CheckOutFurnitureService {
                 billing.issueCharge(new Billing.ChargeRequest(t.termId(), t.studentId(), t.allocationId(),
                         t.buildingId(), "DAMAGE", "Furniture charge · Room " + t.roomCode(), line.amount(),
                         List.of(new Billing.ChargeLine("Furniture item " + item, line.amount())),
-                        now.plus(Duration.ofDays(7)), "CHECK_OUT-" + t.allocationId() + "-" + item));
+                        now.plus(Duration.ofDays(parameters.intValue("checkout.damage_due_days"))),
+                        "CHECK_OUT-" + t.allocationId() + "-" + item));
                 chargeRoommates(t.allocationId(), item);
             } else {
                 jdbc.sql("UPDATE asg_check_out SET damage_charge = damage_charge + :a WHERE id = :id")
@@ -451,6 +469,58 @@ public class CheckOutFurnitureService {
         }
         audit.record(keep ? "CHECK_OUT_CHARGE_KEPT" : "CHECK_OUT_CHARGE_DROPPED", AuditLog.Tone.INFO, "Allocation",
                 t.allocationId(), "Room " + t.roomCode(), Map.of("item", item, "amount", line.amount(), "note", text));
+        return view(t);
+    }
+
+    /**
+     * A Manager decides shared damage the student declined (owner decision 25/11/2026): kept, it is charged as if
+     * acknowledged (invoiced at once when the check-out is already completed); dropped, nobody pays.
+     */
+    @Transactional
+    public Charges decideClaim(String claimId, boolean keep, String note) {
+        AuthenticatedUser me = currentUser.require(Permission.REVIEW_CHECK_OUT_CHARGES);
+        long id;
+        try {
+            id = Long.parseLong(claimId == null ? "" : claimId.trim());
+        } catch (NumberFormatException e) {
+            throw ApiException.notFound("This damage record does not exist.");
+        }
+        String text = note == null ? "" : note.trim();
+        if (text.isEmpty() || text.length() > 300) {
+            throw FieldErrors.single("note", "Write the reason of your decision (at most 300 characters).");
+        }
+        record Row(long allocationId, long itemId, long amount, String status, String review) {
+        }
+        Row row = jdbc.sql("""
+                SELECT allocation_id, furniture_item_id, amount, status, manager_review FROM asg_damage_claim
+                WHERE id = :id FOR UPDATE
+                """).param("id", id).query((rs, i) -> new Row(rs.getLong("allocation_id"), rs.getLong("furniture_item_id"),
+                        rs.getLong("amount"), rs.getString("status"), rs.getString("manager_review")))
+                .optional().orElseThrow(() -> ApiException.notFound("This damage record does not exist."));
+        Target t = target(String.valueOf(row.allocationId()), true);
+        if (!"DECLINED".equals(row.status()) || row.review() != null) {
+            throw ApiException.conflict("NOTHING_TO_REVIEW", "This item is not waiting for a Manager.");
+        }
+        Instant now = Instant.now(clock);
+        jdbc.sql("""
+                UPDATE asg_damage_claim SET manager_review = :r, reviewed_by = :by, reviewed_at = :now, review_note = :note
+                WHERE id = :id
+                """).param("r", keep ? "KEPT" : "DROPPED").param("by", me.userId()).param("now", Timestamp.from(now))
+                .param("note", text).param("id", id).update();
+        if (keep) {
+            if ("COMPLETED".equals(t.status())) {
+                billing.issueCharge(new Billing.ChargeRequest(t.termId(), t.studentId(), t.allocationId(),
+                        t.buildingId(), "DAMAGE", "Shared furniture damage · Room " + t.roomCode(), row.amount(),
+                        List.of(new Billing.ChargeLine("Furniture item " + row.itemId(), row.amount())),
+                        now.plus(Duration.ofDays(parameters.intValue("checkout.damage_due_days"))), "CLAIM-" + id));
+            } else {
+                // A check-out already drafted counts it now; one recorded later reads the kept claim (CheckOutCharges).
+                jdbc.sql("UPDATE asg_check_out SET damage_charge = damage_charge + :a WHERE allocation_id = :al")
+                        .param("a", row.amount()).param("al", t.allocationId()).update();
+            }
+        }
+        audit.record(keep ? "DAMAGE_CLAIM_KEPT" : "DAMAGE_CLAIM_DROPPED", AuditLog.Tone.INFO, "Allocation",
+                t.allocationId(), "Room " + t.roomCode(), Map.of("claim", id, "amount", row.amount(), "note", text));
         return view(t);
     }
 
@@ -463,8 +533,9 @@ public class CheckOutFurnitureService {
         Optional<Long> allocation = jdbc.sql("""
                 SELECT a.id FROM asg_allocation a LEFT JOIN asg_check_out c ON c.allocation_id = a.id
                 WHERE a.student_id = :s AND (a.status = 'ACTIVE' OR c.status = 'COMPLETED')
-                ORDER BY (c.id IS NOT NULL) DESC, a.id DESC LIMIT 1
+                ORDER BY (a.status = 'ACTIVE' AND c.id IS NOT NULL) DESC, (a.status = 'ACTIVE') DESC, a.id DESC LIMIT 1
                 """).param("s", me).query(Long.class).optional();
+        // the current stay before an older completed check-out (BE-ASG-19)
         return allocation.map(id -> view(targetOf(id))).orElse(null);
     }
 

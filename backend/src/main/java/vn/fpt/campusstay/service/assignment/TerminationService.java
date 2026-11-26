@@ -134,21 +134,34 @@ public class TerminationService {
                 .filter(e -> e.getValue().equalsIgnoreCase(status.trim())).map(Map.Entry::getKey).findFirst()
                 .orElseThrow(() -> FieldErrors.single("status", "Choose Notice sent, Overdue, Checked out or Cancelled."));
         Map<String, Object> params = new HashMap<>();
-        String where = "";
+        // Block scope and paging in SQL (BE-ASG-18): only the Beds of the user's Blocks.
+        String where = " WHERE a.bed_id IN (:beds)";
+        params.put("beds", inventory.bedIdsOfBuildings(scope));
+        if (((List<?>) params.get("beds")).isEmpty()) {
+            params.put("beds", List.of(-1L));
+        }
         if (termId != null) {
             TermSummary term = terms.findPublished(termId).orElseThrow(() -> ApiException.notFound("This Term does not exist."));
-            where = " WHERE t.term_id = :term";
+            where += " AND t.term_id = :term";
             params.put("term", term.id());
         }
-        List<Row> rows = jdbc.sql(SELECT + where + " ORDER BY (t.status IN ('NOTICE_SENT', 'OVERDUE')) DESC, t.move_out_by, t.id")
-                .params(params).query(TerminationService::row).list();
-        Map<Long, Inventory.BedSlot> beds = inventory.beds(rows.stream().map(Row::bedId).toList());
-        List<Row> visible = rows.stream().filter(r -> beds.get(r.bedId()) != null
-                && scope.contains(beds.get(r.bedId()).buildingId())).toList();
-        Counts counts = new Counts(visible.stream().filter(r -> r.status().equals("NOTICE_SENT")).count(),
-                visible.stream().filter(r -> r.status().equals("OVERDUE")).count());
-        List<Row> shown = visible.stream().filter(r -> code == null || r.status().equals(code)).toList();
-        List<Row> pageRows = shown.stream().skip(page.offset()).limit(page.limit()).toList();
+        Map<String, Long> byStatus = new HashMap<>();
+        jdbc.sql("SELECT t.status, count(*) AS n FROM asg_termination t JOIN asg_allocation a ON a.id = t.allocation_id"
+                + where + " GROUP BY t.status").params(params)
+                .query((rs, i) -> Map.entry(rs.getString("status"), rs.getLong("n"))).list()
+                .forEach(e -> byStatus.put(e.getKey(), e.getValue()));
+        Counts counts = new Counts(byStatus.getOrDefault("NOTICE_SENT", 0L), byStatus.getOrDefault("OVERDUE", 0L));
+        long total = code == null ? byStatus.values().stream().mapToLong(Long::longValue).sum()
+                : byStatus.getOrDefault(code, 0L);
+        if (code != null) {
+            where += " AND t.status = :status";
+            params.put("status", code);
+        }
+        List<Row> pageRows = jdbc.sql(SELECT + where
+                + " ORDER BY (t.status IN ('NOTICE_SENT', 'OVERDUE')) DESC, t.move_out_by, t.id LIMIT :limit OFFSET :offset")
+                .params(params).param("limit", page.limit()).param("offset", page.offset())
+                .query(TerminationService::row).list();
+        Map<Long, Inventory.BedSlot> beds = inventory.beds(pageRows.stream().map(Row::bedId).toList());
         Map<Long, UserDirectory.Student> students = users.students(pageRows.stream().map(Row::studentId).toList());
         Map<Long, String> starters = users.displayNames(pageRows.stream().map(Row::startedBy).filter(Objects::nonNull)
                 .collect(Collectors.toSet()));
@@ -162,7 +175,7 @@ public class TerminationService {
                     r.startedBy() == null ? "System" : starters.get(r.startedBy()), r.debt(), r.endedAt(),
                     r.cancelReason()));
         }
-        return new TerminationPage(items, shown.size(), counts, List.of("Manager decision", "Not enrolled"),
+        return new TerminationPage(items, total, counts, List.of("Manager decision", "Not enrolled"),
                 List.copyOf(List.of("Notice sent", "Overdue", "Checked out", "Cancelled")));
     }
 
@@ -200,7 +213,7 @@ public class TerminationService {
         return new Started(String.valueOf(id), moveOutBy(id));
     }
 
-    /** Billing's Utility debt rule fired (same transaction). */
+    /** Billing's Utility debt rule fired. Same transaction: the termination is part of Billing's debt decision. */
     @EventListener
     void on(UtilityTerminationDue e) {
         resident(e.studentId(), e.allocationId()).ifPresent(a -> insertQuietly(a, "UTILITY_DEBT", null, e.debt()));
@@ -347,7 +360,7 @@ public class TerminationService {
     /** A stay already terminated keeps its open termination. */
     private void insertQuietly(Resident a, String reason, String note, Long debt) {
         if (!terminated(a.id())) {
-            insert(a, reason, note, debt, null);
+            insert(a, reason, note, debt, null, true);
         }
     }
 
@@ -357,25 +370,38 @@ public class TerminationService {
     }
 
     private long insert(Resident a, String reason, String note, Long debt, Long by) {
+        return insert(a, reason, note, debt, by, false);
+    }
+
+    /**
+     * @param quiet a termination opened meanwhile by someone else is kept and nothing is done (-1): the listener path
+     *              must not roll back the publisher's transaction (BE-ASG-21)
+     */
+    private long insert(Resident a, String reason, String note, Long debt, Long by, boolean quiet) {
         if (terminated(a.id())) {
             throw ApiException.conflict("ALREADY_TERMINATED", "This stay is already terminated.");
         }
         LocalDate today = LocalDate.now(clock.withZone(TimeConfig.CAMPUS_ZONE));
         LocalDate moveOutBy = today.plusDays(Math.max(0, parameters.intValue("termination.move_out_days")));
         Instant now = Instant.now(clock);
-        long id;
+        Optional<Long> inserted;
         try {
-            id = jdbc.sql("""
+            inserted = jdbc.sql("""
                     INSERT INTO asg_termination (allocation_id, term_id, student_id, reason, note, debt, started_at,
                                                  started_by, move_out_by)
-                    VALUES (:a, :term, :student, :reason, :note, :debt, :now, :by, :moveOutBy) RETURNING id
-                    """)
+                    VALUES (:a, :term, :student, :reason, :note, :debt, :now, :by, :moveOutBy)
+                    """ + (quiet ? " ON CONFLICT (allocation_id) WHERE status IN ('NOTICE_SENT', 'OVERDUE') DO NOTHING" : "")
+                    + " RETURNING id")
                     .param("a", a.id()).param("term", a.termId()).param("student", a.studentId()).param("reason", reason)
                     .param("note", note).param("debt", debt).param("now", Timestamp.from(now)).param("by", by)
-                    .param("moveOutBy", moveOutBy).query(Long.class).single();
+                    .param("moveOutBy", moveOutBy).query(Long.class).optional();
         } catch (DuplicateKeyException e) {
             throw ApiException.conflict("ALREADY_TERMINATED", "This stay is already terminated.");
         }
+        if (inserted.isEmpty()) {
+            return -1;
+        }
+        long id = inserted.get();
         // The student appears on the check-out list with the reason Termination.
         jdbc.sql("""
                 INSERT INTO asg_check_out (allocation_id, reason, status) VALUES (:a, 'TERMINATION', 'PENDING')

@@ -13,21 +13,26 @@ export function Tabs({ items, value, onChange, label, className }) {
   // Tabs that are links go to other pages: they are navigation (the active one is the current page), not a tablist.
   const isNav = items.some((item) => item.to)
   const Box = isNav ? 'nav' : 'div'
-
-  const move = (e, index) => {
-    if (isNav || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return
+  // Arrow keys move between tabs and Home / End jump to the ends; focus follows the selection (WAI-ARIA tabs).
+  const onKeyDown = (e) => {
+    const keys = items.map((item) => item.key)
+    const i = keys.indexOf(value)
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: keys.length - 1 }[e.key]
+    if (next == null || !keys.length) return
     e.preventDefault()
-    const next = items[(index + (e.key === 'ArrowRight' ? 1 : items.length - 1)) % items.length]
-    onChange?.(next.key)
+    const key = keys[(next + keys.length) % keys.length]
+    onChange?.(key)
+    e.currentTarget.querySelector(`[data-tab-key="${CSS.escape(String(key))}"]`)?.focus()
   }
 
   return (
     <Box
       role={isNav ? undefined : 'tablist'}
       aria-label={label}
+      onKeyDown={isNav ? undefined : onKeyDown}
       className={cx('flex shrink-0 items-center gap-6 overflow-x-auto border-b border-line scrollbar-none', className)}
     >
-      {items.map((item, index) => {
+      {items.map((item) => {
         const active = item.key === value
         const hasCount = item.count !== undefined
         const classes = cx(
@@ -57,12 +62,13 @@ export function Tabs({ items, value, onChange, label, className }) {
           <button
             key={item.key}
             type="button"
-            role="tab"
-            aria-selected={active}
+            role={isNav ? undefined : 'tab'}
+            data-tab-key={item.key}
+            tabIndex={isNav || active || !items.some((x) => x.key === value) ? undefined : -1}
+            aria-selected={isNav ? undefined : active}
+            aria-current={isNav && active ? 'true' : undefined}
             aria-description={item.hint ? tx(item.hint) : undefined}
-            tabIndex={active ? 0 : -1}
             onClick={() => onChange?.(item.key)}
-            onKeyDown={(e) => move(e, index)}
             className={classes}
           >
             {content}

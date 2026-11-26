@@ -11,7 +11,8 @@ import {
   CheckOutHeaderCard,
   CheckOutTopBar,
   HandoverReportModal,
-  toNumber,
+  readingError,
+  readingUsage,
   useCheckOutWorkspace,
 } from './checkOutShared'
 
@@ -25,7 +26,7 @@ export default function MeterReadingPage() {
   if (ws.detailQuery.error && !ws.d) return <ErrorState error={ws.detailQuery.error} onRetry={ws.detailQuery.reload} />
   if (!ws.d) return null
 
-  const { d, s, done, electricity, setElectricity, water, setWater, submit, furnitureQuery } = ws
+  const { d, s, done, electricity, setElectricity, water, setWater, readingsInvalid, submit, furnitureQuery } = ws
 
   return (
     <div className="flex flex-col gap-5">
@@ -47,6 +48,7 @@ export default function MeterReadingPage() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field
             label="Electricity (kWh)"
+            error={readingError(electricity)}
             helper={
               d.previousReading
                 ? t('Previous reading: {value} kWh (recorded {date})', {
@@ -60,6 +62,7 @@ export default function MeterReadingPage() {
               <Input
                 id={fieldId}
                 value={electricity}
+                invalid={Boolean(readingError(electricity))}
                 onChange={(e) => setElectricity(e.target.value)}
                 inputMode="decimal"
                 className="text-right text-base tabular"
@@ -70,6 +73,8 @@ export default function MeterReadingPage() {
 
           <Field
             label="Water (m³)"
+
+            error={readingError(water)}
             helper={
               d.previousReading
                 ? t('Previous reading: {value} m³ (recorded {date})', {
@@ -83,6 +88,7 @@ export default function MeterReadingPage() {
               <Input
                 id={fieldId}
                 value={water}
+                invalid={Boolean(readingError(water))}
                 onChange={(e) => setWater(e.target.value)}
                 inputMode="decimal"
                 className="text-right text-base tabular"
@@ -108,7 +114,7 @@ export default function MeterReadingPage() {
               <span className="tabular">
                 {t('Electricity')}:{' '}
                 <strong className="text-fg">
-                  {formatNumber(Math.max(0, toNumber(electricity) - (d.previousReading.electricity ?? 0)))} kWh
+                  {readingUsage(electricity, d.previousReading.electricity)} kWh
                 </strong>
               </span>
             )}
@@ -116,7 +122,7 @@ export default function MeterReadingPage() {
               <span className="tabular">
                 {t('Water')}:{' '}
                 <strong className="text-fg">
-                  {formatNumber(Math.max(0, toNumber(water) - (d.previousReading.water ?? 0)))} m³
+                  {readingUsage(water, d.previousReading.water)} m³
                 </strong>
               </span>
             )}
@@ -129,7 +135,7 @@ export default function MeterReadingPage() {
           </Button>
           <div className="flex flex-wrap items-center gap-2">
             {!done && (
-              <Button icon={Save} disabled={submit.pending} onClick={() => submit.run(true)}>
+              <Button icon={Save} disabled={submit.pending || readingsInvalid} onClick={() => submit.run(true)}>
                 {t('Save draft')}
               </Button>
             )}

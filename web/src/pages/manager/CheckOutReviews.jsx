@@ -15,16 +15,21 @@ import { formatVnd } from '@/lib/format'
 import { t } from '@/i18n'
 
 // Manager › Approvals › Check-out charges: furniture charges a student did not accept at the desk.
-// GET /check-out-reviews?block → [{ allocationId, itemId, assetCode, type, room, studentName, condition, amount, note }]
+// GET /check-out-reviews?block → [{ allocationId, itemId, assetCode, type, room, studentName, condition, amount, note, claimId }]
 // POST /check-out-reviews/:allocationId/:itemId { keep, note } — kept after the check-out: a DAMAGE invoice.
+// POST /check-out-reviews/claims/:claimId { keep, note } — shared damage the student declined (claimId set).
 
 export default function CheckOutReviews() {
   const { notify, notifyError } = useToast()
   const scope = useScopeQuery()
   const query = useQuery(['check-out-furniture', 'reviews', scope.block], ({ signal }) => api.checkOutFurniture.reviews({ block: scope.block }, { signal }))
   const [decision, setDecision] = useState(null)
-  const decide = useMutation(() => api.checkOutFurniture.decide(decision.row.allocationId, decision.row.itemId, { keep: decision.keep, note: decision.note }), {
-    invalidates: ['check-out-furniture', 'check-out'],
+  const decide = useMutation(() => {
+    const body = { keep: decision.keep, note: decision.note }
+    const r = decision.row
+    return r.claimId ? api.checkOutFurniture.decideClaim(r.claimId, body) : api.checkOutFurniture.decide(r.allocationId, r.itemId, body)
+  }, {
+    invalidates: ['check-out-furniture', 'check-out', 'work-summary'],
     onSuccess: () => {
       notify({ title: decision.keep ? 'Charge kept' : 'Charge dropped', message: decision.keep ? 'The student pays it in the settlement or by invoice.' : 'Nobody pays for this item.' })
       setDecision(null)
@@ -52,7 +57,7 @@ export default function CheckOutReviews() {
           <TBody>
             <TableStatus query={query} rows={rows} colSpan={6} emptyTitle="No charge to decide" emptyIcon={Scale} />
             {rows.map((r) => (
-              <Tr key={`${r.allocationId}-${r.itemId}`}>
+              <Tr key={r.claimId ? `claim-${r.claimId}` : `${r.allocationId}-${r.itemId}`}>
                 <Td>
                   <TwoLine primary={r.studentName} secondary={r.room} />
                 </Td>
@@ -61,7 +66,7 @@ export default function CheckOutReviews() {
                 </Td>
                 <Td>{t(r.condition)}</Td>
                 <Td align="right">{formatVnd(r.amount)}</Td>
-                <Td>{r.note}</Td>
+                <Td>{r.claimId ? <TwoLine primary={t('Declined by the student')} secondary={r.note} /> : r.note}</Td>
                 <Td>
                   <div className="flex justify-end gap-2">
                     <Button size="sm" onClick={() => setDecision({ row: r, keep: false, note: '' })}>

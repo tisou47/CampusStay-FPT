@@ -15,11 +15,14 @@ import vn.fpt.campusstay.event.RoomTypeBedsChanged;
 class RoomTypeBedsListener {
 
     private final JdbcClient jdbc;
+    private final FurnitureBeds beds;
 
-    RoomTypeBedsListener(JdbcClient jdbc) {
+    RoomTypeBedsListener(JdbcClient jdbc, FurnitureBeds beds) {
         this.jdbc = jdbc;
+        this.beds = beds;
     }
 
+    // Same transaction: the Rooms' Beds follow the Room Type change.
     @EventListener
     void on(RoomTypeBedsChanged event) {
         jdbc.sql("""
@@ -37,5 +40,6 @@ class RoomTypeBedsListener {
                   AND ascii(b.label) - 64 > :beds
                 """)
                 .param("beds", event.beds()).param("type", event.roomTypeId()).update();
+        beds.relink(null); // personal items of a retired Bed move to a Bed still in use (BE-3RD-18)
     }
 }

@@ -58,26 +58,31 @@ public class ForfeitService {
         for (Billing.DueBalance b : billing.balancesPastDue()) {
             // An approved late check-in does not hold the Balance back: it is paid before check-in, by the deadline
             // the Manager kept or chose when approving (spec §6.9).
-            if (forfeit(b.allocationId(), b.invoiceId(), b.dueAt(), "UNPAID")) {
+            if (forfeit(b.allocationId(), b.invoiceId(), b.dueAt(), "UNPAID", true)) {
                 forfeited++;
             }
         }
         return forfeited;
     }
 
-    /** A Balance cancelled after its claims were rejected too often (Billing's transaction). */
+    /**
+     * A Balance cancelled after its claims were rejected too often. Stays in Billing's transaction: the Balance is void
+     * there, so the Allocation must end with it. Waits for a locked Allocation (BE-ASG-11): skipping it would keep the
+     * Bed held with no Balance left to forfeit later.
+     */
     @EventListener
     void on(PaymentClaimRejected e) {
         if (e.cancelled() && e.type().equals("BALANCE") && e.allocationId() != null) {
-            forfeit(e.allocationId(), e.invoiceId(), e.dueAt(), "CLAIMS_REJECTED");
+            forfeit(e.allocationId(), e.invoiceId(), e.dueAt(), "CLAIMS_REJECTED", false);
         }
     }
 
-    private boolean forfeit(long allocationId, long balanceInvoiceId, Instant dueAt, String reason) {
+    /** @param skipLocked the job skips an Allocation in use and retries on its next run */
+    private boolean forfeit(long allocationId, long balanceInvoiceId, Instant dueAt, String reason, boolean skipLocked) {
         Optional<Held> found = jdbc.sql("""
                 SELECT id, term_id, student_id, application_id, bed_id FROM asg_allocation
-                WHERE id = :id AND status = 'ACTIVE' AND resident_at IS NULL FOR UPDATE SKIP LOCKED
-                """).param("id", allocationId)
+                WHERE id = :id AND status = 'ACTIVE' AND resident_at IS NULL FOR UPDATE
+                """ + (skipLocked ? " SKIP LOCKED" : "")).param("id", allocationId)
                 .query((rs, i) -> new Held(rs.getLong("id"), rs.getLong("term_id"), rs.getLong("student_id"),
                         rs.getObject("application_id", Long.class), rs.getLong("bed_id")))
                 .optional();

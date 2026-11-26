@@ -7,8 +7,9 @@ import { KpiTile, Meter } from '@/components/ui/Charts'
 import { Alert, Card, CardHeader, ProgressBar } from '@/components/ui/Display'
 import { QueryState } from '@/components/ui/States'
 import { Tag } from '@/components/ui/Tag'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { cx } from '@/lib/cx'
-import { formatDate, formatDateTime, formatNumber, formatTime, formatTimeLeft } from '@/lib/format'
+import { formatDate, formatDateTime, formatNumber, formatTimeLeft } from '@/lib/format'
 import { useRoleBase } from '@/lib/useRoleBase'
 import { t, tr } from '@/i18n'
 
@@ -35,43 +36,41 @@ function splitMilestone(label) {
   return m ? { name: m[1], code: m[2] } : { name: text, code: null }
 }
 
+// Compact stepper: each milestone is a dot, its code and its date; the name, the exact time and how long is left
+// show in a tooltip on hover or keyboard focus, so the whole overview fits on one screen.
 function Milestones({ milestones }) {
   const next = milestones.findIndex((m) => m.state !== 'Done')
   return (
-    <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(var(--n),minmax(0,1fr))] lg:gap-0" style={{ '--n': milestones.length }}>
+    <ol className="grid min-w-0 flex-1 grid-cols-[repeat(var(--n),minmax(0,1fr))]" style={{ '--n': milestones.length }}>
       {milestones.map((m, i) => {
         const done = m.state === 'Done'
         const current = i === next
         const { name, code } = splitMilestone(m.label)
+        const state = done ? t('Milestone done') : current ? `${t('Next up')} · ${formatTimeLeft(m.at)}` : t('Upcoming')
         return (
-          <li key={m.key} className="relative flex gap-3 lg:flex-col lg:gap-2 lg:pr-3">
-            {/* Connector to the next step (wide screens only). */}
+          <li key={m.key} className="relative flex justify-center">
+            {/* Connector from this dot to the next one. */}
             {i < milestones.length - 1 && (
-              <span aria-hidden="true" className={cx('absolute top-3 left-7 hidden h-0.5 right-0 lg:block', done ? 'bg-success' : 'bg-line')} />
+              <span aria-hidden="true" className={cx('absolute top-2.5 left-1/2 h-0.5 w-full', done ? 'bg-success' : 'bg-line')} />
             )}
-            <span
-              className={cx(
-                'relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold',
-                done ? 'border-success bg-success text-white' : current ? 'border-warning bg-surface text-warning-fg' : 'border-line bg-surface text-fg-tertiary',
-              )}
-            >
-              {done ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : i + 1}
-            </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-fg-tertiary">
-                {code}
-                {current && <Tag tone="warning">{t('Next up')}</Tag>}
+            <Tooltip title={code ? `${code} · ${name}` : name} label={`${formatDateTime(m.at)} · ${state}`}>
+              <span
+                tabIndex={0}
+                aria-label={`${code ?? ''} ${name}, ${formatDateTime(m.at)}, ${state}`}
+                className="relative z-10 flex cursor-default flex-col items-center gap-1 rounded-md px-1 focus-visible:outline-2 focus-visible:outline-focus"
+              >
+                <span
+                  className={cx(
+                    'flex size-5 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold',
+                    done ? 'border-success bg-success text-white' : current ? 'border-warning bg-surface text-warning-fg ring-4 ring-warning/20' : 'border-line bg-surface text-fg-tertiary',
+                  )}
+                >
+                  {done ? <Check size={12} strokeWidth={3} aria-hidden="true" /> : i + 1}
+                </span>
+                <span className={cx('text-xs font-semibold', current ? 'text-warning-fg' : 'text-fg-secondary')}>{code ?? i + 1}</span>
+                <span className="text-xs whitespace-nowrap text-fg-tertiary tabular">{formatDate(m.at)}</span>
               </span>
-              <span className="text-sm font-medium text-fg" title={name}>
-                {name}
-              </span>
-              <span className="text-sm whitespace-nowrap text-fg-secondary tabular" title={formatDateTime(m.at)}>
-                {formatDate(m.at)}
-                <span className="text-fg-tertiary"> · {formatTime(m.at)}</span>
-              </span>
-              {current && <span className="text-xs font-medium text-warning-fg">{formatTimeLeft(m.at)}</span>}
-              <span className="sr-only">{done ? t('Milestone done') : t('Upcoming')}</span>
-            </div>
+            </Tooltip>
           </li>
         )
       })}
@@ -90,22 +89,26 @@ function StatusLine({ o, open }) {
     open ? t('{n} requests still open', { n: formatNumber(open) }) : t('No open requests'),
   ]
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-      <p className="flex items-center gap-2 text-base font-medium text-fg">
+    <div className="flex min-w-0 flex-col gap-1 xl:max-w-md">
+      <p className="flex items-start gap-2 text-base font-medium text-fg">
         {settled ? (
-          <CheckCircle2 size={18} className="shrink-0 text-success-fg" aria-hidden="true" />
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-success-fg" aria-hidden="true" />
         ) : (
-          <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full bg-warning" />
+          <span aria-hidden="true" className="mt-2 size-2.5 shrink-0 rounded-full bg-warning" />
         )}
-        {parts.join(' · ')}
+        {parts[0]}
       </p>
-      {next && (
-        <p className="text-sm text-fg-secondary">
-          {t('Next: {milestone}', { milestone: splitMilestone(next.label).name })}
-          {' · '}
-          <span className="tabular">{formatDateTime(next.at)}</span>
-        </p>
-      )}
+      <p className="pl-6.5 text-sm text-fg-secondary">
+        {parts.slice(1).join(' · ')}
+        {next && (
+          <>
+            {' · '}
+            {t('Next: {milestone}', { milestone: splitMilestone(next.label).name })}
+            {' · '}
+            <span className="tabular">{formatDateTime(next.at)}</span>
+          </>
+        )}
+      </p>
     </div>
   )
 }
@@ -120,7 +123,7 @@ function BedsCard({ beds }) {
     { key: 'free', label: 'Still free', value: free, fill: 'bg-subtle' },
   ]
   return (
-    <Card padding="lg" className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
       <CardHeader title="Beds next term" description={t('{n} assignable beds', { n: formatNumber(total) })} />
       <div className="flex flex-col gap-2">
         <div className="relative flex h-3 overflow-hidden rounded-full bg-subtle" role="img" aria-label={segments.map((s) => `${t(s.label)}: ${formatNumber(s.value)}`).join(', ')}>
@@ -152,20 +155,25 @@ function BedsCard({ beds }) {
 
 function RequestsCard({ o, open, base, termId }) {
   return (
-    <Card padding="lg" className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
+      {/* The status tag sits on the description line, so the title stays on one line like the other two cards. */}
       <CardHeader
         title="Open next-term requests"
-        description={o.filing ? 'Students can still file' : 'Filing closed'}
-        actions={open > 0 ? <Tag tone="warning">{formatNumber(open)}</Tag> : <Tag tone="success">{t('All decided')}</Tag>}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            {t(o.filing ? 'Students can still file' : 'Filing closed')}
+            {open > 0 ? <Tag tone="warning">{formatNumber(open)}</Tag> : <Tag tone="success">{t('All decided')}</Tag>}
+          </span>
+        }
       />
-      <ul className="-mx-2 flex flex-col">
+      <ul className="-mx-2 -my-1 flex flex-col">
         {kinds.map(([key, label, Glyph, tab]) => {
           const n = o.requests?.[key] ?? 0
           return (
             <li key={key}>
               <Link
                 to={`${base}/next-term/${tab}?termId=${termId}`}
-                className="group flex items-center justify-between gap-3 rounded-md px-2 py-2 text-base hover:bg-subtle focus-visible:outline-2 focus-visible:outline-focus"
+                className="group flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-base hover:bg-subtle focus-visible:outline-2 focus-visible:outline-focus"
               >
                 <span className="flex items-center gap-2.5 text-fg-secondary">
                   <Glyph size={16} className="text-fg-tertiary" aria-hidden="true" />
@@ -192,7 +200,7 @@ function EndingCard({ ending }) {
   const sum = rows.reduce((a, [, n]) => a + n, 0)
   const top = rows[0]?.[1] ?? 0
   return (
-    <Card padding="lg" className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
       <CardHeader title="Not continuing" description={t('{n} students leave after this term', { n: formatNumber(sum) })} />
       {rows.length === 0 ? (
         <p className="flex items-center gap-2 text-base text-fg-secondary">
@@ -237,15 +245,15 @@ export default function Overview({ termId }) {
               </Alert>
             )}
 
-            <Card padding="lg" className="flex shrink-0 flex-col gap-5">
+            <Card className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-center xl:gap-6">
               <StatusLine o={o} open={open} />
-              <div className="border-t border-line pt-5">
+              <div className="flex min-w-0 flex-1 border-t border-line pt-4 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-6">
                 <h2 className="sr-only">{t('Milestones')}</h2>
                 <Milestones milestones={o.milestones} />
               </div>
             </Card>
 
-            <div className="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]">
+            <div className="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] [&>*]:py-3">
               <KpiTile size="md" icon={UserCheck} label="Continuing" value={formatNumber(o.counts.continuing)} note="Bed kept for the next term" />
               <KpiTile
                 size="md"
@@ -290,7 +298,7 @@ export default function Overview({ termId }) {
               />
             </div>
 
-            <div className="grid shrink-0 grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="grid shrink-0 grid-cols-1 gap-4 lg:flex-1 lg:grid-cols-3">
               <BedsCard beds={o.newStudentBeds} />
               <RequestsCard o={o} open={open} base={base} termId={termId} />
               <EndingCard ending={o.counts.ending} />

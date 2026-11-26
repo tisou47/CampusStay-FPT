@@ -13,6 +13,7 @@ dependencies:
   firebase_messaging: ^17.0.1
   flutter:
     sdk: flutter
+  flutter_secure_storage: ^11.2.0
   google_sign_in: ^7.2.0
   http: ^1.6.0
   image_picker: ^1.2.4

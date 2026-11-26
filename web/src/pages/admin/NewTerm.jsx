@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
 import { Alert, Card, Steps } from '@/components/ui/Display'
 import { Field, Input } from '@/components/ui/Field'
-import { STEPS } from './TermWizard'
+import { STEPS } from './termSteps'
 import { t } from '@/i18n'
 import { DatePicker } from '@/components/ui/date-time'
 
@@ -29,7 +29,6 @@ export default function NewTerm() {
     <>
       <PageHeader
         title="New term"
-        description="Start with the name and the stay; the Draft is saved after each step."
         breadcrumb={
           <Link to="/admin/terms" className="flex items-center gap-1 text-sm text-fg-tertiary hover:text-fg">
             <ArrowLeft size={14} aria-hidden="true" />

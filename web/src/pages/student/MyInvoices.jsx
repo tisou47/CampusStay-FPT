@@ -331,7 +331,7 @@ function Invoices({ query, page, pageSize, setPage, setPageSize, onReceipt }) {
 /* ---------------------------------------------------------------- Refunds */
 
 /** The student's refunds: what comes back, by which rule, and where it stands. */
-function Refunds({ query }) {
+function Refunds({ query, page, onPage }) {
   const data = query.data
   const items = data?.items ?? []
   const pendingAmount = data?.pendingAmount ?? 0
@@ -467,6 +467,11 @@ function Refunds({ query }) {
           ))}
         </TBody>
       </Table>
+      {data?.total > 20 && (
+        <footer className="border-t border-line bg-surface px-4 py-3 lg:px-5">
+          <Pagination className="w-full [&>p]:mr-auto [&>p]:text-sm [&>p]:text-fg-tertiary" total={data.total} page={page} pageSize={20} showSizeChanger={false} onChange={onPage} />
+        </footer>
+      )}
     </section>
   )
 }
@@ -487,7 +492,9 @@ export default function MyInvoices() {
   const [pageSize, setPageSize] = useState(10)
   // Every Term, unpaid first (WEB-STU-22): an older Term's unpaid Invoice must not hide behind the Term switch.
   const query = useQuery(['invoices', 'mine', page, pageSize], ({ signal }) => api.me.invoices({ page, pageSize }, { signal }))
-  const refunds = useQuery(['refunds', 'mine'], ({ signal }) => api.me.refunds({ pageSize: 50 }, { signal }))
+  // Refunds page like invoices, and the tab counts the API's total (WEB-STU-30).
+  const [refundPage, setRefundPage] = useState(1)
+  const refunds = useQuery(['refunds', 'mine', refundPage], ({ signal }) => api.me.refunds({ page: refundPage, pageSize: 20 }, { signal }))
   const summary = query.data?.summary
   const pendingRefundAmount = refunds.data?.pendingAmount ?? 0
 
@@ -503,7 +510,7 @@ export default function MyInvoices() {
       key: 'refunds',
       label: t('Refund items'),
       icon: Undo2,
-      count: refunds.data?.items?.length,
+      count: refunds.data?.total ?? refunds.data?.items?.length,
       dot: pendingRefundAmount > 0,
     },
   ]
@@ -544,7 +551,7 @@ export default function MyInvoices() {
       {tab === 'invoices' ? (
         <Invoices query={query} page={page} pageSize={pageSize} setPage={setPage} setPageSize={setPageSize} onReceipt={setReceipt} />
       ) : (
-        <Refunds query={refunds} />
+        <Refunds query={refunds} page={refundPage} onPage={setRefundPage} />
       )}
 
       <div aria-hidden="true" className="h-2 shrink-0" />

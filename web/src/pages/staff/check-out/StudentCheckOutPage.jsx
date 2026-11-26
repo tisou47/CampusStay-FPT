@@ -49,6 +49,7 @@ export default function StudentCheckOutPage() {
     refund,
     damageLines,
     hasSharedSplit,
+    readingsInvalid,
     submit,
   } = ws
 
@@ -131,7 +132,7 @@ export default function StudentCheckOutPage() {
             refund={refund}
             damageLines={damageLines}
             hasSharedSplit={hasSharedSplit}
-            submitPending={submit.pending}
+            submitPending={submit.pending || readingsInvalid}
             estimating={ws.estimating}
             usage={ws.usage}
             residents={furnitureQuery.data?.residents}

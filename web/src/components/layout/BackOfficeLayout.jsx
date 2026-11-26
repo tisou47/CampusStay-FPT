@@ -13,6 +13,7 @@ import { cx } from '@/lib/cx'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { SectionTabs } from './SectionTabs'
 import { ShiftConfirmHost } from './ShiftConfirm'
+import { NavWorkBadge, useWorkPolling } from './WorkInbox'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Logo } from './Logo'
 import { NotificationsButton } from './Notifications'
@@ -67,6 +68,7 @@ function Sidebar({ role }) {
   const config = backOffice[role]
   const { user, signOut } = useSession()
   const [changingPassword, setChangingPassword] = useState(false)
+  const work = useWorkPolling().data?.items
   return (
     <aside className="flex h-full w-62 shrink-0 flex-col justify-between border-r border-line bg-surface">
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
@@ -92,6 +94,7 @@ function Sidebar({ role }) {
                   >
                     <Glyph size={18} aria-hidden="true" className={cx('shrink-0', active ? 'text-primary' : 'text-fg-tertiary')} />
                     <span className="min-w-0">{t(item.label)}</span>
+                    <NavWorkBadge item={item} work={work} />
                   </Link>
                 )
               })}
@@ -456,17 +459,34 @@ export function BackOfficeLayout({ role }) {
  */
 /** tip: a "?" after the title explaining what the screen is for and when to use it. */
 /** compact: one row, a 22 px title and the actions centred beside it (screens where the table needs the height). */
+/**
+ * On Staff screens (/staff/…) the description is not a line under the title: it moves into the "?" beside the
+ * title, so the header takes less height (user decision 25/11/2026). Other roles keep the line.
+ */
 export function PageHeader({ title, tip, description, actions, badge, breadcrumb, compact = false, className }) {
+  const staff = useLocation().pathname.startsWith('/staff')
+  const tipParts = (staff ? [description, tip] : [tip]).filter(Boolean)
+  const tipLabel =
+    tipParts.length > 1 ? (
+      <span className="flex flex-col gap-1">
+        {tipParts.map((part, i) => (
+          <span key={i}>{tx(part)}</span>
+        ))}
+      </span>
+    ) : (
+      tipParts[0]
+    )
+  const tipName = tipParts.length && tipParts.every((part) => typeof part === 'string') ? tipParts.map(tx).join(' ') : undefined
   return (
     <div className={cx('flex shrink-0 flex-wrap justify-between gap-4 gap-y-2', compact ? 'items-center' : 'items-end', className)}>
       <div className="flex min-w-[220px] flex-1 flex-col gap-0.5">
         {breadcrumb}
         <div className={cx('flex items-center', compact ? 'gap-2' : 'gap-3')}>
           <h1 className={cx('font-bold tracking-tight text-fg', compact ? 'text-[22px] leading-8 whitespace-nowrap' : 'text-h1')}>{tx(title)}</h1>
-          {tip && <InfoTip label={tip} size={16} side="bottom" align="start" />}
+          {tipLabel && <InfoTip label={tipLabel} ariaLabel={tipName} size={16} side="bottom" align="start" />}
           {badge}
         </div>
-        {description && <p className="max-w-[520px] text-base text-fg-secondary [text-wrap:pretty]">{tx(description)}</p>}
+        {description && !staff && <p className="max-w-[520px] text-base text-fg-secondary [text-wrap:pretty]">{tx(description)}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
     </div>
