@@ -64,19 +64,20 @@ export default function AuditLog() {
     <>
       <PageHeader
         title="Audit log"
-        description={`${t('Every configuration change, irreversible action and data export. Read-only.')}${d?.retentionMonths ? ` ${t('Kept {n} months.', { n: d.retentionMonths })}` : ''}`}
         actions={
           <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
             Export .csv
           </Button>
         }
       />
-      <div className="flex shrink-0 items-center gap-3">
-        <SearchInput aria-label={t('Search object or user')} placeholder="Search object or user" wrapperClassName="w-65" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select aria-label={t('Actor')} wrapperClassName="w-48" value={actor} onChange={filter(setActor)} options={[{ value: '', label: 'Actor: All' }, ...(d?.actors ?? []).map((a) => ({ value: a, label: t('Actor: {a}', { a }) }))]} />
-        <Select aria-label={t('Role')} wrapperClassName="w-44" value={role} onChange={filter(setRole)} options={[{ value: '', label: 'Role: All' }, ...roles.map((r) => ({ value: r, label: t('Role: {r}', { r: t(r) }) }))]} />
-        <Select aria-label={t('Action')} wrapperClassName="w-48" value={action} onChange={filter(setAction)} options={[{ value: '', label: 'Action: All' }, ...(d?.actions ?? []).map((a) => ({ value: a, label: t('Action: {a}', { a }) }))]} />
-        <Select aria-label={t('Date')} wrapperClassName="w-48" value={range} onChange={filter(setRange)} options={ranges} />
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <SearchInput aria-label={t('Search object or user')} placeholder="Search object or user" wrapperClassName="min-w-72 flex-1" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Actor')} value={actor} onChange={filter(setActor)} options={[{ value: '', label: 'Actor: All' }, ...(d?.actors ?? []).map((a) => ({ value: a, label: t('Actor: {a}', { a }) }))]} />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Role')} value={role} onChange={filter(setRole)} options={[{ value: '', label: 'Role: All' }, ...roles.map((r) => ({ value: r, label: t('Role: {r}', { r: t(r) }) }))]} />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Action')} value={action} onChange={filter(setAction)} options={[{ value: '', label: 'Action: All' }, ...(d?.actions ?? []).map((a) => ({ value: a, label: t('Action: {a}', { a }) }))]} />
+          <Select fit wrapperClassName="max-w-80" aria-label={t('Date')} value={range} onChange={filter(setRange)} options={ranges} />
+        </div>
       </div>
       <Table fill tableClassName="table-fixed">
         <THead>

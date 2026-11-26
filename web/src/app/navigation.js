@@ -21,7 +21,6 @@ import {
   GraduationCap,
   HandCoins,
   HeartHandshake,
-  Hourglass,
   House,
   KeyRound,
   Layers,
@@ -38,6 +37,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  TriangleAlert,
   Timer,
   Upload,
   User,
@@ -281,8 +281,6 @@ export const backOffice = {
         items: [
           { label: 'Room types', icon: Bed, to: '/admin/room-types' },
           { label: 'Room tiers', icon: Layers, to: '/admin/room-classes' },
-          { label: 'Deposit', icon: Banknote, to: '/admin/fees' },
-          { label: 'Utility', icon: Gauge, to: '/admin/utility' },
         ],
       },
       {
@@ -290,9 +288,7 @@ export const backOffice = {
         items: [
           { label: 'Who may apply', icon: CircleCheck, to: '/admin/eligibility' },
           { label: 'Roommate matching', icon: Users, to: '/admin/matching' },
-          { label: 'Deadlines and reminders', icon: Timer, to: '/admin/deadlines' },
           { label: 'Refunds, penalties and terminations', icon: Scale, to: '/admin/refunds' },
-          { label: 'Stay and renewal', icon: Hourglass, to: '/admin/stay' },
           { label: 'Inspection checklists', icon: ClipboardCheck, to: '/admin/inspection-checklists' },
         ],
       },

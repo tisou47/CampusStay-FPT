@@ -29,7 +29,6 @@ export default function NewTerm() {
     <>
       <PageHeader
         title="New term"
-        description="Start with the name and the stay; the Draft is saved after each step."
         breadcrumb={
           <Link to="/admin/terms" className="flex items-center gap-1 text-sm text-fg-tertiary hover:text-fg">
             <ArrowLeft size={14} aria-hidden="true" />

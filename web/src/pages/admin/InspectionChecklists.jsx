@@ -344,7 +344,6 @@ export default function InspectionChecklists() {
     <>
       <PageHeader
         title="Inspection checklists"
-        description="Checklists used by staff when managers schedule inspections. Failed items create maintenance requests."
         actions={
           <Button variant="primary" onClick={() => setCreating('')}>
             New checklist

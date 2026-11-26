@@ -32,7 +32,6 @@ export default function EligibilityRules() {
     <ConfigPage
       form={cfg}
       title="Who may apply"
-      description="The checks every application passes, and who is placed first when beds are short."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>
