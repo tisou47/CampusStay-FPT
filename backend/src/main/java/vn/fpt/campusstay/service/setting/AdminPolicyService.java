@@ -227,7 +227,9 @@ public class AdminPolicyService {
         for (RefundRule r : after.rules()) {
             RefundRule o = old.get(r.id());
             String was = o == null ? null : refundText(o);
-            if (!Objects.equals(was, refundText(r))) {
+            // A rule that is off and never applied promises students nothing (BE-3RD-10).
+            boolean neverOn = !r.active() && (o == null || !o.active());
+            if (!neverOn && !Objects.equals(was, refundText(r))) {
                 out.add(new ValueChange(r.when(), "TEXT", was, refundText(r)));
             }
         }

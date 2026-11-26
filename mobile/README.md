@@ -12,23 +12,24 @@ Every screen and action of the web's Student portal is reachable in the app (web
 | Screen (web page) | What it shows and does | API |
 |---|---|---|
 | Sign in | the CampusStay password, or Google (`@fpt.edu.vn`; a new account sets its first password in the app); **Forgot password?** opens the web's reset page in the browser. Staff and Managers are sent to the web | `POST /auth/sign-in`, `POST /auth/google` (`credential`), `POST /auth/password/set`, `GET /auth/me` |
-| Account verification (`/student/verification`) | a Google sign-up the student list does not know sends the sign-up form before anything else; a banner while a Manager verifies it; the verified details | `GET`/`PUT /students/me/verification` |
-| Account menu (top bar) | name and code, verification, **Change password**, sign out | `POST /auth/password/change`, `POST /auth/sign-out` |
-| Home (`/student`) | the next action for the student's stage (apply, pay, under review, all set), a roommate invitation, the registration period with its schedule, the dormitory board (open → read, changes old → new, show all), the status rows, the latest notification | `/students/me/home`, `/students/me/board`, `/registration-periods/current` (+ `/{termId}`), `/notifications/{id}/read` |
-| Registration period details (`/student/registration-periods/:termId`) | Timeline · Prices (places and furniture per Room Class) · Rules (house rules, documents) · FAQ; **Apply now** while open | `/registration-periods/{termId}` |
+| Account verification (`/student/verification`) | a Google sign-up the student list does not know sends the sign-up form (with the privacy notice to accept) before anything else; a banner while a Manager verifies it, refreshed when the app comes back to the front or a push arrives; the verified details | `GET`/`PUT /students/me/verification` |
+| My data (Account) | the privacy notice and its acceptance (Decree 13/2023), download everything as `my-data.json`, ask to erase the account | `/students/me/privacy` (+ `/consent`, `/export`, `/erasure`) |
+| Account (tab) | name and code, verification, **Change password**, My data, sign out (also signs out of Google on this phone); the account's language follows the phone | `POST /auth/password/change`, `POST /auth/sign-out`, `PUT /auth/me/locale` |
+| Home (`/student`) | the next action for the student's stage (apply, pay, under review, all set), a roommate invitation, the registration period with its schedule, the dormitory board (open → read, changes old → new, show all), the status rows, the latest notification; the Dormitory board tile opens the current registration period (four steps, the selected one explained) and the announcements, opened in place with what changed, before and now | `/students/me/home`, `/students/me/board`, `/registration-periods/current` (+ `/{termId}`), `/notifications/{id}/read` |
+| Registration period details (`/student/registration-periods/:termId`) | four tabs like the web: Timeline (numbered steps, a date track, today) · Prices (Room Type › Room Class › fee breakdown and furniture, places for the student's gender) · House rules (numbered, key money rules, documents) · FAQ (one open at a time); **Apply now** while open | `/registration-periods/{termId}` |
 | New application (`/student/apply/*`) | the wizard: Term and eligibility → Room Type, Room Class, stay length → Roommate (2-bed: check a Student code, or match automatically with optional preferences) → Personal info and consent → Review and submit, then the deposit payment | `/applications/eligibility`, `/catalog`, `/students/me/profile`, `POST /applications/roommate-check`, `POST /applications` |
-| My applications, Application (`/student/applications`, `/:id`) | Activity › Applications; an Application's alert and action, progress, Room preference, Invoices, waitlist choices (Round 2 or withdraw with the refund account), cancel with a reason | `/students/me/applications`, `/applications/{id}` (+ `/cancel`, `/withdraw`) |
+| My applications, Application (`/student/applications`, `/:id`) | Activity › Applications; an Application's alert and action, progress (done/total), the Room preference as tiles with the Room and Bed strip, each Invoice as a card with **Pay now**, waitlist choices (Round 2 or withdraw with the refund account), cancel with a reason | `/students/me/applications`, `/applications/{id}` (+ `/cancel`, `/withdraw`) |
 | Roommate invitation, Round 2 offer | accept or decline an invitation (then pay the deposit); choose a Round 2 Bed or decline with the refund account | `/students/me/roommate-invitation`, `/roommate-invitations/{id}/respond`, `/students/me/round2-offer`, `/round2-offers/{id}/respond` |
-| My Room (`/student/room`) | termination and unpaid-Balance alerts, the Room, check-in pass as a QR code (A-11), the next Term (fee, extension for 1–8 Terms with a reason, end of stay, room change, swap, Room Class), door code shown 30 s (every view audited), late check-in (day and a document), check-in window, Balance, details, roommates, furniture, rules | `/students/me/allocation`, `/students/me/door-code` (+ `/reveal`), `/students/me/furniture`, `/students/me/late-check-in`, `/students/me/stay/extension`, `/students/me/stay/end` |
-| Payments (`/student/invoices`) | Utility warning, transfers waiting, outstanding / paid / next Invoice, the refund account, every Invoice, the refunds | `/students/me/invoices`, `/students/me/refunds`, `/students/me/refund-account`, `/banks` |
+| My Room (`/student/room`) | termination and unpaid-Balance alerts over three tabs like the web: **Room overview** (the Room and its details, the check-in pass as a QR code (A-11), roommates, links), **Furniture & equipment** (one tile per type, report broken equipment) and **Contract & utilities** (the stay contract, its milestones, the next Term: fee, extension for 1–8 Terms, end of stay, room change, swap; the Balance, the door code shown 30 s (every view audited; screenshots and the recent-apps thumbnail are blocked meanwhile), late check-in). The last copy (with the check-in pass) shows offline, marked with its time. Extension offers up to `stay.maxTerms` | `/students/me/allocation`, `/students/me/door-code` (+ `/reveal`), `/students/me/furniture`, `/students/me/late-check-in`, `/students/me/stay/extension`, `/students/me/stay/end` |
+| Payments (`/student/invoices`) | Utility warning, transfers waiting, three tiles (outstanding / paid / next Invoice), the refund account (amber with the amount while a refund waits for it), then two tabs like the web: **Invoices & fees** and **Refund items** | `/students/me/invoices`, `/students/me/refunds`, `/students/me/refund-account`, `/banks` |
 | Invoice (`/student/invoices/:id`) | the amount card, its lines or the Utility breakdown per segment, the receipt with its PDF (opens in the phone's PDF viewer) | `/invoices/{id}`, `/invoices/{id}/receipt` |
-| Pay (`/student/invoices/:id/pay`) | the VietQR image with its expiry and **Refresh QR**, open the QR image, copy the transfer content and bank details, **I have transferred** with an optional bank reference; checks again every 15 s while a Manager decides | `/invoices/{id}/payment` (+ `/refresh`), `POST /invoices/{id}/claim` |
-| Requests (`/student/requests`) | Activity › Requests: Maintenance and Room changes with their counts; confirm a fix or reopen; Pay, Answer a swap, Agree / Decline a Room Class change; **New request** | `/students/me/requests`, `/maintenance-requests/{id}` (+ `/confirm`), `/room-class-changes/{id}/consent` |
+| Pay (`/student/invoices/:id/pay`) | the VietQR card (expiry badge, **Refresh QR** or **Download QR**, the amount to copy, the bank details and the transfer content to copy), **I have transferred** with an optional bank reference and a confirmation of the amount and content first, the Invoice; checks again every 15 s while a Manager decides (not while the app is in the background); a rejected transfer shows the reason, the new deadline and the rejections left | `/invoices/{id}/payment` (+ `/refresh`), `POST /invoices/{id}/claim` |
+| Requests (`/student/requests`, `?kind=room-changes` opens Room changes) | Activity › Requests: Maintenance and Room changes with their counts; confirm a fix or reopen; Pay, Answer a swap; **New request** | `/students/me/requests`, `/maintenance-requests/{id}` (+ `/confirm`) |
 | New maintenance request | category, place, furniture item (A-49), title, description, urgency, whether Staff may enter, up to 3 photos | `/maintenance-requests/options`, `POST /maintenance-requests` (multipart) |
-| Room change, Room Class change | the next Term's Bed or Room, what changes, the reason and the next-Term fee; an open Room Class change with its consents | `/room-changes/options`, `POST /room-changes`, `/room-class-changes/options`, `POST /room-class-changes` |
+| Room change | the next Term's Bed or Room, what changes, the reason and the next-Term fee | `/room-changes/options`, `POST /room-changes` |
 | Swap (`/student/requests/swap/*`) | with a specific Student by code, or the anonymous swap board (my post, compatible posts, request); a swap invitation (accept or decline) | `POST /swaps`, `/swap-board` (+ `/my-post`, `/posts/{id}/request`), `/swap-invitations/{id}` (+ `/respond`) |
 | Family Days (`/student/family-days`, `/:id`) | from Home's status rows and My Room: the Family Days of the student's Block; register guests (name, relationship, year of birth, up to the limit) for a time slot with places left; each guest's QR pass and status (not arrived, in, out); cancel the registration | `/students/me/family-days` (+ `/{id}`, `/{id}/registration`, `/{id}/registration/cancel`) |
-| CampusStay Assistant | the robot in the top bar, only when the server has a model (ADR-28): suggestions, questions and answers; the conversation lasts while the app runs | `/students/me/assistant`, `POST /students/me/assistant/chat` |
+| CampusStay Assistant | the robot in the top bar, only when the server has a model (ADR-28): suggestions, questions and answers written as they stream in, with **Stop**; the conversation lasts while the app runs | `/students/me/assistant`, `POST /students/me/assistant/chat/stream` (SSE; `/chat` on an older server) |
 | Notifications (`/student/notifications`) | Home's Notifications card (the newest three, "See all") and the top bar's bell with the unread count open the page: today and earlier; opening one marks it read and opens its link in the app | `/notifications` (+ `/{id}/read`, `/read-all`) |
 
 Differences from the web: the language follows the phone (no language switch); the QR image opens in the phone's
@@ -43,10 +44,10 @@ pushes while the app is closed; one that arrives while it is open appears at the
 | Folder | What |
 |---|---|
 | `lib/main.dart` | app, session gate (sign-in → set password → verification form → tabs), the four tabs, bell and account menu |
-| `lib/api.dart`, `lib/session.dart` | the API client (bearer token, language, errors `{ message, code, details.fields }`, `401` signs out); the saved session |
+| `lib/api.dart`, `lib/session.dart` | the API client (bearer token, language, errors `{ message, code, details.fields }`, `401` signs out, Server-Sent Events); the saved session: the token in the Android Keystore (`flutter_secure_storage`; a token an older version left in plain preferences moves there once), the name and status in preferences |
 | `lib/push.dart` | Firebase Cloud Messaging: token to the API, foreground messages |
 | `lib/common.dart` | `t()` texts, status labels, money and date formats (campus time UTC+7), JSON reading, loading/error widgets |
-| `lib/ui.dart` | the web's design tokens (colours of `web/src/index.css`) and pieces: theme, `Tag`/`StatusChip`, `Alert`, `NextAction`, `StatusList`/`StatusRow`, `Section`, `Timeline`, `OptionTile`, form fields |
+| `lib/ui.dart` | the web's design tokens (colours of `web/src/index.css`) and pieces: theme, `Tag`/`StatusChip`, `Alert`, `NextAction`, `StatusList`/`StatusRow`, `Section`, `Timeline`, `TabStrip`, `InfoRow`, `Milestones`, `OptionTile`, form fields |
 | `lib/links.dart`, `lib/files.dart` | web links of notifications → app screens; browser links, receipt PDF, picking photos and documents |
 | `lib/screens/` | `sign_in`, `account` (verification, change password), `home`, `registration`, `apply`, `applications` (+ roommate invitation, Round 2), `room`, `payments` (+ Invoice, Pay), `refund` (refund account), `requests` (maintenance, room change, Room Class, swap), `family_day`, `assistant`, `notifications`, `activity` |
 | `android/` | the Android host Flutter generates (Gradle, manifest, icon, push channel) |
@@ -68,14 +69,24 @@ the Android SDK. Two files stay out of Git (`.gitignore`):
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --debug --dart-define-from-file=config.json   # build/app/outputs/flutter-apk/app-debug.apk, talks to production
-flutter run --dart-define-from-file=config.json --dart-define=API_BASE_URL=http://10.0.2.2:8080/api   # a local backend from the emulator
+flutter run --dart-define-from-file=config.json   # debug: a local backend on the emulator's host (10.0.2.2:8080)
+flutter build apk --release --dart-define-from-file=config.json   # build/app/outputs/flutter-apk/app-release.apk, talks to production
+flutter build apk --debug --dart-define-from-file=config.json --dart-define=API_BASE_URL=https://campusstay-api.eastasia.cloudapp.azure.com/api   # a debug APK on production
 ```
 
-Flutter 3.50 and later mark `package:flutter/material.dart` as deprecated in favour of the `material_ui` package; the
-app keeps the Flutter import so it still builds with 3.47, so there `flutter analyze --no-fatal-infos` is the check.
+Which API: a **release** build talks to production (`https://campusstay-api.eastasia.cloudapp.azure.com/api`), a
+**debug** build (and `flutter run`) to a local backend at `http://10.0.2.2:8080/api`, so a developer's run never
+writes to production by accident; `API_BASE_URL` overrides both. Debug builds allow plain HTTP for a local backend
+(`android/app/src/debug/AndroidManifest.xml`); release builds use HTTPS only.
 
-The API defaults to production (`https://campusstay-api.eastasia.cloudapp.azure.com/api`). Debug builds allow plain
-HTTP for a local backend (`android/app/src/debug/AndroidManifest.xml`); release builds use HTTPS only.
+**Release signing:** copy `android/key.properties.example` to `android/key.properties` and point it at the upload
+keystore (`keytool -genkey -v -keystore android/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`).
+Neither file is ever committed (`android/.gitignore`: `key.properties`, `*.jks`). Without `key.properties` a
+release build still works, signed with the debug key, and Gradle warns about it; such an APK cannot go to Play Store.
+Every build gets a higher `versionCode` (`--build-number` when higher, otherwise the minutes since 1 Jan 2026).
+
+Flutter 3.50 and later mark `package:flutter/material.dart` as deprecated in favour of the `material_ui` package; the
+app keeps the Flutter import so it still builds with 3.47 (`material_ui` would be a new dependency), and each import
+carries an `ignore` for that one warning, so `flutter analyze` reports no issues.
 `android/gradle.properties` turns off Kotlin's incremental build: with the pub cache on `C:` and the project on `D:`
 it fails on Windows.

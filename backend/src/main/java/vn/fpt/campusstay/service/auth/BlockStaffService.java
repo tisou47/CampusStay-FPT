@@ -80,9 +80,11 @@ public class BlockStaffService {
      * One open item of a person.
      *
      * @param type its kind's label (Maintenance, Room change, Inspection); {@code id} what reassign takes
+     * @param block  the item's Block code, and {@code handle} the handle label a receiver needs: reassign accepts only
+     *               someone who works in that Block and handles that kind, so the page can say who fits
      */
     public record WorkItem(String type, String id, String code, String title, String roomCode, String status,
-            Instant openedAt, Instant dueAt, boolean overdue, String link) {
+            Instant openedAt, Instant dueAt, boolean overdue, String link, String block, String handle) {
     }
 
     public record WorkPage(List<WorkItem> items, long total) {
@@ -313,13 +315,17 @@ public class BlockStaffService {
     public WorkPage work(String id) {
         currentUser.require(Permission.MANAGE_BLOCK);
         Person p = person(id, false);
-        List<WorkItem> items = work.stream().flatMap(w -> w.openItems(p.id()).stream())
+        List<StaffWork.Item> open = work.stream().flatMap(w -> w.openItems(p.id()).stream()).toList();
+        Map<Long, String> codes = blocks.codesByIds(open.stream().map(StaffWork.Item::buildingId).distinct().toList());
+        Map<String, String> labels = handles.labels();
+        List<WorkItem> items = open.stream()
                 .sorted(Comparator.comparing((StaffWork.Item i) -> !i.overdue())
                         .thenComparing(StaffWork.Item::dueAt, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(StaffWork.Item::openedAt, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(StaffWork.Item::code))
                 .map(i -> new WorkItem(TYPE_LABELS.get(i.type()), i.id(), i.code(), i.title(), i.roomCode(),
-                        i.status(), i.openedAt(), i.dueAt(), i.overdue(), i.link()))
+                        i.status(), i.openedAt(), i.dueAt(), i.overdue(), i.link(), codes.get(i.buildingId()),
+                        labels.getOrDefault(TYPE_HANDLES.get(i.type()), TYPE_HANDLES.get(i.type()))))
                 .toList();
         return new WorkPage(items, items.size());
     }

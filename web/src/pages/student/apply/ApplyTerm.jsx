@@ -36,7 +36,7 @@ export default function ApplyTerm() {
         <QueryState query={period} compact>
           {(d) => <TermSchedule timeline={d.timeline} />}
         </QueryState>
-        {info?.depositWindowHours && (
+        {info?.depositWindowHours > 0 && (
           <p className="text-base text-fg">{t('After you submit, pay the deposit within {n} hours.', { n: info.depositWindowHours })}</p>
         )}
         <Note>Registration opens only for the upcoming term. The term is set by the dormitory office and cannot be changed here.</Note>

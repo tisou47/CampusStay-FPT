@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router'
 import { AlertTriangle, ArrowRight, CalendarDays, Info } from 'lucide-react'
 import { SemesterProgress } from '@/components/ui/SemesterProgress'
 import { Tooltip } from '@/components/ui/Tooltip'
-import { ADMIN_STAGES, READY_SCREENS, flowPosition } from '@/app/adminFlow'
 import { MANAGER_STAGES, STAFF_STAGES, stagePosition } from '@/app/managerFlow'
 import { useSession } from '@/app/session'
 import { termJourney } from '@/lib/termJourney'
@@ -17,7 +16,8 @@ import { cx } from '@/lib/cx'
 export function FlowTrail({ role }) {
   const { pathname } = useLocation()
   const { term } = useSession()
-  const flow = role === 'admin' ? adminTrail(pathname) : STAGES[role] ? termTrail(STAGES[role], `/${role}`, pathname, term) : null
+  // The Admin's screens go without the trail (user decision 22/11/2026): only Managers and Staff see one.
+  const flow = STAGES[role] ? termTrail(STAGES[role], `/${role}`, pathname, term) : null
   if (!flow) return null
   const InfoGlyph = flow.notice ? AlertTriangle : Info
   return (
@@ -76,19 +76,6 @@ export function FlowTrail({ role }) {
   )
 }
 
-function adminTrail(pathname) {
-  const at = flowPosition(pathname)
-  if (!at) return null
-  return {
-    title: t('Set up a term'),
-    home: '/admin',
-    steps: ADMIN_STAGES.map((st, i) => ({ key: st.key, label: st.label, why: st.why, state: stateAt(i, at.stage) })),
-    screen: at.current ? t('{label} · {n} of {total}', { label: t(at.current.label), n: at.screen + 1, total: READY_SCREENS.length }) : null,
-    why: at.current?.why ?? ADMIN_STAGES[at.stage].why,
-    next: at.next,
-  }
-}
-
 const STAGES = { manager: MANAGER_STAGES, staff: STAFF_STAGES }
 
 const stateAt = (i, at) => (i < at ? 'done' : i === at ? 'current' : 'todo')
@@ -117,37 +104,6 @@ export function stageSteps(STAGES_OF_ROLE, term, stateOf, notes) {
 
 /** The stage the Term is in now, as an index of the role's stages (-1 when there is no Term). */
 const liveIndex = (term) => termJourney(term).findIndex((s) => s.state === 'current')
-
-/**
- * The current stage's work on a role's home: why the stage matters and its screens as numbered links, in order.
- * Manager overview and Staff Today show it under the Term's stages.
- */
-export function StageNow({ role, term }) {
-  const stage = STAGES[role]?.[liveIndex(term)]
-  if (!stage) return null
-  return (
-    <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
-      <p className="text-base text-fg-secondary">
-        <span className="font-semibold text-fg">{t('Now: {stage}.', { stage: t(stage.label) })} </span>
-        {t(stage.why)}
-      </p>
-      <ol className="flex flex-wrap gap-2" aria-label={t('Screens of this stage, in order')}>
-        {stage.screens.map((sc, i) => (
-          <li key={sc.to}>
-            <Link
-              to={sc.to}
-              title={t(sc.why)}
-              className="flex items-center gap-2 rounded-md border border-line bg-canvas px-3 py-1.5 text-base text-fg hover:border-primary hover:text-fg-brand"
-            >
-              <span className="flex size-5 items-center justify-center rounded-full bg-primary-subtle text-sm font-semibold text-fg-brand tabular">{i + 1}</span>
-              {t(sc.label)}
-            </Link>
-          </li>
-        ))}
-      </ol>
-    </div>
-  )
-}
 
 function termTrail(STAGES_OF_ROLE, home, pathname, term) {
   const live = liveIndex(term)

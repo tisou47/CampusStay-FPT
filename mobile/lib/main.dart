@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import 'api.dart';
@@ -34,7 +35,7 @@ class CampusStayApp extends StatefulWidget {
   State<CampusStayApp> createState() => _CampusStayAppState();
 }
 
-class _CampusStayAppState extends State<CampusStayApp> {
+class _CampusStayAppState extends State<CampusStayApp> with WidgetsBindingObserver {
   final _navigator = GlobalKey<NavigatorState>();
   Session? _session;
 
@@ -46,11 +47,25 @@ class _CampusStayAppState extends State<CampusStayApp> {
     Api.onSignedOut = () async {
       AssistantScreen.messages.clear(); // the next student on this phone must not see it (MOB-01)
       await Push.unregister(); // MOB-03: the device must not keep getting the previous student's pushes
+      await googleSignOut(); // MOB-21
       await widget.store.clear();
       _navigator.currentState?.popUntil((route) => route.isFirst);
       if (mounted) setState(() => _session = null);
     };
     if (_session != null) _refreshUser();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // MOB-32: a verification decided while the app was in the background shows when the student comes back.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshUser();
   }
 
   /// Learns the account's current state (`GET /auth/me`): a verification decided meanwhile, a new name.
@@ -58,8 +73,18 @@ class _CampusStayAppState extends State<CampusStayApp> {
     final session = _session;
     if (session == null) return;
     try {
-      final user = await Api.get('/auth/me');
-      final updated = await widget.store.save(session.token, user.obj('user') ?? user);
+      final me = await Api.get('/auth/me');
+      final user = me.obj('user') ?? me;
+      // MOB-19: pushes and emails follow the phone's language, like the app's own texts.
+      final locale = isVietnamese() ? 'vi' : 'en';
+      if (user.str('locale') != null && user.str('locale') != locale) {
+        try {
+          await Api.put('/auth/me/locale', {'locale': locale});
+        } on ApiException {
+          // the account keeps its language; tried again next time
+        }
+      }
+      final updated = await widget.store.save(session.token, user);
       if (mounted) setState(() => _session = updated);
     } on ApiException {
       // keep the saved session; a 401 signs out on its own
@@ -74,10 +99,11 @@ class _CampusStayAppState extends State<CampusStayApp> {
     } on ApiException {
       // the token is dropped anyway
     }
+    await googleSignOut(); // MOB-21
     await widget.store.clear();
     Api.token = null;
     _navigator.currentState?.popUntil((route) => route.isFirst);
-    setState(() => _session = null);
+    if (mounted) setState(() => _session = null);
   }
 
   @override
@@ -109,17 +135,20 @@ class _CampusStayAppState extends State<CampusStayApp> {
             )
           : session.verification == 'Profile needed'
           ? VerificationScreen(onSent: _refreshUser, onSignOut: _signOut)
-          : Shell(key: ValueKey(session.token), session: session, onSignOut: _signOut),
+          : Shell(key: ValueKey(session.token), session: session, onSignOut: _signOut, onMessage: _refreshUser),
     );
   }
 }
 
 /// The three tabs (Home with the features as tiles, My Room, Account); the top bar has the assistant and the bell.
 class Shell extends StatefulWidget {
-  const Shell({super.key, required this.session, required this.onSignOut});
+  const Shell({super.key, required this.session, required this.onSignOut, this.onMessage});
 
   final Session session;
   final Future<void> Function() onSignOut;
+
+  /// A push arrived while the app is open: the account may have changed (a verification decided, MOB-32).
+  final Future<void> Function()? onMessage;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -152,6 +181,7 @@ class _ShellState extends State<Shell> {
         onAction: () => _openLink(link),
       );
       _loadUnread();
+      widget.onMessage?.call();
     });
     // A notification tapped in the system tray opens its screen (MOB-02).
     Push.listenForTaps(_openLink);
@@ -221,11 +251,11 @@ class _ShellState extends State<Shell> {
                   Container(
                     width: 42,
                     height: 42,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(10)),
                     alignment: Alignment.center,
                     child: Text(
                       first.characters.firstOrNull ?? '?',
-                      style: const TextStyle(color: Tokens.primary, fontSize: 20, fontWeight: FontWeight.w800),
+                      style: const TextStyle(color: Tokens.fgBrand, fontSize: 20, fontWeight: FontWeight.w800),
                     ),
                   ),
                   Expanded(
@@ -239,7 +269,7 @@ class _ShellState extends State<Shell> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
-                            color: Colors.white.withValues(alpha: 0.85),
+                            color: Tokens.fg.withValues(alpha: 0.75),
                           ),
                         ),
                       ],

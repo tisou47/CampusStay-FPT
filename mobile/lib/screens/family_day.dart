@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -378,6 +379,7 @@ class _RegisterFormState extends State<_RegisterForm> {
       );
       await widget.reload();
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _errors = e.fields;
         _error = e.fields.isEmpty ? e.message : null;

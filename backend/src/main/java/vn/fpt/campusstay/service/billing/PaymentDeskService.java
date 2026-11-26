@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -62,7 +63,7 @@ public class PaymentDeskService {
     }
 
     private static final Map<String, String> TYPES = Map.of("deposit", "DEPOSIT", "balance", "BALANCE", "utility",
-            "UTILITY", "roomchange", "ROOM_CHANGE", "room_change", "ROOM_CHANGE", "damage", "DAMAGE");
+            "UTILITY", "roomchange", "ROOM_CHANGE", "room_change", "ROOM_CHANGE", "damage", "DAMAGE", "termfee", "TERM_FEE", "term_fee", "TERM_FEE");
 
     private final JdbcClient jdbc;
     private final InvoiceStore invoices;
@@ -156,9 +157,11 @@ public class PaymentDeskService {
                  ORDER BY (i.status = 'AWAITING_CONFIRMATION') DESC, coalesce(i.paid_at, i.issued_at) DESC, i.id DESC
                  LIMIT :limit OFFSET :offset
                 """).params(params).query(PaymentDeskService::row).list();
+        Map<Long, FileStore.StoredFile> receipts = files.infos(rows.stream().map(Row::receiptFileId)
+                .filter(java.util.Objects::nonNull).toList());
         List<PaymentItem> items = new ArrayList<>();
         for (Row r : rows) {
-            Receipt receipt = r.receiptFileId() == null ? null : files.info(r.receiptFileId())
+            Receipt receipt = Optional.ofNullable(r.receiptFileId()).map(receipts::get)
                     .map(file -> new Receipt(file.name(), file.size(), links.link(file.id())))
                     .orElse(null);
             items.add(new PaymentItem(r.code(), r.studentName(), r.studentCode(), InvoiceLabels.type(r.type()),
@@ -173,8 +176,8 @@ public class PaymentDeskService {
         params.put("term", termId);
         params.put("today", Timestamp.from(today));
         return jdbc.sql("""
-                SELECT coalesce(sum(p.amount) FILTER (WHERE p.paid_at >= :today), 0) AS collected_today,
-                       count(p.id) FILTER (WHERE p.paid_at >= :today) AS collected_today_count,
+                SELECT coalesce(sum(p.amount) FILTER (WHERE p.created_at >= :today), 0) AS collected_today, -- confirmed today (BE-APP-BIL-10)
+                       count(p.id) FILTER (WHERE p.created_at >= :today) AS collected_today_count,
                        count(*) FILTER (WHERE i.status = 'AWAITING_CONFIRMATION') AS awaiting,
                        count(*) FILTER (WHERE i.type = 'DEPOSIT' AND i.status IN ('UNPAID', 'OVERDUE')) AS unpaid_deposits,
                        count(*) FILTER (WHERE i.type = 'DEPOSIT' AND i.status IN ('PAID', 'REFUNDED')) AS deposits_paid,

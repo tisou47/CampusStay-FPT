@@ -323,6 +323,7 @@ public class RoomChangeService {
      */
     @Transactional(readOnly = true)
     public QueuePage queue(Long termId, String block, String status, String kind, PageQuery page) {
+        currentUser.require(Permission.DECIDE_ROOM_CHANGES); // BE-OPS-10
         Set<Long> scope = blockScope.resolve(block).ids();
         long term = queueTerm(termId);
         Map<String, Object> params = new HashMap<>();
@@ -385,7 +386,7 @@ public class RoomChangeService {
 
     @Transactional(readOnly = true)
     public MatchingBeds matchingBeds(String code) {
-        AuthenticatedUser user = currentUser.get();
+        AuthenticatedUser user = currentUser.require(Permission.DECIDE_ROOM_CHANGES);
         Request r = inScope(code, false);
         Moves.Placement p = moves.placement(r.allocationId())
                 .orElseThrow(() -> ApiException.notFound("This Room-Change Request does not exist."));
@@ -462,6 +463,9 @@ public class RoomChangeService {
                 .findFirst()
                 .orElseThrow(() -> ApiException.conflict("BED_NOT_AVAILABLE",
                         "This Bed is not free for this request any more. Choose another one."));
+        if (bed.roomId() == p.roomId()) { // a room change leaves the Room (BE-OPS-12)
+            throw ApiException.conflict("SAME_ROOM", "This Bed is in the student's own Room. Choose a Bed in another Room.");
+        }
         if (!mayMoveInto(user, bed.buildingId())) {
             throw ApiException.forbidden("CROSS_BLOCK", "A move to another Block is decided by a Manager.");
         }

@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -21,6 +22,7 @@ class RefundAccount extends ChangeNotifier {
 
   /// Loads the saved account and the banks; errors leave the fields empty.
   Future<void> load() async {
+    error = null;
     try {
       final results = await Future.wait([Api.get('/students/me/refund-account'), Api.get('/banks')]);
       saved = results[0];
@@ -223,9 +225,12 @@ Future<bool> confirmWithRefundAccount(
   return done == true;
 }
 
-/// The Payments card: the account refunds go to, editable at any time (web `RefundAccountCard`).
+/// The Payments card: the account refunds go to, editable at any time (web `RefundAccountCard`). With
+/// [pendingAmount] and no complete account, the card itself turns into the call to action (amber, with the amount).
 class RefundAccountCard extends StatefulWidget {
-  const RefundAccountCard({super.key});
+  const RefundAccountCard({super.key, this.pendingAmount = 0});
+
+  final num pendingAmount;
 
   @override
   State<RefundAccountCard> createState() => _RefundAccountCardState();
@@ -253,63 +258,124 @@ class _RefundAccountCardState extends State<RefundAccountCard> {
       listenable: _account,
       builder: (context, _) {
         final saved = _account.saved;
-        if (saved == null) return const SizedBox.shrink();
-        return Section(
-          title: t('Refund account', 'Tài khoản hoàn tiền'),
-          trailing: _editing
-              ? null
-              : SmallAction(
-                  _account.has ? t('Change', 'Đổi') : t('Enter account', 'Nhập tài khoản'),
-                  onPressed: () => setState(() => _editing = true),
-                ),
-          children: [
-            Text(
-              _account.has
-                  ? joinDot([saved.str('holder'), saved.str('number'), saved.str('bank')])
-                  : t(
-                      'Not entered yet. A Manager can only transfer a refund to you once you enter it.',
-                      'Chưa nhập. Quản lý chỉ chuyển được khoản hoàn tiền khi bạn đã nhập tài khoản.',
-                    ),
-              style: const TextStyle(color: Tokens.fgSecondary),
-            ),
-            if (_account.has && !_account.complete)
-              Text(
-                t(
-                  'Choose your bank from the list again and confirm the account.',
-                  'Hãy chọn lại ngân hàng trong danh sách và xác nhận tài khoản.',
-                ),
-                style: TextStyle(color: Tone.warning.fg),
-              ),
-            if (_editing) ...[
-              RefundAccountFields(account: _account),
+        if (saved == null) {
+          // MOB-33: a failed load says so, so the student can still reach the refund account.
+          return _account.loaded && _account.error != null
+              ? Section(
+                  title: t('Refund account', 'Tài khoản hoàn tiền'),
+                  children: [RetryRow(what: t('the refund account', 'tài khoản hoàn tiền'), retry: _account.load)],
+                )
+              : const SizedBox.shrink();
+        }
+        final pending = widget.pendingAmount;
+        final blocking = pending > 0 && !_account.complete;
+        return Panel(
+          color: blocking ? Tone.warning.bg : null,
+          border: blocking ? Tone.warning.mark.withValues(alpha: 0.5) : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 12,
+            children: [
               Row(
-                spacing: 8,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 12,
                 children: [
-                  Expanded(
-                    child: BusyButton(
-                      label: t('Cancel', 'Huỷ'),
-                      outlined: true,
-                      onPressed: () => setState(() => _editing = false),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: blocking ? Tokens.surface : Tokens.brandSubtle,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      blocking ? Icons.warning_amber_rounded : Icons.account_balance_outlined,
+                      size: 20,
+                      color: blocking ? Tone.warning.fg : Tokens.fgBrand,
                     ),
                   ),
                   Expanded(
-                    child: BusyButton(
-                      label: t('Save', 'Lưu'),
-                      busy: _account.saving,
-                      onPressed: _account.ready
-                          ? () async {
-                              if (await _account.save()) {
-                                setState(() => _editing = false);
-                                toast(t('Refund account saved.', 'Đã lưu tài khoản hoàn tiền.'));
-                              }
-                            }
-                          : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 2,
+                      children: [
+                        Text(
+                          blocking
+                              ? t(
+                                  'Enter your bank account to receive ${money(pending)}',
+                                  'Nhập tài khoản ngân hàng để nhận ${money(pending)}',
+                                )
+                              : t('Refund account', 'Tài khoản nhận hoàn tiền'),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          _account.has
+                              ? joinDot([saved.str('bank'), saved.str('number'), saved.str('holder')])
+                              : blocking
+                              ? t(
+                                  'A refund is waiting for you. A Manager can only transfer it once you enter the account.',
+                                  'Bạn có khoản hoàn đang chờ. Quản lý chỉ chuyển được tiền khi bạn nhập tài khoản.',
+                                )
+                              : t(
+                                  'Not entered yet. A Manager can only transfer a refund to you once you enter it.',
+                                  'Chưa nhập. Quản lý chỉ chuyển được tiền hoàn cho bạn khi bạn nhập tài khoản.',
+                                ),
+                          style: const TextStyle(color: Tokens.fgSecondary),
+                        ),
+                        if (_account.has && !_account.complete)
+                          Text(
+                            t(
+                              'Choose your bank from the list again and confirm the account.',
+                              'Hãy chọn lại ngân hàng trong danh sách và xác nhận tài khoản.',
+                            ),
+                            style: TextStyle(fontSize: 13, color: Tone.warning.fg),
+                          ),
+                      ],
                     ),
                   ),
                 ],
               ),
+              if (!_editing)
+                BusyButton(
+                  label: _account.has ? t('Change', 'Thay đổi') : t('Enter account', 'Nhập tài khoản'),
+                  outlined: !blocking,
+                  onPressed: () => setState(() => _editing = true),
+                ),
+              if (_editing) ...[
+                RefundAccountFields(account: _account),
+                Row(
+                  spacing: 8,
+                  children: [
+                    Expanded(
+                      child: BusyButton(
+                        label: t('Cancel', 'Huỷ'),
+                        outlined: true,
+                        onPressed: () => setState(() => _editing = false),
+                      ),
+                    ),
+                    Expanded(
+                      child: BusyButton(
+                        label: t('Save', 'Lưu'),
+                        busy: _account.saving,
+                        onPressed: _account.ready
+                            ? () async {
+                                if (await _account.save()) {
+                                  setState(() => _editing = false);
+                                  toast(
+                                    t(
+                                      'Refund account saved. Refunds are transferred to this account.',
+                                      'Đã lưu tài khoản nhận hoàn tiền. Tiền hoàn sẽ được chuyển vào tài khoản này.',
+                                    ),
+                                  );
+                                }
+                              }
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         );
       },
     );

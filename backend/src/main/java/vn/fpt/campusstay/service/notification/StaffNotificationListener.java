@@ -3,7 +3,6 @@ package vn.fpt.campusstay.service.notification;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.config.TimeConfig;
@@ -29,12 +28,12 @@ class StaffNotificationListener {
         this.notifier = notifier;
     }
 
-    @EventListener
+    @AfterCommit
     void on(EscalationAssigned e) {
         notifier.notify(e.assigneeId(), "ESCALATION_ASSIGNED", Map.of("code", e.code(), "title", e.title()), e.link());
     }
 
-    @EventListener
+    @AfterCommit
     void on(TemporaryBedArranged e) {
         Map<String, String> values = Map.of("code", e.code(), "note", e.note());
         notifier.notify(e.studentId(), "TEMPORARY_BED_ARRANGED", values, "/student/requests");
@@ -43,13 +42,13 @@ class StaffNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(WorkReassigned e) {
         notifier.notify(e.toUserId(), "WORK_REASSIGNED", Map.of("code", e.code(), "title", e.title(), "from", e.from(),
                 "by", e.by(), "note", e.note()), e.link());
     }
 
-    @EventListener
+    @AfterCommit
     void on(MeterPeriodLate e) {
         for (long staff : e.staffIds()) {
             notifier.notify(staff, "METER_PERIOD_LATE",
@@ -58,13 +57,13 @@ class StaffNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(WeekScheduleSent e) {
         notifier.notify(e.userId(), "WEEK_SCHEDULE_SENT", Map.of("week", e.week(), "shifts", e.shifts(), "by", e.by()),
                 "/staff/schedule");
     }
 
-    @EventListener
+    @AfterCommit
     void on(WeekScheduleReminderDue e) {
         for (long manager : e.managerIds()) {
             notifier.notify(manager, "WEEK_SCHEDULE_REMINDER", Map.of("week", e.week(), "blocks", e.blocks()),
@@ -72,13 +71,13 @@ class StaffNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(InspectionHeld e) {
         notifier.notify(e.inspectorId(), e.paused() ? "INSPECTION_PAUSED" : "INSPECTION_RESUMED",
                 Map.of("schedule", e.scheduleName(), "run", e.runCode()), "/staff/inspections");
     }
 
-    @EventListener
+    @AfterCommit
     void on(InspectionAssigned e) {
         notifier.notify(e.assigneeId(), "INSPECTION_ASSIGNED",
                 Map.of("schedule", e.scheduleName(), "run", e.runCode(),

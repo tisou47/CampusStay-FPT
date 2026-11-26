@@ -235,7 +235,7 @@ JOIN inv_furniture_item i ON i.room_id = h.room_id AND i.status <> 'DISPOSED'
 JOIN inv_furniture_type ft ON ft.id = i.furniture_type_id;
 
 -- S45: staffa01 records that S45 broke a shared appliance of A-905; S45 has two days to confirm it (then it is
--- charged at check-out) or decline it (nobody is charged).
+-- charged at check-out) or decline it (a Manager then keeps or drops it, owner decision 25/11/2026).
 INSERT INTO asg_damage_claim (allocation_id, furniture_item_id, condition, note, status, amount, created_by, created_at,
                               due_at)
 SELECT al.id, i.id, 'DAMAGED', 'Vỏ máy bị nứt do va đập.', 'PENDING',

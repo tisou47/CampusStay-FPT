@@ -29,7 +29,8 @@ class FurnitureBeds {
                 FROM inv_furniture_type t
                 WHERE t.id = i.furniture_type_id AND i.bed_id IS NOT NULL
                   AND (t.use_scope <> 'PERSONAL' OR i.room_id IS NULL OR i.status = 'DISPOSED'
-                       OR NOT EXISTS (SELECT 1 FROM inv_bed b WHERE b.id = i.bed_id AND b.room_id = i.room_id))
+                       OR NOT EXISTS (SELECT 1 FROM inv_bed b WHERE b.id = i.bed_id AND b.room_id = i.room_id
+                                                                  AND b.status <> 'RETIRED'))
                 """).update();
         jdbc.sql("""
                 WITH unlinked AS (

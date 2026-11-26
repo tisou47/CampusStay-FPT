@@ -16,3 +16,7 @@ dist-ssr
 .DS_Store
 *.suo
 *.sw?
+
+# Playwright output
+/test-results/
+/playwright-report/

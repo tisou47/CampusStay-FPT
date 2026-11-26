@@ -66,7 +66,7 @@ export function Alert({ type = 'info', title, children, action, onClose, classNa
   const Glyph = kind.icon
   return (
     <div
-      role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
+      role={type === 'error' ? 'alert' : 'status'}
       className={cx('flex items-start gap-3 rounded-lg px-4 py-3', kind.box, className)}
     >
       <Glyph size={20} aria-hidden="true" className={cx('mt-px shrink-0', kind.iconColor)} />
@@ -250,23 +250,6 @@ export function DetailRows({ rows, className, rowClassName = 'py-2.5' }) {
         </div>
       ))}
     </dl>
-  )
-}
-
-/* ---------------------------------------------------------------- Stat tile */
-// Summary tiles (My Invoices, dashboards): icon + Label/Small, Display/KPI value, Body/Small note.
-export function StatTile({ icon: Glyph, label, tip, value, note, className, children }) {
-  return (
-    <Card className={cx('flex min-w-0 flex-1 flex-col gap-2', className)}>
-      <div className="flex items-center gap-2 text-fg-tertiary">
-        {Glyph && <Glyph size={16} aria-hidden="true" />}
-        <p className="text-sm font-medium">{tx(label)}</p>
-        {tip && <InfoTip label={tip} />}
-      </div>
-      <p className="text-kpi font-semibold text-fg">{value}</p>
-      {note && <p className="text-sm text-fg-secondary">{tx(note)}</p>}
-      {children}
-    </Card>
   )
 }
 

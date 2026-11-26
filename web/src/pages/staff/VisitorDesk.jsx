@@ -374,7 +374,6 @@ export default function VisitorDesk() {
         }
         title="Visitor desk"
         badge={day.data && <StatusTag status={day.data.status}>{familyDayStatusLabel(day.data.status)}</StatusTag>}
-        description={day.data ? t('Block {block} · {area}', { block: day.data.block, area: day.data.area }) : undefined}
       />
 
       <div className="grid shrink-0 gap-4 lg:grid-cols-[minmax(0,30rem)_1fr]">
@@ -404,6 +403,12 @@ export default function VisitorDesk() {
                 <br />
                 {t('Time slot {slot}', { slot: slotText(result.visitor) })}
               </p>
+              {result.visitor.familyDayId != null && String(result.visitor.familyDayId) !== String(id) && (
+                // The pass belongs to another Family Day of the Staff member's scope (WEB-OPS-32).
+                <Alert type="warning" title="Pass for another Family Day">
+                  {t('This pass is for {title}, not the day of this desk.', { title: result.familyDayTitle ?? '—' })}
+                </Alert>
+              )}
               {result.problem && <Alert type="warning" title="Cannot check in">{result.problem}</Alert>}
               {result.visitor.overdue && <p className="text-sm text-fg-secondary">{overdueText(result.visitor)}</p>}
               <div className="flex gap-2">

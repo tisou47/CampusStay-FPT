@@ -69,7 +69,7 @@ export function TermSchedule({ timeline, now = Date.now(), className }) {
     <div className={cx('flex flex-col gap-2.5', className)}>
       {/* Month Axis Header */}
       <div aria-hidden="true" className="hidden lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:gap-x-5 lg:px-3">
-        <span className="text-xs font-medium tracking-wider text-fg-tertiary uppercase">{t('Timeline')}</span>
+        <span className="text-xs font-medium text-fg-tertiary">{t('Timeline')}</span>
         <div className="relative h-5 text-xs font-medium text-fg-tertiary">
           {ticks
             .filter((tick) => pct(tick.at) < 92)

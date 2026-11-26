@@ -1,4 +1,5 @@
 import {
+  Activity,
   ArrowRightLeft,
   Banknote,
   Bed,
@@ -20,7 +21,6 @@ import {
   GraduationCap,
   HandCoins,
   HeartHandshake,
-  Hourglass,
   House,
   KeyRound,
   Layers,
@@ -37,6 +37,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  TriangleAlert,
   Timer,
   Upload,
   User,
@@ -137,9 +138,9 @@ export const backOffice = {
           { label: 'Meter readings', icon: Gauge, to: '/staff/meter-readings' },
           { label: 'Family Days', icon: HeartHandshake, to: '/staff/family-days' },
           { label: 'Family Day statistics', icon: ChartColumn, to: '/staff/family-day-stats' },
+          { label: 'Announcements', icon: Megaphone, to: '/staff/announcements' },
         ],
       },
-      { items: [{ label: 'Announcements', icon: Megaphone, to: '/staff/announcements' }] },
     ],
   },
   manager: {
@@ -166,6 +167,7 @@ export const backOffice = {
             tabs: [
               { label: 'Students', to: '/manager/students' },
               { label: 'Import student list', to: '/manager/student-import' },
+              { label: 'Erasure requests', to: '/manager/erasure-requests' },
             ],
           },
           { label: 'Reconciliation', icon: FileSearch, to: '/manager/reconciliation' },
@@ -215,6 +217,7 @@ export const backOffice = {
           { label: 'Final reports', icon: ScrollText, to: '/manager/final-reports' },
           { label: 'Check-in inventories', icon: ClipboardList, to: '/manager/check-in/inventories' },
           { label: 'Family Days', icon: HeartHandshake, to: '/manager/family-days' },
+          { label: 'Announcements', icon: Megaphone, to: '/manager/announcements' },
           {
             label: 'Block settings',
             icon: Settings,
@@ -251,7 +254,6 @@ export const backOffice = {
           },
         ],
       },
-      { items: [{ label: 'Announcements', icon: Megaphone, to: '/manager/announcements' }] },
       {
         title: 'Reports',
         items: [
@@ -280,8 +282,6 @@ export const backOffice = {
         items: [
           { label: 'Room types', icon: Bed, to: '/admin/room-types' },
           { label: 'Room tiers', icon: Layers, to: '/admin/room-classes' },
-          { label: 'Deposit', icon: Banknote, to: '/admin/fees' },
-          { label: 'Utility', icon: Gauge, to: '/admin/utility' },
         ],
       },
       {
@@ -289,9 +289,7 @@ export const backOffice = {
         items: [
           { label: 'Who may apply', icon: CircleCheck, to: '/admin/eligibility' },
           { label: 'Roommate matching', icon: Users, to: '/admin/matching' },
-          { label: 'Deadlines and reminders', icon: Timer, to: '/admin/deadlines' },
           { label: 'Refunds, penalties and terminations', icon: Scale, to: '/admin/refunds' },
-          { label: 'Stay and renewal', icon: Hourglass, to: '/admin/stay' },
           { label: 'Inspection checklists', icon: ClipboardCheck, to: '/admin/inspection-checklists' },
         ],
       },
@@ -314,6 +312,7 @@ export const backOffice = {
           { label: 'System parameters', icon: SlidersHorizontal, to: '/admin/system-parameters' },
           { label: 'Demo data', icon: RotateCcw, to: '/admin/demo' },
           { label: 'Audit log', icon: ScrollText, to: '/admin/audit-log' },
+          { label: 'System health', icon: Activity, to: '/admin/system-health' },
         ],
       },
     ],

@@ -326,7 +326,9 @@ public class InspectionScheduleService {
                             UPDATE mnt_inspection_schedule SET name = :name, checklist_family = :family, scope = :scope,
                                    floors = :floors, repeat = :repeat, assignee_id = :assignee, due_within_days = :due,
                                    create_requests = :requests, notify_residents = :notify, status = :status,
-                                   next_run_at = CASE WHEN :status = 'COMPLETED' THEN NULL ELSE next_run_at END,
+                                   next_run_at = CASE WHEN :status = 'COMPLETED' THEN NULL
+                                                      WHEN :status = 'ACTIVE' AND status <> 'ACTIVE' THEN coalesce(next_run_at, :now)
+                                                      ELSE next_run_at END,
                                    kind = CASE WHEN :scope = 'INCOMING' THEN 'PRE_ARRIVAL' ELSE 'PERIODIC' END, version = version + 1
                             WHERE id = :id
                             """)
@@ -339,7 +341,7 @@ public class InspectionScheduleService {
                     .param("notify",
                             body.containsKey("notifyResidents") ? !Boolean.FALSE.equals(body.get("notifyResidents"))
                                     : s.notifyResidents())
-                    .param("status", status).param("id", s.id()).update();
+                    .param("status", status).param("now", Timestamp.from(Instant.now(clock))).param("id", s.id()).update();
             if (assignee != null) {
                 jdbc.sql("""
                         UPDATE mnt_inspection_run SET inspector_id = :assignee
@@ -448,6 +450,11 @@ public class InspectionScheduleService {
             if (checklist.isEmpty()) {
                 return false;
             }
+            // One run at a time: the next waits until the previous one is submitted (BE-3RD-12).
+            if (jdbc.sql("SELECT count(*) FROM mnt_inspection_run WHERE schedule_id = :s AND status <> 'SUBMITTED'")
+                    .param("s", s.id()).query(Long.class).single() > 0) {
+                return false;
+            }
             LocalDate today = LocalDate.ofInstant(now, TimeConfig.CAMPUS_ZONE);
             List<Inventory.BedSlot> beds = inventory.bedsOfBuilding(s.buildingId());
             Map<Long, Long> occupied = residences.residentsOfBeds(beds.stream().map(Inventory.BedSlot::bedId).toList());
@@ -498,8 +505,12 @@ public class InspectionScheduleService {
                 }
                 started = true;
             }
-            jdbc.sql("UPDATE mnt_inspection_schedule SET next_run_at = :next WHERE id = :id")
-                    .param("next", next(s, today).map(Timestamp::from).orElse(null)).param("id", s.id()).update();
+            // A one-off schedule is done after its run (BE-3RD-12).
+            jdbc.sql("""
+                    UPDATE mnt_inspection_schedule SET next_run_at = :next,
+                           status = CASE WHEN repeat = 'ONCE' THEN 'COMPLETED' ELSE status END
+                    WHERE id = :id
+                    """).param("next", next(s, today).map(Timestamp::from).orElse(null)).param("id", s.id()).update();
             return started;
         }
 

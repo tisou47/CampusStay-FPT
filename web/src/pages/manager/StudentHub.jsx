@@ -242,7 +242,6 @@ function Hub({ hub }) {
             {hub.demo && <Tag dot={false}>Demo</Tag>}
           </div>
         }
-        description={[p?.studentCode, hub.email].filter(Boolean).join(' · ')}
         actions={
           <>
             {a.edit && (

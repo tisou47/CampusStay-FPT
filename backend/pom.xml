@@ -117,6 +117,12 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- mvn spring-boot:run is local development; the default profile is prod (BE-AUTH-10) -->
+                    <profiles>
+                        <profile>dev</profile>
+                    </profiles>
+                </configuration>
             </plugin>
             <!-- *IT.java integration tests (Testcontainers, needs Docker) run in "mvn verify" -->
             <plugin>

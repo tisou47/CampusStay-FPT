@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.fpt.campusstay.common.audit.AuditLog;
+import vn.fpt.campusstay.common.file.FileLinks;
+import vn.fpt.campusstay.common.file.FileStore;
 import vn.fpt.campusstay.event.FurnitureDamaged;
 import vn.fpt.campusstay.event.FurnitureRepairLogged;
 import vn.fpt.campusstay.dto.PageQuery;
@@ -36,6 +38,7 @@ import vn.fpt.campusstay.security.Permission;
 import vn.fpt.campusstay.security.Role;
 import vn.fpt.campusstay.service.auth.BlockDirectory;
 import vn.fpt.campusstay.service.auth.UserDirectory;
+import vn.fpt.campusstay.service.setting.Parameters;
 
 /**
  * Furniture items (ADR-24, spec D-21, §6.19): every piece with its asset code, status and location (a Room or
@@ -105,9 +108,14 @@ public class FurnitureService {
     public record Moved(int moved, int planned) {
     }
 
-    /** A student's view of an item of their Room. */
+    /** A student's view of an item of their Room, with the photos of their declaration. */
     public record RoomItem(String itemId, String assetCode, String type, String typeVi, String status, String bed,
-            boolean personal, boolean reportable, String reportedCondition, String reportedNote, Instant reportedAt) {
+            boolean personal, boolean reportable, String reportedCondition, String reportedNote, Instant reportedAt,
+            List<ReportPhoto> reportedPhotos) {
+    }
+
+    /** A photo of a student's furniture declaration. */
+    public record ReportPhoto(String id, String url) {
     }
 
     public record MyFurniture(String room, List<RoomItem> items) {
@@ -161,10 +169,16 @@ public class FurnitureService {
     private final Clock clock;
     private final FurnitureBeds beds;
     private final Inventory inventory;
+    private final FileStore files;
+    private final FileLinks links;
+    private final Parameters parameters;
 
     public FurnitureService(JdbcClient jdbc, CurrentUser currentUser, BlockScope blockScope, BlockDirectory blocks,
             UserDirectory users, BedOccupancy occupancy, AuditLog audit, Clock clock, FurnitureBeds beds,
-            Inventory inventory) {
+            Inventory inventory, FileStore files, FileLinks links, Parameters parameters) {
+        this.files = files;
+        this.links = links;
+        this.parameters = parameters;
         this.beds = beds;
         this.inventory = inventory;
         this.jdbc = jdbc;
@@ -593,6 +607,7 @@ public class FurnitureService {
                                     rs.getTimestamp("updated_at").toInstant())))
                     .list().forEach(e -> reports.put(e.getKey(), e.getValue()));
         }
+        Map<Long, List<ReportPhoto>> photos = allocId == null ? Map.of() : reportPhotos(allocId);
         record Raw(long id, String assetCode, String type, String typeVi, String status, Long bedId, String bedLabel,
                 boolean personal) {
         }
@@ -619,7 +634,7 @@ public class FurnitureService {
                     };
                     return new RoomItem("furniture-" + r.id(), r.assetCode(), r.type(), r.typeVi(), r.status(),
                             r.bedLabel(), r.personal(), reportable, repCond, rep == null ? null : rep.note(),
-                            rep == null ? null : rep.at());
+                            rep == null ? null : rep.at(), photos.getOrDefault(r.id(), List.of()));
                 }).toList();
         return new MyFurniture(room.code(), items);
     }
@@ -631,6 +646,115 @@ public class FurnitureService {
         BedOccupancy.Stay stay = occupancy.currentStay(currentUser.id())
                 .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
         long allocId = stay.allocationId(); // the current stay, not a next-Term Allocation (BE-OPS-01)
+        long id = ownItem(stay, itemId);
+        notSubmitted(allocId);
+        String code = condition == null || condition.isBlank() ? "GOOD" : switch (condition.trim().toUpperCase(Locale.ROOT)) {
+            case "GOOD" -> "GOOD";
+            case "WORN" -> "WORN";
+            case "DAMAGED" -> "DAMAGED";
+            case "MISSING" -> "MISSING";
+            default -> throw FieldErrors.single("condition", "Choose Good, Worn, Damaged or Missing.");
+        };
+        if ("GOOD".equals(code)) {
+            // the photos stay: at check-out every item is photographed, Good ones too
+            jdbc.sql("DELETE FROM asg_furniture_report WHERE allocation_id = :a AND furniture_item_id = :i")
+                    .param("a", allocId).param("i", id).update();
+            return mine();
+        }
+        String text = note == null || note.isBlank() ? null : note.trim();
+        if (text != null && text.length() > 300) {
+            throw FieldErrors.single("note", "Keep the note under 300 characters.");
+        }
+        if (parameters.boolValue("checkout.photos_required") && jdbc.sql("""
+                SELECT count(*) FROM asg_furniture_report_photo WHERE allocation_id = :a AND furniture_item_id = :i
+                """).param("a", allocId).param("i", id).query(Long.class).single() == 0) {
+            throw FieldErrors.single("photo", "Add a photo of this item.");
+        }
+        Instant now = Instant.now(clock);
+        jdbc.sql("""
+                INSERT INTO asg_furniture_report (allocation_id, furniture_item_id, condition, note, reported_at, updated_at)
+                VALUES (:a, :i, :c, :n, :now, :now)
+                ON CONFLICT (allocation_id, furniture_item_id) DO UPDATE SET
+                    condition = EXCLUDED.condition,
+                    note = EXCLUDED.note,
+                    updated_at = EXCLUDED.updated_at
+                """).param("a", allocId).param("i", id).param("c", code).param("n", text)
+                .param("now", Timestamp.from(now)).update();
+        return mine();
+    }
+
+    /** Adds a photo to the student's declaration of an item (worn, damaged or missing) of their Room. */
+    @Transactional
+    public ReportPhoto addReportPhoto(String itemId, String fileName, byte[] bytes) {
+        currentUser.require(Role.STUDENT);
+        BedOccupancy.Stay stay = occupancy.currentStay(currentUser.id())
+                .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
+        long allocId = stay.allocationId();
+        long id = ownItem(stay, itemId);
+        notSubmitted(allocId);
+        long already = jdbc.sql("""
+                SELECT count(*) FROM asg_furniture_report_photo WHERE allocation_id = :a AND furniture_item_id = :i
+                """).param("a", allocId).param("i", id).query(Long.class).single();
+        int max = parameters.intValue("handover.max_photos");
+        if (already >= max) {
+            throw FieldErrors.single("photo", "Add at most " + max + " photos per item.");
+        }
+        if (bytes == null || bytes.length == 0) {
+            throw FieldErrors.single("photo", "Choose a photo.");
+        }
+        FileStore.StoredFile file = files.store("asg", fileName, bytes, FileStore.IMAGES, currentUser.id());
+        long photoId = jdbc.sql("""
+                INSERT INTO asg_furniture_report_photo (allocation_id, furniture_item_id, file_id, taken_by, created_at)
+                VALUES (:a, :i, :f, :u, :now) RETURNING id
+                """).param("a", allocId).param("i", id).param("f", file.id()).param("u", currentUser.id())
+                .param("now", Timestamp.from(Instant.now(clock))).query(Long.class).single();
+        return new ReportPhoto(String.valueOf(photoId), links.link(file.id()));
+    }
+
+    /** Removes a photo of the student's declaration. */
+    @Transactional
+    public void removeReportPhoto(String photoId) {
+        currentUser.require(Role.STUDENT);
+        BedOccupancy.Stay stay = occupancy.currentStay(currentUser.id())
+                .orElseThrow(() -> ApiException.notFound("You do not hold a Bed this Term."));
+        long id;
+        try {
+            id = Long.parseLong(photoId == null ? "" : photoId.trim());
+        } catch (NumberFormatException e) {
+            throw ApiException.notFound("This photo does not exist.");
+        }
+        notSubmitted(stay.allocationId());
+        int deleted = jdbc.sql("DELETE FROM asg_furniture_report_photo WHERE id = :id AND allocation_id = :a")
+                .param("id", id).param("a", stay.allocationId()).update();
+        if (deleted == 0) {
+            throw ApiException.notFound("This photo does not exist.");
+        }
+    }
+
+    /** A submitted check-out declaration is final. */
+    private void notSubmitted(long allocationId) {
+        if (jdbc.sql("SELECT count(*) FROM asg_check_out_declaration WHERE allocation_id = :a").param("a", allocationId)
+                .query(Long.class).single() > 0) {
+            throw ApiException.conflict("DECLARATION_SUBMITTED",
+                    "You have submitted your check-out declaration; it can no longer be changed.");
+        }
+    }
+
+    /** The photos of an Allocation's declarations by item, oldest first. */
+    private Map<Long, List<ReportPhoto>> reportPhotos(long allocationId) {
+        Map<Long, List<ReportPhoto>> photos = new HashMap<>();
+        jdbc.sql("""
+                SELECT id, furniture_item_id, file_id FROM asg_furniture_report_photo
+                WHERE allocation_id = :a AND furniture_item_id IS NOT NULL ORDER BY id
+                """).param("a", allocationId)
+                .query((rs, i) -> Map.entry(rs.getLong("furniture_item_id"),
+                        new ReportPhoto(String.valueOf(rs.getLong("id")), links.link(rs.getLong("file_id")))))
+                .list().forEach(e -> photos.computeIfAbsent(e.getKey(), k -> new ArrayList<>()).add(e.getValue()));
+        return photos;
+    }
+
+    /** The id of an item of the student's Bed or a shared item of their Room ({@code furniture-<id>}). */
+    private long ownItem(BedOccupancy.Stay stay, String itemId) {
         String rawId = itemId == null ? "" : itemId.trim().replaceFirst("^furniture-", "");
         long id;
         try {
@@ -652,33 +776,7 @@ public class FurnitureService {
         if (item.roomId() != myRoomId || (item.personal() && item.bedId() != null && !item.bedId().equals(stay.bedId()))) {
             throw FieldErrors.single("itemId", "You can only declare items of your bed or shared items of your room.");
         }
-        String code = condition == null || condition.isBlank() ? "GOOD" : switch (condition.trim().toUpperCase(Locale.ROOT)) {
-            case "GOOD" -> "GOOD";
-            case "WORN" -> "WORN";
-            case "DAMAGED" -> "DAMAGED";
-            case "MISSING" -> "MISSING";
-            default -> throw FieldErrors.single("condition", "Choose Good, Worn, Damaged or Missing.");
-        };
-        if ("GOOD".equals(code)) {
-            jdbc.sql("DELETE FROM asg_furniture_report WHERE allocation_id = :a AND furniture_item_id = :i")
-                    .param("a", allocId).param("i", id).update();
-            return mine();
-        }
-        String text = note == null || note.isBlank() ? null : note.trim();
-        if (text != null && text.length() > 300) {
-            throw FieldErrors.single("note", "Keep the note under 300 characters.");
-        }
-        Instant now = Instant.now(clock);
-        jdbc.sql("""
-                INSERT INTO asg_furniture_report (allocation_id, furniture_item_id, condition, note, reported_at, updated_at)
-                VALUES (:a, :i, :c, :n, :now, :now)
-                ON CONFLICT (allocation_id, furniture_item_id) DO UPDATE SET
-                    condition = EXCLUDED.condition,
-                    note = EXCLUDED.note,
-                    updated_at = EXCLUDED.updated_at
-                """).param("a", allocId).param("i", id).param("c", code).param("n", text)
-                .param("now", Timestamp.from(now)).update();
-        return mine();
+        return id;
     }
 
     // ---------------------------------------------------------------- helpers
@@ -811,6 +909,7 @@ public class FurnitureService {
     }
 
     /** A Maintenance Request names the item: its history keeps the repair (spec §6.18), and resolving resets it. */
+    // Same transaction: the item's history is part of the repair record.
     @EventListener
     void on(FurnitureRepairLogged repair) {
         Instant now = Instant.now(clock);
@@ -849,6 +948,7 @@ public class FurnitureService {
     }
 
     /** Damage/condition recorded at a check-out, check-in or inspection: Worn keeps In use; Damaged/Missing becomes Broken. */
+    // Same transaction: the item's status follows the recorded damage.
     @EventListener
     void on(FurnitureDamaged damaged) {
         String before = jdbc.sql("SELECT status FROM inv_furniture_item WHERE id = :id FOR UPDATE")

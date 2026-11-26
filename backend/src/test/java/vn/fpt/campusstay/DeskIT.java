@@ -263,28 +263,34 @@ class DeskIT {
         postJson(path, staff, "{\"electricity\":10,\"water\":1,\"conditionGood\":true,\"keyReturned\":true,\"draft\":true}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details.fields.electricity").isString());
-        // 50 kWh × 3,500 + 5 m³ × 15,000 = 250,000 for one resident.
+        // 50 kWh × 3,500 + 5 m³ × 15,000 = 250,000, split evenly between the residents now in the Room: the engine fills
+        // Rooms that already have residents first (BE-ASG-25), so another test's resident may share it.
+        int residents = jdbc.sql("""
+                SELECT count(*) FROM asg_allocation a JOIN inv_bed b ON b.id = a.bed_id JOIN inv_room r ON r.id = b.room_id
+                WHERE r.code = :room AND a.term_id = :term AND a.status = 'ACTIVE' AND a.resident_at IS NOT NULL
+                """).param("room", p.room()).param("term", termId).query(Integer.class).single();
+        long share = 250_000 / residents;
         postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":true,\"keyReturned\":true,"
                 + "\"damageCharge\":50000,\"draft\":true}")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.refund").value(300_000));
+                .andExpect(jsonPath("$.refund").value(550_000 - share));
         getAs(path, staff)
                 .andExpect(jsonPath("$.status").value("Draft"))
                 .andExpect(jsonPath("$.reading.electricity").value(100))
                 .andExpect(jsonPath("$.settlement.periodLabel").value(since))
-                .andExpect(jsonPath("$.settlement.share").value(250_000))
+                .andExpect(jsonPath("$.settlement.share").value(share))
                 .andExpect(jsonPath("$.settlement.damage").value(50_000));
         // Rooms open with a door code: no key is asked at check-out.
         postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":false,\"damageCharge\":50000}")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.refund").value(300_000))
+                .andExpect(jsonPath("$.refund").value(550_000 - share))
                 .andExpect(jsonPath("$.refundStatus").value("Pending"));
 
         getAs(path, staff)
                 .andExpect(jsonPath("$.status").value("Checked out"))
                 .andExpect(jsonPath("$.checkedOutAt").isString())
-                .andExpect(jsonPath("$.settlement.share").value(250_000))
-                .andExpect(jsonPath("$.settlement.refund").value(300_000))
+                .andExpect(jsonPath("$.settlement.share").value(share))
+                .andExpect(jsonPath("$.settlement.refund").value(550_000 - share))
                 .andExpect(jsonPath("$.refundStatus").value("Pending"));
         postJson(path, staff, "{\"electricity\":100,\"water\":10,\"conditionGood\":true,\"keyReturned\":true}")
                 .andExpect(status().isConflict())
@@ -296,9 +302,9 @@ class DeskIT {
                 .andExpect(jsonPath("$.unread").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
                 .andExpect(jsonPath("$.items[0].link").value("/student/invoices"));
         assertThat(jdbc.sql("""
-                SELECT count(*) FROM bil_refund WHERE source_type = 'CHECK_OUT' AND source_id = :a AND amount = 300000
+                SELECT count(*) FROM bil_refund WHERE source_type = 'CHECK_OUT' AND source_id = :a AND amount = :amount
                   AND status = 'PENDING'
-                """).param("a", Long.parseLong(p.allocationId())).query(Long.class).single()).isEqualTo(1);
+                """).param("a", Long.parseLong(p.allocationId())).param("amount", 550_000 - share).query(Long.class).single()).isEqualTo(1);
         // The Room's door code must change now that a resident left (spec §6.8).
         assertThat(jdbc.sql("""
                 SELECT count(*) FROM inv_door_code_task t JOIN inv_room r ON r.id = t.room_id

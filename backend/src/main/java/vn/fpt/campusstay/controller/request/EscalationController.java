@@ -19,7 +19,8 @@ import vn.fpt.campusstay.service.request.EscalationService;
 class EscalationController {
 
     record ActionRequest(@Size(max = 20) String action, Object assigneeId,
-            @Size(max = 1000, message = "Keep the note under 1,000 characters.") String note) {
+            @Size(max = 1000, message = "Keep the note under 1,000 characters.") String note,
+            @Size(max = 30) String bedId) {
     }
 
     private final EscalationService escalations;
@@ -37,6 +38,6 @@ class EscalationController {
     @PostMapping("/escalations/{id}/actions")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void act(@PathVariable String id, @Valid @RequestBody ActionRequest body) {
-        escalations.act(id, body.action(), body.assigneeId(), body.note());
+        escalations.act(id, body.action(), body.assigneeId(), body.note(), body.bedId());
     }
 }

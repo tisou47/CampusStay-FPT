@@ -103,7 +103,6 @@ export default function NotificationTemplates() {
     <>
       <PageHeader
         title="Notification Templates"
-        description="Messages sent on each event. Push goes to the Android app; in-app appears in the web notification center."
         actions={
           <Button icon={Mail} to="/admin/notifications/send">
             Send email

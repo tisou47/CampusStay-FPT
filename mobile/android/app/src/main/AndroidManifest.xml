@@ -43,6 +43,10 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- image_picker: the check-in inventory's photos are taken with the camera app. -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
+        </intent>
         <!-- url_launcher: the dormitory rules and Term documents open in the browser. -->
         <intent>
             <action android:name="android.intent.action.VIEW"/>
@@ -52,6 +56,11 @@
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:mimeType="application/pdf"/>
+        </intent>
+        <!-- open_filex: "My data" (a JSON file) opens in a viewer. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="application/json"/>
         </intent>
     </queries>
 </manifest>

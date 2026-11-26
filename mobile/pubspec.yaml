@@ -13,8 +13,10 @@ dependencies:
   firebase_messaging: ^17.0.1
   flutter:
     sdk: flutter
+  flutter_secure_storage: ^11.2.0
   google_sign_in: ^7.2.0
   http: ^1.6.0
+  image_picker: ^1.2.4
   open_filex: ^5.0.0
   path_provider: ^2.1.6
   qr_flutter: ^4.1.0

@@ -92,7 +92,6 @@ export default function MatchingCriteria() {
     <ConfigPage
       form={cfg}
       title="Roommate matching"
-      description="Who is placed first when beds are short, and what roommates should share. Publishing a term fixes these rules for it."
       actions={
         <>
           <Button onClick={cfg.reset} disabled={!cfg.dirty}>

@@ -1,6 +1,9 @@
 package vn.fpt.campusstay.regression;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -24,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -139,6 +143,18 @@ class DeskRegressionIT {
         assertThat(xCharged).as("DAMAGE Invoices of X, a roommate at the check-out").isEqualTo(1);
     }
 
+    private static final byte[] PNG = { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H',
+            'D', 'R' };
+
+    /** Adds a photo to the student's declaration of {@code item} (photos are required at check-out); its id. */
+    private String declarePhoto(String bearer, long item) throws Exception {
+        String added = mvc.perform(multipart("/students/me/furniture/report/photos")
+                .file(new MockMultipartFile("photo", "item.png", "image/png", PNG))
+                .param("itemId", "furniture-" + item).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        return JsonPath.read(added, "$.id");
+    }
+
     /** TC-INV-030 (BE-OPS-09): a resident's in-stay furniture report shows on My Room and at the check-out desk. */
     @Test
     void inStayFurnitureReportReachesTheCheckOutDesk() throws Exception {
@@ -148,6 +164,7 @@ class DeskRegressionIT {
                 WHERE ro.code = 'A-108' AND i.bed_id IS NULL AND i.status <> 'DISPOSED' ORDER BY i.id LIMIT 1
                 """).query(Long.class).single();
         String student = r.bearer(RegressionSupport.student(11));
+        declarePhoto(student, item);
         mvc.perform(put("/students/me/furniture/report").header(HttpHeaders.AUTHORIZATION, student)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"itemId\":\"furniture-%d\",\"condition\":\"Damaged\",\"note\":\"Wardrobe door cracked\"}".formatted(item)))
@@ -158,6 +175,91 @@ class DeskRegressionIT {
         String desk = RegressionSupport.body(r.getAs("/check-outs/" + allocation + "/furniture", r.bearer(TestAuth.STAFF_A)));
         assertThat((List<String>) JsonPath.read(desk, "$.items[?(@.studentReportedNote == 'Wardrobe door cracked')].studentReportedCondition"))
                 .containsExactly("Damaged");
+    }
+
+    /**
+     * TC-INV-035: a declared item and the meter readings need a photo first; the photos and readings show on My Room
+     * and at the check-out desk; a student removes only their own photos, Good keeps them; the declaration is submitted
+     * only once every item and the meters have a photo, and is final after that.
+     */
+    @Test
+    void furnitureDeclarationPhotosReachTheCheckOutDesk() throws Exception {
+        long allocation = r.livesIn(12, "A-109", "A", true);
+        long item = jdbc.sql("""
+                SELECT i.id FROM inv_furniture_item i JOIN inv_room ro ON ro.id = i.room_id
+                WHERE ro.code = 'A-109' AND i.bed_id IS NULL AND i.status <> 'DISPOSED' ORDER BY i.id LIMIT 1
+                """).query(Long.class).single();
+        String student = r.bearer(RegressionSupport.student(12));
+        String declaration = "{\"itemId\":\"furniture-%d\",\"condition\":\"Damaged\",\"note\":\"Leg cracked\"}".formatted(item);
+        mvc.perform(put("/students/me/furniture/report").header(HttpHeaders.AUTHORIZATION, student)
+                .contentType(MediaType.APPLICATION_JSON).content(declaration))
+                .andExpect(status().isBadRequest()); // a photo first
+        String photoId = declarePhoto(student, item);
+        mvc.perform(put("/students/me/furniture/report").header(HttpHeaders.AUTHORIZATION, student)
+                .contentType(MediaType.APPLICATION_JSON).content(declaration))
+                .andExpect(status().isOk());
+
+        String mine = RegressionSupport.body(r.getAs("/students/me/furniture", student));
+        assertThat((List<String>) JsonPath.read(mine, "$.items[?(@.reportedNote == 'Leg cracked')].reportedPhotos[*].id"))
+                .containsExactly(photoId);
+        String desk = RegressionSupport.body(r.getAs("/check-outs/" + allocation + "/furniture", r.bearer(TestAuth.STAFF_A)));
+        assertThat((List<Object>) JsonPath.read(desk, "$.items[?(@.studentReportedNote == 'Leg cracked')].studentReportedPhotos[*]"))
+                .hasSize(1);
+
+        String meters = "{\"electricity\":1234.5,\"water\":56}";
+        mvc.perform(put("/students/me/check-out/meters").header(HttpHeaders.AUTHORIZATION, student)
+                .contentType(MediaType.APPLICATION_JSON).content(meters))
+                .andExpect(status().isBadRequest()); // a photo of the meters first
+        mvc.perform(multipart("/students/me/check-out/meters/photos")
+                .file(new MockMultipartFile("photo", "meters.png", "image/png", PNG))
+                .header(HttpHeaders.AUTHORIZATION, student))
+                .andExpect(status().isOk());
+        mvc.perform(put("/students/me/check-out/meters").header(HttpHeaders.AUTHORIZATION, student)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"electricity\":-1,\"water\":56}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/students/me/check-out/meters").header(HttpHeaders.AUTHORIZATION, student)
+                .contentType(MediaType.APPLICATION_JSON).content(meters))
+                .andExpect(status().isOk());
+        String desk2 = RegressionSupport.body(r.getAs("/check-outs/" + allocation + "/furniture", r.bearer(TestAuth.STAFF_A)));
+        assertThat(((Number) JsonPath.read(desk2, "$.studentMeters.electricity")).doubleValue()).isEqualTo(1234.5);
+        assertThat((List<Object>) JsonPath.read(desk2, "$.studentMeters.photos")).hasSize(1);
+        assertThat((List<Object>) JsonPath.read(desk2, "$.items[?(@.studentReportedNote == 'Leg cracked')].studentReportedPhotos[*]"))
+                .as("a meter photo is not an item's photo").hasSize(1);
+
+        mvc.perform(delete("/students/me/furniture/report/photos/" + photoId)
+                .header(HttpHeaders.AUTHORIZATION, r.bearer(RegressionSupport.student(11))))
+                .andExpect(status().isNotFound());
+        mvc.perform(put("/students/me/furniture/report").header(HttpHeaders.AUTHORIZATION, student)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"itemId\":\"furniture-%d\",\"condition\":\"Good\"}".formatted(item)))
+                .andExpect(status().isOk());
+        long kept = jdbc.sql("SELECT count(*) FROM asg_furniture_report_photo WHERE allocation_id = :a AND furniture_item_id = :i")
+                .param("a", allocation).param("i", item).query(Long.class).single();
+        assertThat(kept).as("photos kept after the item was declared Good again").isEqualTo(1);
+
+        jdbc.sql("""
+                INSERT INTO inv_furniture_item (asset_code, furniture_type_id, status, room_id)
+                SELECT 'TST-A109-2', i.furniture_type_id, 'IN_USE', i.room_id FROM inv_furniture_item i WHERE i.id = :i
+                """).param("i", item).update(); // a second item, still without a photo
+        mvc.perform(post("/students/me/check-out/submit").header(HttpHeaders.AUTHORIZATION, student))
+                .andExpect(status().isBadRequest()); // every item needs a photo
+        List<Long> others = jdbc.sql("""
+                SELECT i.id FROM inv_furniture_item i JOIN inv_furniture_type ty ON ty.id = i.furniture_type_id
+                JOIN inv_room ro ON ro.id = i.room_id
+                LEFT JOIN inv_bed b ON b.id = i.bed_id
+                WHERE ro.code = 'A-109' AND i.status <> 'DISPOSED' AND i.id <> :i
+                  AND (ty.use_scope <> 'PERSONAL' OR i.bed_id IS NULL OR b.label = 'A')
+                """).param("i", item).query(Long.class).list();
+        for (long other : others) {
+            declarePhoto(student, other);
+        }
+        mvc.perform(post("/students/me/check-out/submit").header(HttpHeaders.AUTHORIZATION, student))
+                .andExpect(status().isOk());
+        String desk3 = RegressionSupport.body(r.getAs("/check-outs/" + allocation + "/furniture", r.bearer(TestAuth.STAFF_A)));
+        assertThat((String) JsonPath.read(desk3, "$.declarationSubmittedAt")).isNotNull();
+        mvc.perform(put("/students/me/check-out/meters").header(HttpHeaders.AUTHORIZATION, student)
+                .contentType(MediaType.APPLICATION_JSON).content(meters))
+                .andExpect(status().isConflict()); // final once submitted
     }
 
     /** TC-ASG-075 (BE-ASG-10): a shared item's damage split among 3 residents invoices each roommate full/3 (rounded down). */
@@ -216,6 +318,7 @@ class DeskRegressionIT {
                 SELECT i.id FROM inv_furniture_item i JOIN inv_room ro ON ro.id = i.room_id
                 WHERE ro.code = 'A-106' AND i.bed_id IS NULL AND i.status <> 'DISPOSED' ORDER BY i.id LIMIT 1
                 """).query(Long.class).single();
+        declarePhoto(r.bearer(RegressionSupport.student(7)), item);
         mvc.perform(put("/students/me/furniture/report").header(HttpHeaders.AUTHORIZATION, r.bearer(RegressionSupport.student(7)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"itemId\":\"furniture-%d\",\"condition\":\"Damaged\",\"note\":\"Door hinge broken\"}".formatted(item)))

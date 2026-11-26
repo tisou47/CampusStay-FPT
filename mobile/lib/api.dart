@@ -3,15 +3,17 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:http/http.dart' as http;
 
 import 'common.dart';
 
-/// The API the app talks to; production by default. For a local backend on the emulator:
-/// `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080/api`
+/// The API the app talks to: production in a release build, a local backend on the emulator's host in a debug build
+/// (MOB-13, N4: a developer's debug run never writes to production by accident). Any build can name another one:
+/// `--dart-define=API_BASE_URL=https://…/api`.
 const apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://campusstay-api.eastasia.cloudapp.azure.com/api',
+  defaultValue: kReleaseMode ? 'https://campusstay-api.eastasia.cloudapp.azure.com/api' : 'http://10.0.2.2:8080/api',
 );
 
 /// The web app: pages the app does not have open there (Forgot password, MOB-09).
@@ -56,6 +58,8 @@ class Api {
 
   static Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) => _call('PUT', path, body);
 
+  static Future<Map<String, dynamic>> delete(String path) => _call('DELETE', path);
+
   /// The query string of [params] (nulls and blanks left out), with the leading `?`.
   static String query(Map<String, Object?> params) {
     final kept = {
@@ -73,7 +77,16 @@ class Api {
   ]) async {
     final request = http.MultipartRequest('POST', _url(path))..fields.addAll(fields);
     for (final (field, file) in files) {
-      request.files.add(await http.MultipartFile.fromPath(field, file));
+      try {
+        request.files.add(await http.MultipartFile.fromPath(field, file));
+      } on FileSystemException {
+        // The picker's copy was cleaned up meanwhile (MOB-15): an ApiException every caller already handles.
+        throw ApiException(
+          0,
+          'FILE_GONE',
+          t('The chosen file is no longer on the phone. Choose it again.', 'Tệp đã chọn không còn trên máy. Hãy chọn lại.'),
+        );
+      }
     }
     // Photos over a slow campus network take longer than a JSON call (MOB-06).
     return _send(request, const Duration(seconds: 120));
@@ -131,31 +144,98 @@ class Api {
     http.BaseRequest request, [
     Duration timeout = const Duration(seconds: 30),
   ]) async {
+    final streamed = await _open(request, timeout);
+    final http.Response response;
+    try {
+      response = await http.Response.fromStream(streamed).timeout(timeout);
+    } on TimeoutException {
+      throw _timeout();
+    } on Exception {
+      throw _network();
+    }
+    return _read(response);
+  }
+
+  /// A POST answered with Server-Sent Events (`text/event-stream`, the assistant's stream, D6): each event as its name
+  /// and its `data` JSON. An answer that is not a stream (an error before it starts) throws its [ApiException]; so does
+  /// a stream silent for longer than [timeout].
+  static Stream<(String, Json)> events(
+    String path,
+    Map<String, dynamic> body, [
+    Duration timeout = const Duration(seconds: 100),
+  ]) async* {
+    final request = http.Request('POST', _url(path))
+      ..headers['Content-Type'] = 'application/json; charset=utf-8'
+      ..headers['Accept'] = 'text/event-stream, application/json'
+      ..body = jsonEncode(body);
+    final response = await _open(request, timeout);
+    if (!(response.headers['content-type'] ?? '').contains('text/event-stream')) {
+      _read(await http.Response.fromStream(response));
+      throw ApiException(response.statusCode, null, 'HTTP ${response.statusCode}');
+    }
+    var event = 'message';
+    final data = StringBuffer();
+    try {
+      await for (final line in response.stream.timeout(timeout).transform(utf8.decoder).transform(const LineSplitter())) {
+        if (line.isEmpty) {
+          if (data.isNotEmpty) {
+            final decoded = jsonDecode(data.toString());
+            yield (event, decoded is Map<String, dynamic> ? decoded : <String, dynamic>{});
+          }
+          event = 'message';
+          data.clear();
+        } else if (line.startsWith('event:')) {
+          event = line.substring(6).trim();
+        } else if (line.startsWith('data:')) {
+          if (data.isNotEmpty) data.writeln();
+          data.write(line.substring(5).trimLeft());
+        }
+      }
+    } on TimeoutException {
+      throw _timeout();
+    } on FormatException {
+      throw _network();
+    } on IOException {
+      throw _network();
+    } on http.ClientException {
+      throw _network();
+    }
+  }
+
+  /// Sends [request] with the language and the token; network failures and timeouts become [ApiException]s.
+  static Future<http.StreamedResponse> _open(http.BaseRequest request, Duration timeout) async {
     request.headers['Accept-Language'] = isVietnamese() ? 'vi' : 'en';
     final bearer = token;
     if (bearer != null) request.headers['Authorization'] = 'Bearer $bearer';
-    final http.Response response;
     try {
-      response = await http.Response.fromStream(await client.send(request).timeout(timeout));
+      return await client.send(request).timeout(timeout);
     } on TimeoutException {
-      throw ApiException(
-        0,
-        'TIMEOUT',
-        t(
-          'The server is taking too long to answer. Try again in a moment.',
-          'Máy chủ phản hồi quá lâu. Hãy thử lại sau ít phút.',
-        ),
-      );
+      throw _timeout();
     } on Exception {
-      throw ApiException(
-        0,
-        'NETWORK',
-        t(
-          'Cannot reach the server. Check your connection and try again.',
-          'Không kết nối được máy chủ. Hãy kiểm tra mạng và thử lại.',
-        ),
-      );
+      throw _network();
     }
+  }
+
+  static ApiException _timeout() => ApiException(
+    0,
+    'TIMEOUT',
+    t(
+      'The server is taking too long to answer. Try again in a moment.',
+      'Máy chủ phản hồi quá lâu. Hãy thử lại sau ít phút.',
+    ),
+  );
+
+  static ApiException _network() => ApiException(
+    0,
+    'NETWORK',
+    t(
+      'Cannot reach the server. Check your connection and try again.',
+      'Không kết nối được máy chủ. Hãy kiểm tra mạng và thử lại.',
+    ),
+  );
+
+  /// The JSON of an answer, or its error as an [ApiException] (a `401` signs out).
+  static Map<String, dynamic> _read(http.Response response) {
     Map<String, dynamic> json = {};
     final text = utf8.decode(response.bodyBytes, allowMalformed: true);
     if (text.trim().isNotEmpty) {

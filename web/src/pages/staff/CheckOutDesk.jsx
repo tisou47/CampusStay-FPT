@@ -17,10 +17,12 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
-import { parseDecimal } from '@/lib/numbers'
+import { parseReading } from '@/lib/numbers'
 import { DetailFacts } from '@/components/ui/DetailFacts'
 import { DeskModeSwitch } from './CheckInDesk'
 import { FurnitureConditions } from './check-out/FurnitureConditions'
+import { DisputeCard, StudentDeclaration, StudentMeters } from './check-out/StudentDeclaration'
+
 import { t, tr } from '@/i18n'
 
 // SCR-REQ-12 Check-out Desk (Figma 95:3876)
@@ -64,6 +66,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
     setValues(Object.fromEntries(query.data.items.map((r) => [r.room, { electricity: r.electricity != null ? String(r.electricity) : '', water: r.water != null ? String(r.water) : '' }])))
   }, [query.data])
   const set = (room, patch) => setValues((all) => ({ ...all, [room]: { ...all[room], ...patch } }))
+  const badReading = Object.values(values).some((v) => Number.isNaN(parseReading(v?.electricity)) || Number.isNaN(parseReading(v?.water)))
   const changed = (query.data?.items ?? []).filter((r) => {
     const v = values[r.room] ?? {}
     return (v.electricity ?? '') !== (r.electricity != null ? String(r.electricity) : '') || (v.water ?? '') !== (r.water != null ? String(r.water) : '')
@@ -82,7 +85,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
         readings: changed
           .map((r) => ({ room: r.room, electricity: values[r.room].electricity.trim(), water: values[r.room].water.trim() }))
           .filter((r) => r.electricity !== '' || r.water !== '')
-          .map((r) => ({ room: r.room, electricity: r.electricity === '' ? null : Number(r.electricity.replace(',', '.')), water: r.water === '' ? null : Number(r.water.replace(',', '.')) })),
+          .map((r) => ({ room: r.room, electricity: parseReading(r.electricity), water: parseReading(r.water) })),
       }),
     { invalidates: ['check-out'], onSuccess: done, onError: (e) => notifyError(e, 'Could not save the readings') },
   )
@@ -105,7 +108,7 @@ function RoomReadingsModal({ open, onClose, scope }) {
       footer={
         <>
           <Button onClick={onClose}>Close</Button>
-          <Button variant="primary" icon={Save} disabled={!changed.length || save.pending} onClick={() => save.run()}>
+          <Button variant="primary" icon={Save} disabled={!changed.length || badReading || save.pending} onClick={() => save.run()} title={badReading ? t('Enter readings as numbers, e.g. 1234,5') : undefined}>
             {t('Save {n} rooms', { n: formatNumber(changed.length) })}
           </Button>
         </>
@@ -201,8 +204,8 @@ export function CheckOutPanel({ d, embedded = false }) {
   // Raw text: a reading keeps its decimals ("1360,5"); formatNumber would add thousands dots (WEB-OPS-01).
   const [electricity, setElectricity] = useState(d.reading?.electricity != null ? String(d.reading.electricity) : '')
   const [water, setWater] = useState(d.reading?.water != null ? String(d.reading.water) : '')
-  const eValue = parseDecimal(electricity)
-  const wValue = parseDecimal(water)
+  const eValue = parseReading(electricity)
+  const wValue = parseReading(water)
   const readingsInvalid = Number.isNaN(eValue) || Number.isNaN(wValue)
   const [fresh, setFresh] = useState(null)
   // Mutually exclusive condition: 'good' | 'damaged' | '' (empty by default when pending)
@@ -436,6 +439,8 @@ export function CheckOutPanel({ d, embedded = false }) {
 
       {/* 2. SCROLLABLE BODY: Active Step Content */}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
+        {/* The student's disagreement with the charges, whichever step is open. */}
+        <DisputeCard allocationId={d.allocationId} data={fData} />
         {/* Step 1: Final Meter Reading */}
         {step === 1 && (
           <>
@@ -527,6 +532,14 @@ export function CheckOutPanel({ d, embedded = false }) {
                   </span>
                 </div>
               )}
+              <StudentMeters
+                data={fData}
+                disabled={done}
+                onUse={(e, w) => {
+                  setElectricity(String(e))
+                  setWater(String(w))
+                }}
+              />
               <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
                 {!done && (
                   <Button size="sm" onClick={() => submit.run(true)} disabled={submit.pending || readingsInvalid}>
@@ -546,6 +559,7 @@ export function CheckOutPanel({ d, embedded = false }) {
 
         {/* Step 2: Room Condition & Automatic Furniture Calculation (kept mounted to preserve unsaved item state across steps) */}
         <div className={step === 2 ? 'flex flex-col gap-3' : 'hidden'}>
+          <StudentDeclaration data={fData} />
           <FurnitureConditions
             allocationId={d.allocationId}
             query={furnitureQuery}
@@ -760,7 +774,7 @@ export function CheckOutPanel({ d, embedded = false }) {
             </dl>
 
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold tracking-wide text-fg-secondary uppercase">
+              <p className="text-xs font-semibold text-fg-secondary">
                 {t('Furniture condition at move-in ({n} items)', { n: d.handoverReport.items?.length ?? 0 })}
               </p>
               <div className="max-h-72 overflow-y-auto rounded-xl border border-line">

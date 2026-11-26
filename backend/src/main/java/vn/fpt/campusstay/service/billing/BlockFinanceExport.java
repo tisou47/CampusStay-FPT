@@ -32,7 +32,8 @@ class BlockFinanceExport implements ReportExport {
     @Transactional(readOnly = true)
     public Table export(Map<String, String> f) {
         currentUser.require(Permission.VIEW_REPORTS);
-        FinanceService.InvoicePage page = finance.invoices(ReportExport.longFilter(f, "termId"), f.get("block"), ALL);
+        FinanceService.InvoicePage page = finance.invoices(ReportExport.longFilter(f, "termId"), f.get("block"),
+                f.get("q"), ALL);
         return new Table("block-finance", List.of("Invoice", "Student", "Student code", "Type", "Amount (VND)", "Due",
                 "Status"),
                 page.items().stream().map(i -> Arrays.<Object>asList(i.id(), i.name(), i.studentCode(), i.typeLabel(),

@@ -166,8 +166,12 @@ public class LateCheckInService {
         errors.check(requestedFor != null, "requestedFor", "Choose the day the student will arrive.");
         errors.check(requestedFor == null || !requestedFor.isBefore(today), "requestedFor",
                 "Choose today or a later day.");
-        errors.throwIfAny();
         TermSummary term = terms.findPublished(alloc.termId()).orElseThrow();
+        // The same last day as an online request (BE-ASG-13).
+        LocalDate latest = latestDay(term);
+        errors.check(requestedFor == null || latest == null || !requestedFor.isAfter(latest), "requestedFor",
+                "Choose a day up to " + (latest == null ? "" : DAY.format(latest)) + ".");
+        errors.throwIfAny();
         Instant windowClosed = term.checkInEnd() == null ? Instant.now(clock)
                 : term.checkInEnd().plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
         if (jdbc.sql("SELECT count(*) FROM asg_late_check_in WHERE allocation_id = :a").param("a", alloc.id())
@@ -245,15 +249,18 @@ public class LateCheckInService {
                 "Attach a document that explains the delay (JPEG, PNG or PDF).");
         errors.throwIfAny();
         Inventory.BedSlot bed = inventory.beds(w.termId(), List.of(w.bedId())).get(w.bedId());
-        long fileId = files.store("asg", cmd.evidenceName(), cmd.evidence(), FileStore.IMAGES_AND_PDF, user.userId()).id();
         Instant windowClosed = w.term().checkInEnd() == null ? Instant.now(clock)
                 : w.term().checkInEnd().plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
+        // Checked under the Allocation's lock (waiting(…, true)) before the file is stored (BE-ASG-14).
         if (jdbc.sql("SELECT count(*) FROM asg_late_check_in WHERE allocation_id = :a")
                 .param("a", w.id()).query(Long.class).single() > 0) {
             throw ApiException.conflict("LATE_REQUEST_EXISTS",
                     "You already asked for a late check-in this Term: one request per Term.");
         }
-        long id = jdbc.sql("""
+        long fileId = files.store("asg", cmd.evidenceName(), cmd.evidence(), FileStore.IMAGES_AND_PDF, user.userId()).id();
+        long id;
+        try {
+            id = jdbc.sql("""
                 INSERT INTO asg_late_check_in (allocation_id, reason, requested_for, evidence_file_id, window_closed_at,
                                                suggested_deadline, source, created_at)
                 VALUES (:allocation, :reason, :day, :file, :closed, :day, 'ONLINE', :now) RETURNING id
@@ -261,6 +268,9 @@ public class LateCheckInService {
                 .param("allocation", w.id()).param("reason", reason).param("day", requestedFor).param("file", fileId)
                 .param("closed", Timestamp.from(windowClosed)).param("now", Timestamp.from(Instant.now(clock)))
                 .query(Long.class).single();
+        } catch (DuplicateKeyException e) {
+            throw ApiException.conflict("LATE_REQUEST_EXISTS", "You already asked for a late check-in this Term.");
+        }
         UserDirectory.StudentProfile me = users.studentProfile(user.userId()).orElseThrow();
         events.publishEvent(new LateCheckInRequested(id, user.userId(), me.name(), me.studentCode(),
                 bed == null ? null : bed.roomCode(), requestedFor));
@@ -355,7 +365,7 @@ public class LateCheckInService {
      */
     @Transactional
     public void decide(String id, String decision, String deadline, String balanceDue, String reason) {
-        AuthenticatedUser user = currentUser.require(Permission.DECIDE_REFUNDS);
+        AuthenticatedUser user = currentUser.require(Permission.DECIDE_LATE_CHECK_INS); // its own permission (BE-ASG-22)
         record Target(long id, long allocationId, long termId, long studentId, long bedId, String status,
                 String allocationStatus) {
         }

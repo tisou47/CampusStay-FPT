@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import 'common.dart';
@@ -17,9 +18,9 @@ class Tokens {
   static const brandLine = Color(0xFFFECDAA);
   static const fgBrand = Color(0xFFB8490D);
   static const link = Color(0xFF0A5DA8);
-  static const canvas = Color(0xFFFBF8F5);
+  static const canvas = Color(0xFFF7F4F0);
   static const surface = Colors.white;
-  static const subtle = Color(0xFFF5F0EB);
+  static const subtle = Color(0xFFF3EDE6);
   static const fg = Color(0xFF1D1714);
   static const fgSecondary = Color(0xFF5C4F46);
   static const fgTertiary = Color(0xFF75665B);
@@ -115,15 +116,15 @@ ThemeData campusTheme() {
     fontFamily: 'Roboto',
     colorScheme: scheme,
     scaffoldBackgroundColor: Tokens.canvas,
-    // The top bar in the brand orange with white text and icons.
+    // The top bar is the web's band: solid FPT orange with ink text and icons (white on #F37021 fails contrast).
     appBarTheme: const AppBarTheme(
-      backgroundColor: Tokens.primary,
-      foregroundColor: Colors.white,
+      backgroundColor: Tokens.accent,
+      foregroundColor: Tokens.fg,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
-      titleTextStyle: TextStyle(fontFamily: 'Roboto', fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+      titleTextStyle: TextStyle(fontFamily: 'Roboto', fontSize: 18, fontWeight: FontWeight.w700, color: Tokens.fg),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Tokens.surface,
@@ -676,70 +677,6 @@ class NextAction extends StatelessWidget {
               child: SizedBox(width: double.infinity, child: action!),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// A grid of shortcuts (icon, label, optional count badge), three per row: the phone's way to reach every part of the
-/// app from Home without listing their details.
-class QuickGrid extends StatelessWidget {
-  const QuickGrid({super.key, required this.items, this.columns = 3});
-
-  /// Shortcuts per row.
-  final int columns;
-
-  /// (icon, label, badge count or null, onTap)
-  final List<(IconData, String, int?, VoidCallback)> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Panel(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          final width = box.maxWidth / columns;
-          return Wrap(
-            children: [
-              for (final (icon, text, badge, onTap) in items)
-                SizedBox(
-                  width: width,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: onTap,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                      child: Column(
-                        spacing: 6,
-                        children: [
-                          Badge(
-                            isLabelVisible: (badge ?? 0) > 0,
-                            label: Text('$badge'),
-                            backgroundColor: Tokens.primary,
-                            child: Container(
-                              width: 46,
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: Tokens.brandSubtle,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(icon, color: Tokens.fgBrand, size: 24),
-                            ),
-                          ),
-                          Text(
-                            text,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Tokens.fg),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
       ),
     );
   }
@@ -1314,17 +1251,17 @@ class WithCreate extends StatelessWidget {
   );
 }
 
-/// The top card of a tab (Home, My Room, Payments): white text on the brand gradient, with a soft orange shadow.
+/// The top card of a tab (Home, My Room, Payments): white text on solid deep orange, flat like the web cards.
 class HeroCard extends StatelessWidget {
   const HeroCard({super.key, required this.child});
 
   final Widget child;
 
-  /// Text on the gradient: white, and a lighter white for secondary lines.
+  /// Text on the card: white, and a lighter white for secondary lines.
   static const TextStyle strong = TextStyle(color: Colors.white, fontWeight: FontWeight.w700);
   static TextStyle get soft => TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13);
 
-  /// A white button on the gradient (its main action).
+  /// A white button on the card (its main action).
   static ButtonStyle get button => FilledButton.styleFrom(
     backgroundColor: Colors.white,
     foregroundColor: Tokens.primary,
@@ -1337,20 +1274,17 @@ class HeroCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Tokens.accent, Tokens.primary],
-        ),
-        boxShadow: const [BoxShadow(color: Color(0x33C64F0E), blurRadius: 16, offset: Offset(0, 6))],
+        // Solid deep orange: white text holds 4.9:1 on it (not on FPT orange), and cards stay flat like the web's.
+        borderRadius: BorderRadius.circular(16),
+        color: Tokens.primary,
       ),
       child: child,
     );
   }
 }
 
-/// A group of feature tiles on Home under an upper-case heading (the phone's menu), two per row.
+/// A group of features on Home under a sentence-case heading: one white card of rows, like the web's student
+/// Home list (icon, name, note, count, chevron), so the phone and the web read the same.
 class FeatureSection extends StatelessWidget {
   const FeatureSection({super.key, required this.title, required this.tiles});
 
@@ -1361,42 +1295,36 @@ class FeatureSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 10,
+      spacing: 8,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, top: 6),
-          child: Text(
-            title.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-              color: Tokens.fgBrand,
-            ),
-          ),
+          child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Tokens.fg)),
         ),
-        LayoutBuilder(
-          builder: (context, box) {
-            final width = (box.maxWidth - 12) / 2;
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [for (final tile in tiles) SizedBox(width: width, child: tile)],
-            );
-          },
+        Material(
+          color: Tokens.surface,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Tokens.line)),
+          child: Column(
+            children: [
+              for (var i = 0; i < tiles.length; i++) ...[
+                if (i > 0) const Divider(height: 1, indent: 68),
+                tiles[i],
+              ],
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-/// A feature of the app on Home: a coloured icon square, its name, an optional count or short note.
+/// One feature on Home: an orange-wash icon square, its name, an optional short note and count, and a chevron.
 class FeatureTile extends StatelessWidget {
   const FeatureTile({
     super.key,
     required this.icon,
     required this.label,
-    required this.color,
     required this.onTap,
     this.badge,
     this.note,
@@ -1404,57 +1332,46 @@ class FeatureTile extends StatelessWidget {
 
   final IconData icon;
   final String label;
-
-  /// The icon's colour; its square is the same colour, light.
-  final Color color;
   final VoidCallback onTap;
   final int? badge;
   final String? note;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Tokens.surface,
-      elevation: 1,
-      shadowColor: const Color(0x1F1D1714),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
+    final count = badge ?? 0;
+    return InkWell(
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 64),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 18, 10, 14),
-          child: Column(
-            spacing: 10,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            spacing: 14,
             children: [
-              Badge(
-                isLabelVisible: (badge ?? 0) > 0,
-                label: Text('${badge ?? 0}'),
-                backgroundColor: Tone.error.mark,
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, size: 28, color: color),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, size: 22, color: Tokens.fgBrand),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 2,
+                  children: [
+                    Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Tokens.fg)),
+                    if (note != null)
+                      Text(note!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary)),
+                  ],
                 ),
               ),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Tokens.fg),
-              ),
-              // Always a note line (blank when none), so the tiles of a row are the same height.
-              Text(
-                note ?? ' ',
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Tokens.fgBrand, fontWeight: FontWeight.w600),
-              ),
+              if (count > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: Tone.error.mark, borderRadius: BorderRadius.circular(999)),
+                  child: Text('$count', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                ),
+              const Icon(Icons.chevron_right_rounded, color: Tokens.fgTertiary),
             ],
           ),
         ),
@@ -1463,7 +1380,7 @@ class FeatureTile extends StatelessWidget {
   }
 }
 
-/// The phone's bottom bar: white, rounded on top, icons only, the current one orange on a light orange pill.
+/// The phone's bottom bar: white, rounded on top, icon and label, the current one orange on a light orange pill.
 class BottomBar extends StatelessWidget {
   const BottomBar({super.key, required this.items, required this.index, required this.onTap});
 
@@ -1497,12 +1414,28 @@ class BottomBar extends StatelessWidget {
                       child: Center(
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                           decoration: BoxDecoration(
                             color: i == index ? Tokens.brandSubtle : Colors.transparent,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Icon(items[i].$1, size: 28, color: i == index ? Tokens.primary : Tokens.fgTertiary),
+                          // The label shows under the icon: icons alone are guesswork (ui-ux-pro-max nav rule).
+                          child: ExcludeSemantics(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(items[i].$1, size: 26, color: i == index ? Tokens.primary : Tokens.fgTertiary),
+                                Text(
+                                  items[i].$2,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: i == index ? FontWeight.w600 : FontWeight.w500,
+                                    color: i == index ? Tokens.fgBrand : Tokens.fgSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -1597,6 +1530,208 @@ class Timeline extends StatelessWidget {
                         ),
                         if (items[i].$2 != null)
                           Text(items[i].$2!, style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// One tab of a [TabStrip]: its key, text, icon, an optional count and an attention dot.
+typedef TabItem = ({String key, String text, IconData icon, int? count, bool dot});
+
+/// The web's segmented tabs (My Room, Invoices) sized for a phone: equal cells in a white strip, the icon over the
+/// text, the selected cell orange with white text; a count after the text, a dot when the tab needs attention.
+class TabStrip extends StatelessWidget {
+  const TabStrip({super.key, required this.items, required this.value, required this.onChanged});
+
+  final List<TabItem> items;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: Tokens.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Tokens.line),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 5,
+          children: [
+            for (final item in items)
+              Expanded(
+                child: Semantics(
+                  selected: item.key == value,
+                  button: true,
+                  child: Material(
+                    color: item.key == value ? Tokens.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => onChanged(item.key),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: 4,
+                          children: [
+                            Badge(
+                              isLabelVisible: item.dot && item.key != value,
+                              smallSize: 8,
+                              backgroundColor: Tone.warning.mark,
+                              child: Icon(
+                                item.icon,
+                                size: 20,
+                                color: item.key == value ? Colors.white : Tokens.fgTertiary,
+                              ),
+                            ),
+                            Text(
+                              item.count == null ? item.text : '${item.text} (${item.count})',
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                height: 1.25,
+                                fontWeight: item.key == value ? FontWeight.w600 : FontWeight.w500,
+                                color: item.key == value ? Colors.white : Tokens.fgSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// An icon, a small name and its value under it (web `InfoRow`).
+class InfoRow extends StatelessWidget {
+  const InfoRow({super.key, required this.icon, required this.name, required this.value});
+
+  final IconData icon;
+  final String name;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 10,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, size: 17, color: Tokens.fgSecondary),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 1,
+            children: [
+              Text(name, style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary)),
+              Text(
+                value,
+                style: const TextStyle(fontWeight: FontWeight.w500, color: Tokens.fg),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One step of [Milestones]: its title, the text under it, a time, and whether it is done or the current one.
+typedef Milestone = ({String title, String text, String? time, bool done, bool current});
+
+/// Steps on a rail (web `StayActivityLogCard`): a green tick when done, an orange ring on the current one, a grey dot
+/// for those ahead; the rail is green after a done step.
+class Milestones extends StatelessWidget {
+  const Milestones({super.key, required this.items});
+
+  final List<Milestone> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < items.length; i++)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: items[i].done
+                            ? Tone.success.mark
+                            : items[i].current
+                            ? Tokens.brandSubtle
+                            : Tokens.subtle,
+                        border: items[i].done
+                            ? null
+                            : Border.all(color: items[i].current ? Tokens.primary : Tokens.lineStrong, width: 2),
+                      ),
+                      child: items[i].done
+                          ? const Icon(Icons.check, size: 15, color: Colors.white)
+                          : items[i].current
+                          ? Center(
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(color: Tokens.primary, shape: BoxShape.circle),
+                              ),
+                            )
+                          : null,
+                    ),
+                    if (i < items.length - 1)
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          margin: const EdgeInsets.symmetric(vertical: 3),
+                          color: items[i].done ? Tone.success.mark.withValues(alpha: 0.5) : Tokens.line,
+                        ),
+                      ),
+                  ],
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 2,
+                      children: [
+                        Text(
+                          items[i].title,
+                          style: TextStyle(
+                            fontWeight: items[i].done || items[i].current ? FontWeight.w600 : FontWeight.w500,
+                            color: items[i].current ? Tokens.fgBrand : (items[i].done ? Tokens.fg : Tokens.fgSecondary),
+                          ),
+                        ),
+                        if (items[i].time != null)
+                          Text(items[i].time!, style: const TextStyle(fontSize: 12, color: Tokens.fgTertiary)),
+                        if (items[i].text.isNotEmpty)
+                          Text(items[i].text, style: const TextStyle(fontSize: 13.5, color: Tokens.fgSecondary)),
                       ],
                     ),
                   ),

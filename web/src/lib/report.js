@@ -47,6 +47,53 @@ const PRINT_WORDS = {
   printAll: 'Print / Save as PDF ({n} pages)',
 }
 
+/** Pages a multi-sheet report on screen and wires the print buttons of window `w`. */
+function setUpPager(w, words) {
+  const doc = w.document
+  const sheets = Array.from(doc.querySelectorAll('.page-sheet'))
+  const pager = doc.getElementById('pager')
+  const singlePrint = doc.getElementById('singlePrint')
+  singlePrint?.querySelector('button')?.addEventListener('click', () => w.print())
+  if (sheets.length <= 1) {
+    setTimeout(() => w.print(), 300)
+    return
+  }
+  if (singlePrint) singlePrint.style.display = 'none'
+  pager.style.display = 'flex'
+  let current = 0
+  const button = (text, onClick, className) => {
+    const b = doc.createElement('button')
+    b.textContent = text
+    if (className) b.className = className
+    b.addEventListener('click', onClick)
+    return b
+  }
+  function render() {
+    sheets.forEach((sheet, idx) => sheet.classList.toggle('hidden-screen', idx !== current))
+    const tabs = doc.createElement('div')
+    tabs.className = 'pager-tabs'
+    const prev = button(words.previous, () => { current--; render() })
+    prev.disabled = current === 0
+    tabs.appendChild(prev)
+    sheets.forEach((_, idx) => tabs.appendChild(button(String(idx + 1), () => { current = idx; render() }, idx === current ? 'active' : '')))
+    const next = button(words.next, () => { current++; render() })
+    next.disabled = current === sheets.length - 1
+    tabs.appendChild(next)
+    const info = doc.createElement('span')
+    info.style.cssText = 'font-size:12px;color:#475569;margin-left:6px;font-weight:500;'
+    info.textContent = words.page.replace('{n}', current + 1).replace('{total}', sheets.length)
+    tabs.appendChild(info)
+    const actions = doc.createElement('div')
+    actions.className = 'pager-actions'
+    actions.appendChild(button(words.printOne, () => { doc.body.classList.add('print-single'); w.print() }))
+    actions.appendChild(button(words.printAll.replace('{n}', sheets.length), () => { doc.body.classList.remove('print-single'); w.print() }, 'primary'))
+    pager.replaceChildren(tabs, actions)
+    w.scrollTo({ top: 0 })
+  }
+  w.addEventListener('afterprint', () => doc.body.classList.remove('print-single'))
+  render()
+}
+
 /** @param options { lang, words } — the language in use and the window's words translated by the page */
 export function printDocument(title, bodyHtml, { lang = 'en', words: given } = {}) {
   const words = { ...PRINT_WORDS, ...given }
@@ -94,73 +141,11 @@ export function printDocument(title, bodyHtml, { lang = 'en', words: given } = {
 </style></head><body>
 <div id="pager" class="pager noprint" style="display:none"></div>
 ${bodyHtml}
-<p id="singlePrint" class="noprint" style="margin-top:24px"><button onclick="window.print()">${escapeHtml(words.print)}</button></p>
-<script>
-(() => {
-  const words = ${JSON.stringify(words).replaceAll('<', '\\u003c')};
-  const sheets = Array.from(document.querySelectorAll('.page-sheet'));
-  const pager = document.getElementById('pager');
-  const singlePrint = document.getElementById('singlePrint');
-  if (sheets.length <= 1) {
-    window.addEventListener('load', () => setTimeout(() => window.print(), 300));
-    return;
-  }
-  if (singlePrint) singlePrint.style.display = 'none';
-  pager.style.display = 'flex';
-  let current = 0;
-  function render() {
-    sheets.forEach((s, idx) => s.classList.toggle('hidden-screen', idx !== current));
-    const tabs = document.createElement('div');
-    tabs.className = 'pager-tabs';
-    const prev = document.createElement('button');
-    prev.textContent = words.previous;
-    prev.disabled = current === 0;
-    prev.onclick = () => { current--; render(); };
-    tabs.appendChild(prev);
-    sheets.forEach((_, idx) => {
-      const b = document.createElement('button');
-      b.textContent = String(idx + 1);
-      if (idx === current) b.className = 'active';
-      b.onclick = () => { current = idx; render(); };
-      tabs.appendChild(b);
-    });
-    const next = document.createElement('button');
-    next.textContent = words.next;
-    next.disabled = current === sheets.length - 1;
-    next.onclick = () => { current++; render(); };
-    tabs.appendChild(next);
-    const info = document.createElement('span');
-    info.style.cssText = 'font-size:12px;color:#475569;margin-left:6px;font-weight:500;';
-    info.textContent = words.page.replace('{n}', current + 1).replace('{total}', sheets.length);
-    tabs.appendChild(info);
-
-    const actions = document.createElement('div');
-    actions.className = 'pager-actions';
-    const printOne = document.createElement('button');
-    printOne.textContent = words.printOne;
-    printOne.onclick = () => {
-      document.body.classList.add('print-single');
-      window.print();
-    };
-    const printAll = document.createElement('button');
-    printAll.className = 'primary';
-    printAll.textContent = words.printAll.replace('{n}', sheets.length);
-    printAll.onclick = () => {
-      document.body.classList.remove('print-single');
-      window.print();
-    };
-    actions.appendChild(printOne);
-    actions.appendChild(printAll);
-
-    pager.replaceChildren(tabs, actions);
-    window.scrollTo({ top: 0 });
-  }
-  window.addEventListener('afterprint', () => document.body.classList.remove('print-single'));
-  render();
-})();
-</script>
+<p id="singlePrint" class="noprint" style="margin-top:24px"><button>${escapeHtml(words.print)}</button></p>
 </body></html>`)
   w.document.close()
+  // The pager runs from this window: the site's Content-Security-Policy, which the blank window inherits, blocks inline scripts.
+  setUpPager(w, words)
   w.focus()
   return true
 }

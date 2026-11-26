@@ -1,6 +1,7 @@
-﻿import { Bed, Building, Calendar, CheckCircle2, Circle, Clock, CreditCard, ExternalLink, FileText, KeyRound, ShieldCheck } from 'lucide-react'
+import { Bed, Building, Calendar, CalendarCheck, Check, CheckCircle2, Circle, Clock, CreditCard, ExternalLink, FileText, KeyRound, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Card, Note } from '@/components/ui/Display'
+import { Card, Note, ProgressBar } from '@/components/ui/Display'
+import { cx } from '@/lib/cx'
 import { StatusTag, Tag } from '@/components/ui/Tag'
 import { formatDate, formatDateRange, formatDateTime, formatVnd } from '@/lib/format'
 import { t, tr, tx } from '@/i18n'
@@ -55,6 +56,18 @@ export function StayContractCard({ data }) {
           icon={Bed}
           label="Room class & type"
           value={`${tr(a.roomTypeName) || t('Standard')} · ${tr(a.roomClassName) || t('Standard')}`}
+        />
+        <InfoRow icon={CalendarCheck} label="Allocated on" value={a.allocatedAt ? formatDate(a.allocatedAt) : '—'} />
+        <InfoRow
+          icon={KeyRound}
+          label="Moved in"
+          value={
+            a.residentSince
+              ? formatDateTime(a.residentSince)
+              : data.checkIn?.start
+                ? t('Check-in {range}', { range: formatDateRange(data.checkIn.start, data.checkIn.end) })
+                : t('Not yet')
+          }
         />
         <InfoRow
           icon={Clock}
@@ -125,8 +138,10 @@ export function StayActivityLogCard({ data }) {
   if (!a) return null
 
   const isResident = a.status === 'Resident'
-  const isPaid = balance?.status === 'Paid'
   const isCheckedIn = Boolean(checkIn?.checkedInAt)
+  // Paid when the balance invoice is paid, or when there is none left to pay once the student lives in the room
+  // (a resident cannot owe the room fee: an unpaid balance blocks check-in).
+  const isPaid = balance?.status === 'Paid' || (!balance && (isResident || isCheckedIn))
 
   const milestones = [
     {
@@ -149,7 +164,9 @@ export function StayActivityLogCard({ data }) {
       id: 'payment',
       title: t('Room fee payment'),
       subtitle: isPaid
-        ? t('Paid {amount} successfully', { amount: formatVnd(balance?.amount) })
+        ? balance
+          ? t('Paid {amount} successfully', { amount: formatVnd(balance.amount) })
+          : t('Room fee paid')
         : t('Room fee {amount} awaiting payment', { amount: formatVnd(balance?.amount) }),
       time: balance?.paidAt ? formatDate(balance.paidAt) : balance?.dueAt ? t('Due {date}', { date: formatDate(balance.dueAt) }) : null,
       done: isPaid,
@@ -160,10 +177,12 @@ export function StayActivityLogCard({ data }) {
       title: t('Key handover & check-in'),
       subtitle: isCheckedIn
         ? t('Checked in at dormitory desk, key & room inventory handed over', { date: formatDateTime(checkIn.checkedInAt) })
-        : checkIn?.start
+        : isResident
+          ? t('Door code received: you moved in')
+          : checkIn?.start
           ? t('Check-in window: {range}', { range: formatDateRange(checkIn.start, checkIn.end) })
           : t('Prepare check-in pass on mobile app'),
-      time: checkIn?.checkedInAt ? formatDateTime(checkIn.checkedInAt) : null,
+      time: checkIn?.checkedInAt ? formatDateTime(checkIn.checkedInAt) : a.residentSince ? formatDateTime(a.residentSince) : null,
       done: isCheckedIn || isResident,
       current: !isCheckedIn && isPaid && !isResident,
     },
@@ -179,68 +198,44 @@ export function StayActivityLogCard({ data }) {
     },
   ]
 
+  const doneCount = milestones.filter((m) => m.done).length
+
   return (
-    <Card padding="lg" className="flex shrink-0 flex-col gap-3.5">
-      <div className="flex items-center justify-between gap-3 border-b border-line pb-2.5">
-        <div className="flex items-center gap-2">
-          <Clock size={16} aria-hidden="true" className="text-fg-secondary" />
-          <h2 className="text-h3 font-semibold text-fg">
+    <Card padding="none" className="flex shrink-0 flex-col overflow-hidden">
+      <div className="flex flex-col gap-2.5 border-b border-line px-5 py-4 lg:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-h3 font-semibold text-fg">
+            <Clock size={18} aria-hidden="true" className="text-fg-brand" />
             {t('Stay milestones & activity')}
           </h2>
+          <span className="rounded-full bg-subtle px-2.5 py-0.5 text-sm font-medium text-fg-secondary tabular">{t('{n}/{total} steps done', { n: doneCount, total: milestones.length })}</span>
         </div>
-        <span className="text-xs text-fg-tertiary">
-          {t('Real-time timeline')}
-        </span>
+        <ProgressBar value={doneCount} max={milestones.length} tone="success" />
       </div>
 
-      <ol className="flex flex-col gap-3 pt-1">
+      <ol className="flex flex-col px-5 py-4 lg:px-6">
         {milestones.map((m, idx) => {
           const isLast = idx === milestones.length - 1
           return (
-            <li key={m.id} className="flex items-start gap-3.5">
-              {/* Marker & connector rail */}
-              <div className="flex flex-col items-center">
-                <span
-                  className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-                    m.done
-                      ? 'bg-success text-white shadow-xs'
-                      : m.current
-                        ? 'border-2 border-primary bg-primary-subtle text-fg-brand ring-4 ring-primary/10'
-                        : 'border border-line-strong bg-subtle text-fg-tertiary'
-                  }`}
-                >
-                  {m.done ? (
-                    <CheckCircle2 size={14} aria-hidden="true" />
-                  ) : m.current ? (
-                    <span className="size-2 rounded-full bg-primary" />
-                  ) : (
-                    <Circle size={8} aria-hidden="true" />
-                  )}
-                </span>
-                {!isLast && (
-                  <span
-                    className={`w-0.5 min-h-6 flex-1 my-1 ${
-                      m.done ? 'bg-success/50' : 'bg-line'
-                    }`}
-                  />
+            <li key={m.id} className="relative flex gap-4 pb-4 last:pb-0">
+              {!isLast && <span aria-hidden="true" className={cx('absolute top-8 bottom-0 left-[15px] w-0.5', m.done ? 'bg-success/50' : 'bg-line')} />}
+              <span
+                className={cx(
+                  'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full',
+                  m.done ? 'bg-success text-white' : m.current ? 'border-2 border-primary bg-surface text-fg-brand ring-4 ring-primary/15' : 'border border-line-strong bg-surface text-fg-tertiary',
                 )}
-              </div>
-
-              {/* Content */}
-              <div className="flex min-w-0 flex-1 flex-col pb-2">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                  <span className={`text-base font-semibold ${m.current ? 'text-fg-brand' : 'text-fg'}`}>
+              >
+                {m.done ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : m.current ? <span className="size-2.5 animate-pulse rounded-full bg-primary" /> : <span className="text-xs font-semibold">{idx + 1}</span>}
+              </span>
+              <div className={cx('flex min-w-0 flex-1 flex-col gap-0.5 rounded-lg', m.current ? '-mt-1 bg-brand-subtle/60 px-3 py-2' : 'pt-1')}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <span className={cx('text-base font-semibold', m.current ? 'text-fg-brand' : m.done ? 'text-fg' : 'text-fg-secondary')}>
                     {tx(m.title)}
+                    {m.current && <span className="ml-2 rounded-full bg-primary px-2 py-0.5 align-middle text-xs font-medium text-fg-on-brand">{t('Happening now')}</span>}
                   </span>
-                  {m.time && (
-                    <span className="text-xs text-fg-tertiary tabular">
-                      {m.time}
-                    </span>
-                  )}
+                  {m.time && <span className="text-sm text-fg-tertiary tabular">{m.time}</span>}
                 </div>
-                <p className="text-sm text-fg-secondary [text-wrap:pretty]">
-                  {tx(m.subtitle)}
-                </p>
+                <p className="text-sm text-fg-secondary [text-wrap:pretty]">{tx(m.subtitle)}</p>
               </div>
             </li>
           )

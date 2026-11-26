@@ -236,7 +236,6 @@ export default function StudentImport() {
       <PageHeader
         breadcrumb={<Breadcrumb items={[{ label: 'Students', to: `${base}/students` }, { label: 'Import student list' }]} />}
         title="Import student list"
-        description="Upload the list from the training office. Students are matched on the student code; columns the file does not have are kept."
         actions={
           <>
             <Button icon={Download} disabled={template.pending} onClick={() => template.run()}>

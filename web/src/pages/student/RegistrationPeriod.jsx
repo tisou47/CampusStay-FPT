@@ -15,6 +15,7 @@ import {
   Users,
 } from 'lucide-react'
 import { api } from '@/api/endpoints'
+import { useSession } from '@/app/session'
 import { useQuery } from '@/api/hooks'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Display'
@@ -210,7 +211,7 @@ function PricesExplorer({ d }) {
                           <div className="grid grid-cols-1 gap-3 border-t border-line/60 bg-subtle/40 px-4 py-3.5 lg:grid-cols-12">
                             {/* Left: Detailed Fee Breakdown */}
                             <div className="flex flex-col gap-2 rounded-xl bg-surface p-3.5 lg:col-span-6">
-                              <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-fg-tertiary uppercase">
+                              <span className="flex items-center gap-1.5 text-sm font-semibold text-fg-tertiary">
                                 <Banknote size={14} aria-hidden="true" className="text-fg-brand" />
                                 {t('Fee breakdown')}
                               </span>
@@ -237,7 +238,7 @@ function PricesExplorer({ d }) {
                             {/* Right: Included Furniture & Amenities */}
                             <div className="flex flex-col justify-between gap-2.5 rounded-xl bg-surface p-3.5 lg:col-span-6">
                               <div className="flex flex-col gap-2">
-                                <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-fg-tertiary uppercase">
+                                <span className="flex items-center gap-1.5 text-sm font-semibold text-fg-tertiary">
                                   <Package size={14} aria-hidden="true" className="text-fg-brand" />
                                   {t('Included furniture & amenities')}
                                 </span>
@@ -414,6 +415,7 @@ function FaqAccordionTab({ faq = [] }) {
 
 export default function RegistrationPeriod() {
   const { termId } = useParams()
+  const { setTermId } = useSession()
   const [tab, setTab] = useState('timeline')
   const query = useQuery(['registration-period', termId], ({ signal }) => api.registrationPeriods.details(termId, { signal }))
   const d = query.data
@@ -452,7 +454,8 @@ export default function RegistrationPeriod() {
             </span>
           )}
           {d.status === 'Open' && (
-            <Button variant="primary" to="/student/apply/term">
+            // The wizard applies for the session Term: make it this period's Term first (WEB-STU-08).
+            <Button variant="primary" to="/student/apply/term" onClick={() => setTermId(termId)}>
               Apply now
             </Button>
           )}

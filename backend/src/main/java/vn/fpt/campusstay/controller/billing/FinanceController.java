@@ -26,7 +26,8 @@ class FinanceController {
     }
 
     record RefundDecisionRequest(@Size(max = 20) String decision,
-            @Size(max = 500, message = "Keep the note under 500 characters.") String note) {
+            @Size(max = 500, message = "Keep the note under 500 characters.") String note,
+            @Size(max = 20) String ruleId) {
     }
 
     record RefundPaidRequest(@Size(max = 100, message = "Keep the reference under 100 characters.") String reference,
@@ -45,11 +46,12 @@ class FinanceController {
         return finance.summary(termId, block);
     }
 
+    /** {@code q}: part of the student's name, student code or Invoice code. */
     @GetMapping("/finance/overdue")
     FinanceService.OverduePage overdue(@RequestParam(required = false) Long termId,
-            @RequestParam(required = false) String block, @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
-        return finance.overdue(termId, block, PageQuery.of(page, pageSize));
+            @RequestParam(required = false) String block, @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return finance.overdue(termId, block, q, PageQuery.of(page, pageSize));
     }
 
     @PostMapping("/finance/reminders")
@@ -57,18 +59,21 @@ class FinanceController {
         return finance.remind(body.invoiceIds());
     }
 
+    /** {@code q}: part of the student's name, student code or Invoice code. */
     @GetMapping("/invoices")
     FinanceService.InvoicePage invoices(@RequestParam(required = false) Long termId,
-            @RequestParam(required = false) String block, @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize) {
-        return finance.invoices(termId, block, PageQuery.of(page, pageSize));
+            @RequestParam(required = false) String block, @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+        return finance.invoices(termId, block, q, PageQuery.of(page, pageSize));
     }
 
+    /** {@code q}: part of the student's name or student code. */
     @GetMapping("/refunds")
     FinanceService.RefundPage refunds(@RequestParam(required = false) Long termId,
             @RequestParam(required = false) String block, @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
-        return finance.refunds(termId, block, status, PageQuery.of(page, pageSize));
+            @RequestParam(required = false) String q, @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize) {
+        return finance.refunds(termId, block, status, q, PageQuery.of(page, pageSize));
     }
 
     record Reminded(Instant remindedAt) {
@@ -90,7 +95,13 @@ class FinanceController {
     @PostMapping("/refunds/{id}/decision")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void decideRefund(@PathVariable String id, @Valid @RequestBody RefundDecisionRequest body) {
-        finance.decideRefund(id, body.decision(), body.note());
+        finance.decideRefund(id, body.decision(), body.note(), body.ruleId());
+    }
+
+    /** W3-D4: the transfer of a refund, with a VietQR of the student's account. */
+    @GetMapping("/refunds/{id}/payment")
+    FinanceService.RefundPayment refundPayment(@PathVariable String id) {
+        return finance.refundPayment(id);
     }
 
     @PostMapping("/refunds/{id}/paid")

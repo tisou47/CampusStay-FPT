@@ -10,14 +10,13 @@ import { Modal } from '@/components/ui/Overlay'
 import { EmptyBlock } from '@/components/ui/States'
 import { Table, TBody, THead, Td, Th, Tr } from '@/components/ui/Table'
 import { ConfigPage, useConfigForm } from './shared'
-import { AppliesFrom, SettingsList, useSettingsGroup } from './SettingsGroup'
 import { t, tr } from '@/i18n'
 import { parseDecimal } from '@/lib/numbers'
 
-// SCR-CFG-25 Refunds, penalties and terminations (spec §9, D-25): the refund rule of every trigger and the settings
-// of Utility-debt terminations and late check-ins, on one screen.
+// SCR-CFG-25 Refunds, penalties and terminations (spec §9, D-25): the refund rule of every trigger.
 // Refund rules: GET|PUT /admin/fees (rules: [{ id, when, refundPercent, approver, active }], approverOptions)
-// Settings: GET|PUT /admin/settings/refunds
+// The settings of Utility-debt terminations and late check-ins (GET|PUT /admin/settings/refunds) are a section of
+// System parameters since 22/11/2026.
 
 function RuleModal({ rule, approvers, onClose, onSave }) {
   const [form, setForm] = useState({ when: '', refundPercent: 0, approver: approvers[0] ?? '', active: true, ...rule })
@@ -54,12 +53,11 @@ function RuleModal({ rule, approvers, onClose, onSave }) {
 
 export default function RefundsTerminations() {
   const { notify } = useToast()
-  const cfg = useConfigForm('fees', api.admin.fees)
-  const settings = useSettingsGroup('refunds')
+  const cfg = useConfigForm('fees', api.admin.fees, {
+    onSaved: () => notify({ title: 'Refunds, penalties and terminations saved', message: 'Students read the change in an announcement; it is written to the audit log.' }),
+  })
   const { draft } = cfg
   const [editing, setEditing] = useState(null)
-  const dirty = cfg.dirty || settings.dirty
-  const saving = cfg.saving || settings.saving
 
   function saveRule(rule) {
     const rules = rule.id ? draft.rules.map((r) => (r.id === rule.id ? rule : r)) : [...draft.rules, { ...rule, id: `new-${Date.now()}` }]
@@ -67,30 +65,16 @@ export default function RefundsTerminations() {
     setEditing(null)
   }
 
-  // Both parts save one after the other; a failure stops with its message on screen.
-  async function save() {
-    if (cfg.dirty && !(await cfg.save())) return
-    if (settings.dirty && !(await settings.save())) return
-    notify({ title: 'Refunds, penalties and terminations saved', message: 'Students read the change in an announcement; it is written to the audit log.' })
-  }
-
   return (
     <ConfigPage
       form={cfg}
       title="Refunds, penalties and terminations"
-      description="How much is refunded when a stay or an application ends, and when utility debt ends a stay."
       actions={
         <>
-          <Button
-            onClick={() => {
-              cfg.reset()
-              settings.reset()
-            }}
-            disabled={!dirty}
-          >
+          <Button onClick={cfg.reset} disabled={!cfg.dirty}>
             Cancel
           </Button>
-          <Button variant="primary" icon={Check} disabled={!dirty || saving} onClick={save}>
+          <Button variant="primary" icon={Check} disabled={!cfg.dirty || cfg.saving} onClick={() => cfg.save()}>
             Save changes
           </Button>
         </>
@@ -98,7 +82,6 @@ export default function RefundsTerminations() {
     >
       {draft && (
         <>
-          {settings.error && !Object.keys(settings.error.fields ?? {}).length && <Alert type="error" title="Could not save">{settings.error.message}</Alert>}
           <Card className="flex shrink-0 flex-col gap-3">
             <div className="flex shrink-0 items-center justify-between">
               <div className="flex flex-col gap-0.5">
@@ -160,16 +143,10 @@ export default function RefundsTerminations() {
               </TBody>
             </Table>
           </Card>
-          <Card className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-h3 font-semibold text-fg">{t('Terminations and late check-ins')}</h2>
-            <SettingsList form={settings} />
-          </Card>
-          {!draft.policyConfirmed ? (
-            <Alert type="warning" title="Refund policy not confirmed" className="shrink-0" action={<Button onClick={() => cfg.save({ policyConfirmed: true })} disabled={cfg.saving}>Confirm policy</Button>}>
+          {!draft.policyConfirmed && (
+            <Alert type="warning" title="Refund policy not confirmed" className="shrink-0" action={<Button onClick={() => cfg.save({ policyConfirmed: true })} disabled={cfg.saving || cfg.dirty} title={cfg.dirty ? t('Save or discard your changes first.') : undefined}>Confirm policy</Button>}>
               Confirm the percentages and approvers once the dormitory has approved its refund policy.
             </Alert>
-          ) : (
-            settings.query.data && <AppliesFrom appliesFrom={settings.query.data.appliesFrom} />
           )}
           {editing && <RuleModal rule={editing} approvers={draft.approverOptions ?? []} onClose={() => setEditing(null)} onSave={saveRule} />}
         </>

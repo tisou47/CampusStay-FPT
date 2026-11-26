@@ -1,3 +1,4 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import 'common.dart';
@@ -6,6 +7,7 @@ import 'screens/account.dart';
 import 'screens/applications.dart';
 import 'screens/apply.dart';
 import 'screens/family_day.dart';
+import 'screens/checkout.dart';
 import 'screens/handover.dart';
 import 'screens/notifications.dart';
 import 'screens/payments.dart';
@@ -45,6 +47,7 @@ Future<void> openLink(BuildContext context, String? link) async {
     'requests' when at(1) == 'swap' && at(2) == 'invitations' && p.length > 3 => SwapInvitationScreen(id: at(3)),
     'requests' when at(1) == 'swap' => SwapScreen(board: at(2) == 'board'),
     'room' when at(1) == 'inventory' => const HandoverScreen(),
+    'room' when at(1) == 'check-out' => const CheckOutScreen(),
     'family-days' when p.length > 1 => FamilyDayScreen(id: at(1)),
     'family-days' => const FamilyDaysScreen(),
     'notifications' => const NotificationsScreen(),
@@ -66,6 +69,7 @@ Future<void> openLink(BuildContext context, String? link) async {
     case 'applications':
       tab(3, 'applications');
     case 'requests':
-      tab(3, 'requests');
+      // `/student/requests?kind=room-changes` opens the Room changes segment (MOB-16), as on the web.
+      tab(3, uri.queryParameters['kind'] == 'room-changes' ? 'room-changes' : 'requests');
   }
 }

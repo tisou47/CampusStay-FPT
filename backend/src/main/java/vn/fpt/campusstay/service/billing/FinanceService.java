@@ -74,10 +74,26 @@ public class FinanceService {
      */
     public record RefundItem(String id, String name, String studentCode, String reason, String rule, long paid,
             long amount, String proposedLabel, BigDecimal percent, boolean exception, String status,
-            RefundAccounts.Account account, Instant createdAt, Instant accountRemindedAt) {
+            RefundAccounts.Account account, Instant createdAt, Instant accountRemindedAt, String ruleId,
+            boolean selectable) {
     }
 
-    public record RefundPage(List<RefundItem> items, long total) {
+    /** An Admin's custom refund rule a Manager may apply to a refund (BE-3RD-10). */
+    public record RuleOption(String id, String when, BigDecimal percent, String approver) {
+    }
+
+    public record RefundPage(List<RefundItem> items, long total, List<RuleOption> ruleOptions) {
+    }
+
+    /** The transfer of a refund to the student's account, with its VietQR image (BE-APP-BIL-18). */
+    public record RefundPayment(String refundId, long amount, String status, String content, RefundBank bank,
+            RefundQr qr) {
+    }
+
+    public record RefundBank(String bin, String name, String holder, String accountNumber) {
+    }
+
+    public record RefundQr(String image) {
     }
 
     /** One of the student's own refunds (R-24); {@code note} is the decision's note (the reason of a rejection). */
@@ -105,10 +121,13 @@ public class FinanceService {
     private final ApplicationEventPublisher events;
     private final AuditLog audit;
     private final RefundAccounts accounts;
+    private final vn.fpt.campusstay.config.PaymentProperties payment;
     private final Clock clock;
 
     public FinanceService(JdbcClient jdbc, InvoiceScope scope, CurrentUser currentUser, TermCatalog terms,
-            FeePolicy fees, ApplicationEventPublisher events, AuditLog audit, RefundAccounts accounts, Clock clock) {
+            FeePolicy fees, ApplicationEventPublisher events, AuditLog audit, RefundAccounts accounts,
+            vn.fpt.campusstay.config.PaymentProperties payment, Clock clock) {
+        this.payment = payment;
         this.jdbc = jdbc;
         this.scope = scope;
         this.currentUser = currentUser;
@@ -121,6 +140,19 @@ public class FinanceService {
     }
 
     // ---------------------------------------------------------------- figures and lists
+
+    /**
+     * The search of a list: part of the student's name or student code (and of the Invoice code when {@code code}),
+     * any case; blank = no condition. The pattern goes in {@code params} as {@code :q}, LIKE wildcards escaped.
+     */
+    private static String search(String alias, boolean code, String q, Map<String, Object> params) {
+        if (q == null || q.isBlank()) {
+            return "";
+        }
+        params.put("q", "%" + q.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%");
+        return " AND (" + alias + ".student_name ILIKE :q OR " + alias + ".student_code ILIKE :q"
+                + (code ? " OR " + alias + ".code ILIKE :q" : "") + ")";
+    }
 
     @Transactional(readOnly = true)
     public Summary summary(Long termId, String block) {
@@ -153,11 +185,12 @@ public class FinanceService {
     }
 
     @Transactional(readOnly = true)
-    public InvoicePage invoices(Long termId, String block, PageQuery page) {
+    public InvoicePage invoices(Long termId, String block, String q, PageQuery page) {
         currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
-        String where = " FROM bil_invoice i WHERE i.term_id = :term AND i.status <> 'VOID' AND " + s.where("i");
+        String where = " FROM bil_invoice i WHERE i.term_id = :term AND i.status <> 'VOID' AND " + s.where("i")
+                + search("i", true, q, params);
         long total = jdbc.sql("SELECT count(*)" + where).params(params).query(Long.class).single();
         params.put("limit", page.limit());
         params.put("offset", page.offset());
@@ -172,11 +205,12 @@ public class FinanceService {
     }
 
     @Transactional(readOnly = true)
-    public OverduePage overdue(Long termId, String block, PageQuery page) {
+    public OverduePage overdue(Long termId, String block, String q, PageQuery page) {
         currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
-        String where = " FROM bil_invoice i WHERE i.term_id = :term AND " + OVERDUE + " AND " + s.where("i");
+        String where = " FROM bil_invoice i WHERE i.term_id = :term AND " + OVERDUE + " AND " + s.where("i")
+                + search("i", true, q, params);
         long total = jdbc.sql("SELECT count(*)" + where).params(params).query(Long.class).single();
         params.put("limit", page.limit());
         params.put("offset", page.offset());
@@ -253,11 +287,12 @@ public class FinanceService {
 
     /** @param status Pending, Approved, Rejected or Paid */
     @Transactional(readOnly = true)
-    public RefundPage refunds(Long termId, String block, String status, PageQuery page) {
+    public RefundPage refunds(Long termId, String block, String status, String q, PageQuery page) {
         currentUser.require(Permission.VIEW_FINANCE);
         InvoiceScope.Scope s = scope.resolve(block);
         Map<String, Object> params = params(s, term(termId));
-        StringBuilder where = new StringBuilder(" FROM bil_refund r WHERE r.term_id = :term AND " + s.where("r"));
+        StringBuilder where = new StringBuilder(" FROM bil_refund r WHERE r.term_id = :term AND " + s.where("r")
+                + search("r", false, q, params));
         if (status != null && !status.isBlank()) {
             String code = REFUND_STATUSES.entrySet().stream().filter(e -> e.getValue().equalsIgnoreCase(status.trim()))
                     .map(Map.Entry::getKey).findFirst()
@@ -286,7 +321,8 @@ public class FinanceService {
                             rule == null ? null : percent(rule.refundPercent()) + " of " + vnd.format(paid) + " VND",
                             rule == null ? null : rule.refundPercent().stripTrailingZeros(),
                             rs.getBoolean("exception"), REFUND_STATUSES.get(rs.getString("status")), null,
-                            InvoiceStore.instant(rs, "created_at"), InvoiceStore.instant(rs, "account_reminded_at")));
+                            InvoiceStore.instant(rs, "created_at"), InvoiceStore.instant(rs, "account_reminded_at"),
+                            ruleId == null ? null : String.valueOf(ruleId), !settlement(rule)));
                 })
                 .list();
         Map<Long, RefundAccounts.Account> paidTo = accounts.of(rows.stream().map(Row::studentId).distinct().toList());
@@ -294,9 +330,62 @@ public class FinanceService {
             RefundItem i = r.item();
             return new RefundItem(i.id(), i.name(), i.studentCode(), i.reason(), i.rule(), i.paid(), i.amount(),
                     i.proposedLabel(), i.percent(), i.exception(), i.status(), paidTo.get(r.studentId()),
-                    i.createdAt(), i.accountRemindedAt());
+                    i.createdAt(), i.accountRemindedAt(), i.ruleId(), i.selectable());
         }).toList();
-        return new RefundPage(items, total);
+        return new RefundPage(items, total, fees.customRules().stream()
+                .map(r -> new RuleOption(String.valueOf(r.id()), r.description(),
+                        r.refundPercent().stripTrailingZeros(), approverLabel(r.approverRole())))
+                .toList());
+    }
+
+    /** A Utility Deposit settlement is what is left of the deposit, not a share of a payment: no rule replaces it. */
+    private static boolean settlement(FeePolicy.RefundRule rule) {
+        return rule != null && rule.triggerCode().equals("UTILITY_DEPOSIT");
+    }
+
+    private static String approverLabel(String role) {
+        return switch (role) {
+            case "SYSTEM" -> "System";
+            case "STAFF" -> "Staff";
+            case "ADMIN" -> "Admin";
+            default -> "Manager";
+        };
+    }
+
+    /**
+     * The refund's transfer for a Manager: the student's bank account and a VietQR image of the amount with the
+     * content {@code REFUND-<id>}, built like the Invoice QR (BE-APP-BIL-18). The transfer is then recorded with
+     * {@link #markRefundPaid}.
+     */
+    @Transactional(readOnly = true)
+    public RefundPayment refundPayment(String id) {
+        currentUser.require(Permission.DECIDE_REFUNDS);
+        InvoiceScope.Scope s = scope.resolve(null);
+        Map<String, Object> params = new HashMap<>(s.params());
+        params.put("id", parse(id).orElse(-1L));
+        record Refund(long id, long studentId, long amount, String status) {
+        }
+        Refund r = jdbc.sql("SELECT * FROM bil_refund r WHERE r.id = :id AND " + s.where("r")).params(params)
+                .query((rs, n) -> new Refund(rs.getLong("id"), rs.getLong("student_id"), rs.getLong("amount"),
+                        rs.getString("status")))
+                .optional().orElseThrow(() -> ApiException.notFound("This refund does not exist."));
+        if (r.status().equals("REJECTED") || r.status().equals("PAID")) {
+            throw ApiException.conflict("REFUND_CLOSED", "This refund no longer waits for a transfer.");
+        }
+        RefundAccounts.Account account = accounts.of(List.of(r.studentId())).get(r.studentId());
+        if (account == null || account.bin() == null) {
+            throw ApiException.conflict("NO_REFUND_ACCOUNT",
+                    "The student has not entered a bank account from the list yet. Remind them to enter it.");
+        }
+        String content = "REFUND-" + r.id();
+        String image = payment.qrImageUrl() + "?acc=" + encode(account.number()) + "&bank=" + encode(account.bin())
+                + "&amount=" + r.amount() + "&des=" + encode(content) + "&template=compact";
+        return new RefundPayment(String.valueOf(r.id()), r.amount(), REFUND_STATUSES.get(r.status()), content,
+                new RefundBank(account.bin(), account.bank(), account.holder(), account.number()), new RefundQr(image));
+    }
+
+    private static String encode(String value) {
+        return java.net.URLEncoder.encode(value == null ? "" : value, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     /** The student's own refunds, newest first (R-24): refunds are not Invoices, so Payments lists them apart. */
@@ -368,10 +457,19 @@ public class FinanceService {
      */
     @Transactional
     public void decideRefund(String id, String decision, String note) {
+        decideRefund(id, decision, note, null);
+    }
+
+    /**
+     * @param ruleId an active custom rule the approval applies (BE-3RD-10): the amount becomes the paid amount × its
+     *               percent and its approver decides; null keeps the refund's own rule
+     */
+    @Transactional
+    public void decideRefund(String id, String decision, String note, String ruleId) {
         AuthenticatedUser user = currentUser.require(Role.MANAGER, Role.ADMIN);
         InvoiceScope.Scope s = scope.resolve(null);
         record Refund(long id, long studentId, long amount, String status, boolean exception, String reason,
-                Long ruleId) {
+                Long ruleId, long paid) {
         }
         Map<String, Object> params = new HashMap<>(s.params());
         params.put("id", parse(id).orElse(-1L));
@@ -379,10 +477,19 @@ public class FinanceService {
                 .params(params)
                 .query((rs, n) -> new Refund(rs.getLong("id"), rs.getLong("student_id"), rs.getLong("amount"),
                         rs.getString("status"), rs.getBoolean("exception"), rs.getString("reason"),
-                        rs.getObject("rule_id", Long.class)))
+                        rs.getObject("rule_id", Long.class), rs.getLong("paid_amount")))
                 .optional().orElseThrow(() -> ApiException.notFound("This refund does not exist."));
-        String approver = r.ruleId() == null ? "MANAGER"
-                : Optional.ofNullable(fees.refundRules().get(r.ruleId())).map(FeePolicy.RefundRule::approverRole)
+        FeePolicy.RefundRule chosen = null;
+        if (ruleId != null && !ruleId.isBlank() && decision != null && decision.trim().equalsIgnoreCase("approved")) {
+            if (r.ruleId() != null && settlement(fees.refundRules().get(r.ruleId()))) {
+                throw FieldErrors.single("ruleId", "A Utility Deposit settlement keeps its own amount: no rule applies.");
+            }
+            chosen = fees.customRules().stream().filter(c -> String.valueOf(c.id()).equals(ruleId.trim())).findFirst()
+                    .orElseThrow(() -> FieldErrors.single("ruleId", "Choose one of the active refund rules."));
+        }
+        Long effectiveRule = chosen != null ? Long.valueOf(chosen.id()) : r.ruleId();
+        String approver = effectiveRule == null ? "MANAGER"
+                : Optional.ofNullable(fees.refundRules().get(effectiveRule)).map(FeePolicy.RefundRule::approverRole)
                         .orElse("MANAGER");
         boolean allowed = user.is(Role.MANAGER) || user.is(Role.ADMIN) && approver.equals("ADMIN");
         if (!allowed) {
@@ -402,6 +509,20 @@ public class FinanceService {
             throw FieldErrors.single("note",
                     approve ? "Write why this exception is approved." : "Write why the refund is rejected.");
         }
+        long amount = r.amount();
+        if (chosen != null) {
+            amount = BigDecimal.valueOf(r.paid()).multiply(chosen.refundPercent())
+                    .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP).longValueExact();
+            if (amount <= 0) {
+                throw FieldErrors.single("ruleId", "This rule refunds nothing. Reject the refund instead.");
+            }
+            jdbc.sql("UPDATE bil_refund SET amount = :amount, rule_id = :rule WHERE id = :id")
+                    .param("amount", amount).param("rule", chosen.id()).param("id", r.id()).update();
+            audit.record("REFUND_RULE_APPLIED", AuditLog.Tone.INFO, "Refund", r.id(), r.reason(),
+                    Map.of("rule", chosen.description(), "percent",
+                            chosen.refundPercent().stripTrailingZeros().toPlainString(), "from", r.amount(), "to",
+                            amount, "by", user.name()));
+        }
         jdbc.sql("""
                 UPDATE bil_refund SET status = :status, note = :note, decided_by = :by, decided_at = :now,
                        version = version + 1
@@ -410,9 +531,8 @@ public class FinanceService {
                 .param("now", Timestamp.from(Instant.now(clock))).param("id", r.id()).update();
         audit.record(approve ? "REFUND_APPROVED" : "REFUND_REJECTED",
                 approve ? AuditLog.Tone.SUCCESS : AuditLog.Tone.WARNING, "Refund", r.id(), r.reason(),
-                text == null ? Map.of("amount", r.amount())
-                        : Map.of("amount", r.amount(), "note", text));
-        events.publishEvent(new RefundDecided(r.id(), r.studentId(), r.amount(), approve ? "approved" : "rejected"));
+                text == null ? Map.of("amount", amount) : Map.of("amount", amount, "note", text));
+        events.publishEvent(new RefundDecided(r.id(), r.studentId(), amount, approve ? "approved" : "rejected"));
     }
 
     /**

@@ -266,15 +266,15 @@ public class RenewalService {
             if (w.feesIssuedAt() != null || w.decisionsDueAt().minus(before).isAfter(now)) {
                 continue;
             }
+            long requests = openRequests.total(w.termId());
+            long items = reconciliations.status(w.termId()).openItems();
+            if (requests + items == 0) {
+                continue; // nothing undecided yet: checked again on the next run until M4 (BE-ASG-15)
+            }
             int updated = jdbc.sql("""
                     UPDATE asg_renewal SET escalated_at = :now WHERE term_id = :t AND escalated_at IS NULL
                     """).param("now", Timestamp.from(now)).param("t", w.termId()).update();
-            if (updated == 0) {
-                continue;
-            }
-            long requests = openRequests.total(w.termId());
-            long items = reconciliations.status(w.termId()).openItems();
-            if (requests + items > 0) {
+            if (updated > 0) {
                 events.publishEvent(new RenewalWorkUndecided(w.termId(), w.termName(), requests, items,
                         w.decisionsDueAt()));
                 alerted++;
@@ -413,10 +413,10 @@ public class RenewalService {
         List<Milestone> milestones = new ArrayList<>();
         milestone(milestones, "requestsOpenAt", "Requests window opens (M2)", w.opensAt(), w.openedAt() != null, now);
         milestone(milestones, "requestsCloseAt", "Request deadline (M3)", w.closesAt(), w.closedAt() != null, now);
-        milestone(milestones, "decisionsDueAt", "Decision deadline (M4)", w.decisionsDueAt(), false, now);
-        milestone(milestones, "reconciliationDueAt", "Reconciliation (M5)", w.reconciliationDueAt(), false, now);
+        milestone(milestones, "decisionsDueAt", "Decision deadline (M4)", w.decisionsDueAt(), null, now);
+        milestone(milestones, "reconciliationDueAt", "Reconciliation (M5)", w.reconciliationDueAt(), null, now);
         milestone(milestones, "feesIssueAt", "Next-Term fees (M6)", w.feesIssueAt(), w.feesIssuedAt() != null, now);
-        milestone(milestones, "feesDueAt", "Next-Term fee deadline (M7)", w.feesDueAt(), false, now);
+        milestone(milestones, "feesDueAt", "Next-Term fee deadline (M7)", w.feesDueAt(), null, now);
 
         record Row(String renewal, String endReason, String status, boolean paid, long n) {
         }
@@ -473,7 +473,10 @@ public class RenewalService {
                 .orElseThrow(() -> ApiException.notFound("No Term has a requests window yet."));
     }
 
-    private static void milestone(List<Milestone> list, String key, String label, Instant at, boolean done, Instant now) {
-        list.add(new Milestone(key, label, at, done || !at.isAfter(now) ? "Done" : "Upcoming"));
+    /** {@code done} null: a date only, Done once passed; otherwise the recorded progress decides (BE-ASG-16). */
+    private static void milestone(List<Milestone> list, String key, String label, Instant at, Boolean done, Instant now) {
+        boolean passed = !at.isAfter(now);
+        String state = done == null ? (passed ? "Done" : "Upcoming") : done ? "Done" : passed ? "Overdue" : "Upcoming";
+        list.add(new Milestone(key, label, at, state));
     }
 }

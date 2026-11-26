@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Banknote, Check, Clock, CreditCard, Download, ReceiptText, TriangleAlert } from 'lucide-react'
+import { Check, Download, Eye, ReceiptText } from 'lucide-react'
 import { api } from '@/api/endpoints'
 import { useMutation, useQuery } from '@/api/hooks'
 import { useScopeQuery } from '@/app/session'
 import { useToast } from '@/app/toast'
 import { PageHeader } from '@/components/layout/BackOfficeLayout'
 import { Button } from '@/components/ui/Button'
-import { KpiTile } from '@/components/ui/Charts'
+import { StatStrip } from '@/components/ui/Charts'
 import { Checkbox } from '@/components/ui/Choice'
 import { DetailRows } from '@/components/ui/Display'
 import { Field, FilePicker, FilterSelect, Input, SearchInput, Select } from '@/components/ui/Field'
@@ -134,7 +134,7 @@ export default function Payments() {
   const query = useQuery(['payments', filters], ({ signal }) => api.payments.list(filters, { signal }))
   const items = query.data?.items ?? []
   const s = query.data?.summary
-  const exporting = useMutation(() => api.exports.download('payments', { ...filters, page: undefined, pageSize: undefined }, 'payments.xlsx'), { onError: (e) => notifyError(e, 'Export failed') })
+  const exporting = useMutation(() => api.exports.download('payments', { ...filters, page: undefined, pageSize: undefined }, 'payments.csv'), { onError: (e) => notifyError(e, 'Export failed') })
 
   const confirmId = params.get('confirm')
   const linked = useQuery(['payments', 'one', confirmId], ({ signal }) => api.payments.list({ q: confirmId, pageSize: 5 }, { signal }), { enabled: Boolean(confirmId) })
@@ -152,32 +152,27 @@ export default function Payments() {
       <PageHeader
         title="Payments"
         actions={
-          <>
-            <Button to="/manager/payment-claims" icon={Check}>
-              Payment confirmations
-            </Button>
-            <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
-              Export
-            </Button>
-          </>
+          <Button icon={Download} onClick={() => exporting.run()} disabled={exporting.pending}>
+            Export
+          </Button>
         }
       />
 
-      <div className="flex shrink-0 gap-4">
-        <KpiTile size="md" icon={Banknote} label="Collected today" value={s ? formatVnd(s.collectedToday) : '—'} note={s ? t('{n} payments', { n: formatNumber(s.collectedTodayCount) }) : null} />
-        <KpiTile size="md" icon={Clock} label="Awaiting confirmation" value={formatNumber(s?.awaitingConfirmation)} valueTone={s?.awaitingConfirmation ? 'warning' : undefined} note="Reported by students" />
-        <KpiTile size="md" icon={TriangleAlert} label="Unpaid deposits" value={formatNumber(s?.unpaidDeposits)} note="Expire at their deadline" />
-        <KpiTile
-          size="md"
-          icon={CreditCard}
-          label="Deposits paid"
-          value={s ? `${formatNumber(s.depositsPaid)} / ${formatNumber(s.depositsSubmitted)}` : '—'}
-          note={s?.depositsSubmitted ? t('{p} of submitted', { p: formatPercent(s.depositsPaid / s.depositsSubmitted, 0) }) : null}
-        />
-      </div>
+      <StatStrip
+        stats={[
+          { label: 'Collected today', value: s ? `${formatVnd(s.collectedToday)} · ${t('{n} payments', { n: formatNumber(s.collectedTodayCount) })}` : '—' },
+          { label: 'Awaiting confirmation', value: formatNumber(s?.awaitingConfirmation), tone: s?.awaitingConfirmation ? 'warning' : undefined, note: 'Reported by students' },
+          { label: 'Unpaid deposits', value: formatNumber(s?.unpaidDeposits), note: 'Expire at their deadline' },
+          {
+            label: 'Deposits paid',
+            value: s ? `${formatNumber(s.depositsPaid)} / ${formatNumber(s.depositsSubmitted)}` : '—',
+            note: s?.depositsSubmitted ? t('{p} of submitted', { p: formatPercent(s.depositsPaid / s.depositsSubmitted, 0) }) : null,
+          },
+        ]}
+      />
 
       <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <SearchInput wrapperClassName="w-70" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput wrapperClassName="min-w-80 flex-1" aria-label={t('Search')} placeholder="Search invoice, student or reference" value={q} onChange={(e) => setQ(e.target.value)} />
         <FilterSelect
           label="Type"
           value={type}
@@ -228,43 +223,47 @@ export default function Payments() {
       <Table fill>
         <THead>
           <tr>
-            <Th className="w-36">Invoice</Th>
-            <Th className="w-44">Student</Th>
-            <Th className="w-28">Type</Th>
-            <Th className="w-32" align="right">
+            <Th className="w-52">Invoice</Th>
+            <Th>Student</Th>
+            <Th className="w-36" align="right">
               Amount
             </Th>
-            <Th className="w-32">Method</Th>
-            <Th className="w-40">Paid at</Th>
-            <Th>Status</Th>
-            <Th className="w-22">
+            <Th className="w-56">Status</Th>
+            <Th className="w-56">
               <span className="sr-only">{t('Actions')}</span>
             </Th>
           </tr>
         </THead>
         <TBody>
-          <TableStatus query={query} colSpan={8} emptyIcon={ReceiptText} emptyTitle="No payments match these filters" />
+          <TableStatus query={query} colSpan={5} emptyIcon={ReceiptText} emptyTitle="No payments match these filters" />
           {items.map((p) => (
-            <Tr key={p.invoiceId} className="[&>td]:h-12">
-              <Td className="font-medium text-fg-brand">{p.invoiceId}</Td>
+            <Tr key={p.invoiceId} className="[&>td]:h-14">
+              <Td>
+                <TwoLine primary={<span className="font-medium text-fg-brand">{p.invoiceId}</span>} secondary={tr(p.typeLabel)} />
+              </Td>
               <Td>
                 <TwoLine primary={p.studentName} secondary={p.studentCode} />
               </Td>
-              <Td>{tr(p.typeLabel)}</Td>
-              <Td align="right" className="whitespace-nowrap">
+              <Td align="right" className="font-medium whitespace-nowrap tabular">
                 {formatVnd(p.amount)}
               </Td>
-              <Td className={p.method ? 'whitespace-nowrap' : 'text-fg-tertiary'}>{tr(p.method) || '—'}</Td>
-              <Td className={p.paidAt ? 'whitespace-nowrap' : 'max-w-40 truncate text-fg-tertiary'}>{p.paidAt ? formatDateTime(p.paidAt) : `— ${t('due {date}', { date: formatDateTime(p.dueAt) })}`}</Td>
-              <Td>{p.status === AWAITING ? <Tag tone="warning">{AWAITING}</Tag> : <StatusTag status={p.status} />}</Td>
+              <Td>
+                <TwoLine
+                  primary={p.status === AWAITING ? <Tag tone="warning">{AWAITING}</Tag> : <StatusTag status={p.status} />}
+                  secondary={p.paidAt ? formatDateTime(p.paidAt) : t('due {date}', { date: formatDateTime(p.dueAt) })}
+                />
+              </Td>
               <Td onClick={stop}>
-                {CONFIRMABLE.includes(p.status) ? (
-                  <Button onClick={() => setParams({ confirm: p.invoiceId })}>Confirm</Button>
-                ) : (
-                  <Button variant="text" onClick={() => setView(p)}>
-                    View
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" icon={Eye} onClick={() => setView(p)}>
+                    Details
                   </Button>
-                )}
+                  {CONFIRMABLE.includes(p.status) && (
+                    <Button size="sm" variant="primary" icon={Check} onClick={() => setParams({ confirm: p.invoiceId })}>
+                      Confirm
+                    </Button>
+                  )}
+                </div>
               </Td>
             </Tr>
           ))}
@@ -281,6 +280,7 @@ export default function Payments() {
             setPageSize(n)
             setPage(1)
           }}
+          noun={['invoice', 'invoices']}
         />
       </div>
 
@@ -291,17 +291,44 @@ export default function Payments() {
         onClose={() => setView(null)}
         title={view ? `${view.invoiceId} · ${tr(view.typeLabel)}` : ''}
         description={view ? `${view.studentName} · ${view.studentCode}` : ''}
-        footer={<Button onClick={() => setView(null)}>Close</Button>}
+        footer={
+          view && CONFIRMABLE.includes(view.status) ? (
+            <>
+              <Button onClick={() => setView(null)}>Close</Button>
+              <Button
+                variant="primary"
+                icon={Check}
+                onClick={() => {
+                  setView(null)
+                  setParams({ confirm: view.invoiceId })
+                }}
+              >
+                Confirm payment
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setView(null)}>Close</Button>
+          )
+        }
       >
         {view && (
           <DetailRows
             rows={[
               ['Amount', <span className="font-medium">{formatVnd(view.amount)}</span>],
-              ['Method', tr(view.method) || '—'],
+              ['Status', view.status === AWAITING ? <Tag tone="warning">{AWAITING}</Tag> : <StatusTag status={view.status} />],
               ['Paid at', view.paidAt ? formatDateTime(view.paidAt) : t('Not paid · due {date}', { date: formatDateTime(view.dueAt) })],
-              ['Status', <StatusTag status={view.status} />],
+              ['Method', tr(view.method) || '—'],
               ['Transfer content', view.transferContent ?? '—'],
               ...(view.reference ? [['Bank reference', view.reference]] : []),
+              ...(view.receipt?.url
+                ? [[
+                    'Receipt',
+                    <a href={view.receipt.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-fg-link hover:underline">
+                      <ReceiptText size={14} aria-hidden="true" />
+                      {view.receipt.name}
+                    </a>,
+                  ]]
+                : []),
             ]}
           />
         )}

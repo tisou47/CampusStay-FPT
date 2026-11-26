@@ -85,6 +85,7 @@ public class DoorCodeRelease {
     }
 
     /** A new code was confirmed on the Room's lock: those who waited for it receive it. */
+    // Same transaction: the release is part of confirming the code on the lock.
     @EventListener
     void on(DoorCodeActivated e) {
         List<Long> beds = inventory.bedsOfRoom(e.roomId()).stream().map(Inventory.BedSlot::bedId).toList();
@@ -114,9 +115,19 @@ public class DoorCodeRelease {
         return release("allocation_id_list", List.of(allocationId), allocationId) > 0;
     }
 
+    /** Hours from now to the end of the Term's last check-in day (at least 1), for the "file your inventory" notice. */
+    static int hoursUntilCheckInEnd(Optional<TermSummary> term, Instant now) {
+        LocalDate end = term.map(TermSummary::checkInEnd).orElse(null);
+        if (end == null) {
+            return 1;
+        }
+        Instant due = end.plusDays(1).atStartOfDay(TimeConfig.CAMPUS_ZONE).toInstant();
+        return (int) Math.max(1, Math.ceilDiv(java.time.Duration.between(now, due).toMinutes(), 60));
+    }
+
     /**
-     * Whether a new resident must file a check-in inventory before receiving the code: the setting is on and they
-     * move into this Room (a first Allocation, or a next-Term Allocation in another Room).
+     * Whether a new resident is expected to file a check-in inventory: the setting is on and they move into this Room
+     * (a first Allocation, or a next-Term Allocation in another Room). Since 25/11/2026 the code no longer waits for it.
      */
     boolean needsInventory(Long previousBedId, long bedId) {
         if (!parameters.boolValue("handover.required")) {

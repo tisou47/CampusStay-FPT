@@ -6,7 +6,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.config.TimeConfig;
@@ -18,6 +17,8 @@ import vn.fpt.campusstay.event.CheckInReportReminded;
 import vn.fpt.campusstay.event.CheckInToAgree;
 import vn.fpt.campusstay.event.CheckInVisit;
 import vn.fpt.campusstay.event.CheckOutCompleted;
+import vn.fpt.campusstay.event.CheckOutDisputeAnswered;
+import vn.fpt.campusstay.event.CheckOutDisputed;
 import vn.fpt.campusstay.event.CheckOutToAgree;
 import vn.fpt.campusstay.event.DamageToAcknowledge;
 
@@ -38,13 +39,13 @@ class HandoverNotificationListener {
         this.notifier = notifier;
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInAvailable e) {
         notifier.notify(e.studentId(), "CHECK_IN_AVAILABLE", Map.of("room", e.room(), "dueAt", when(e.dueAt())),
                 "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInReportReminded e) {
         if (e.message() != null) {
             notifier.notify(e.studentId(), "CHECK_IN_REPORT_MESSAGE", Map.of("room", e.room(), "message", e.message()),
@@ -59,13 +60,13 @@ class HandoverNotificationListener {
         return date == null ? "—" : DateTimeFormatter.ofPattern("dd/MM/yyyy").format(date);
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInInventoryDue e) {
         notifier.notify(e.studentId(), "CHECK_IN_INVENTORY_DUE", Map.of("room", e.room(), "dueAt", when(e.dueAt())),
                 "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInInventorySubmitted e) {
         for (long staff : e.staffIds()) {
             notifier.notify(staff, "CHECK_IN_INVENTORY_SUBMITTED",
@@ -74,36 +75,48 @@ class HandoverNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInVisit e) {
         notifier.notify(e.studentId(), "CHECK_IN_VISIT",
                 Map.of("room", e.room(), "visitAt", e.visitAt() == null ? "soon" : when(e.visitAt())), "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInToAgree e) {
         notifier.notify(e.studentId(), "CHECK_IN_TO_AGREE", Map.of("room", e.room()), "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckInInventoryFinal e) {
         notifier.notify(e.studentId(), "CHECK_IN_INVENTORY_FINAL",
                 Map.of("room", e.room(), "from", when(e.utilityFrom())), "/student/room/inventory");
     }
 
-    @EventListener
+    @AfterCommit
     void on(DamageToAcknowledge e) {
         notifier.notify(e.studentId(), "DAMAGE_TO_ACKNOWLEDGE", Map.of("item", e.item(), "room", e.room(),
-                "condition", e.condition(), "dueAt", when(e.dueAt()), "amount", money(e.amount())), "/student/room/inventory");
+                "condition", e.condition(), "dueAt", when(e.dueAt()), "amount", money(e.amount())), "/student/room/check-out");
     }
 
-    @EventListener
+    @AfterCommit
     void on(CheckOutToAgree e) {
         notifier.notify(e.studentId(), "CHECK_OUT_TO_AGREE", Map.of("room", e.room(), "amount", money(e.amount())),
-                "/student/room/inventory");
+                "/student/room/check-out");
     }
 
-    @EventListener
+    @AfterCommit
+    void on(CheckOutDisputed e) {
+        notifier.notify(e.staffId(), "CHECK_OUT_DISPUTED", Map.of("student", e.student(), "room", e.room(),
+                "reason", e.reason()), "/staff/check-out");
+    }
+
+    @AfterCommit
+    void on(CheckOutDisputeAnswered e) {
+        notifier.notify(e.studentId(), "CHECK_OUT_DISPUTE_ANSWERED", Map.of("room", e.room(),
+                "amount", money(e.amount()), "answer", e.answer()), "/student/room/check-out");
+    }
+
+    @AfterCommit
     void on(CheckOutCompleted e) {
         if (e.refundPending() && e.refund() > 0) {
             notifier.notify(e.studentId(), "CHECK_OUT_REFUND_PENDING",

@@ -33,7 +33,8 @@ import { t, tr } from '@/i18n'
 //   invoice: { id, title, typeLabel, amount, status, dueAt, paidAt, reference },
 //   qr: { image, expiresAt } | null (no bank account configured, or not waiting for a transfer),
 //   bank: { name, accountName, accountNumber } | null, transferContent,
-//   claim: { status, claimedAt, reference, rejected, lastRejection: { reason, at } | null } | null, canClaim }
+//   claim: { status, claimedAt, reference, rejected, lastRejection: { reason, at, dueAt } | null,
+//            rejectionsToCancel (B8: the Admin's limit, null for Utility and charges), rejectionsLeft (D4) } | null, canClaim }
 // POST /invoices/:id/claim { reference? } — "I have transferred" (ADR-22): the Invoice waits for a Manager and its
 // deadline stops; a rejection gives the time back (at least 12 hours), too many rejections cancel a Deposit or Balance.
 // POST /invoices/:id/payment/refresh → new { qr }
@@ -145,6 +146,10 @@ function Payment({ data, reload }) {
   const expired = !paid && qr && left === 0
   const qrFile = `vietqr-${invoice.id}.png`
   const rejection = !paid && !waiting && claim?.status === 'Rejected' ? claim.lastRejection : null
+  // The rejection limit comes from the API, never written here (WEB-STU-09): a Utility or charge Invoice has none.
+  const limit = claim?.rejectionsToCancel ?? null
+  // Rejections until it is cancelled: from the limit (B8) when sent, else the D4 count.
+  const rejectionsLeft = limit != null ? Math.max(0, limit - (claim?.rejected ?? 0)) : (claim?.rejectionsLeft ?? null)
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:items-start lg:gap-6">
@@ -247,7 +252,7 @@ function Payment({ data, reload }) {
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <Building2 size={15} aria-hidden="true" className="text-fg-tertiary" />
-              <span className="text-xs font-semibold tracking-wider text-fg-tertiary uppercase">
+              <span className="text-xs font-semibold text-fg-tertiary">
                 {t('Or transfer manually')}
               </span>
             </div>
@@ -322,6 +327,9 @@ function Payment({ data, reload }) {
                   'A manager could not confirm your transfer: {reason}. Check the transfer content and report it again before the deadline.',
                   { reason: rejection.reason },
                 )}
+                {/* What the rejection changed: the new deadline and how many rejections are left (BE-APP-BIL-19, G3). */}
+                {rejection.dueAt && <> {t('New deadline: {date}.', { date: formatDateTime(rejection.dueAt) })}</>}
+                {rejectionsLeft > 0 && <> {rejectionsLeft === 1 ? t('One more rejection cancels this invoice.') : t('{n} more rejections cancel this invoice.', { n: rejectionsLeft })}</>}
               </Alert>
             )}
 
@@ -345,12 +353,7 @@ function Payment({ data, reload }) {
               {canClaim ? (
                 <div className="flex flex-col gap-3 rounded-xl bg-subtle/60 p-4 sm:flex-row sm:items-end">
                   <Field label="Bank reference (optional)" className="sm:flex-1">
-                    <Input
-                      value={reference}
-                      maxLength={60}
-                      onChange={(e) => setReference(e.target.value)}
-                      placeholder="FT26300012345"
-                    />
+                    {(id) => <Input id={id} value={reference} maxLength={60} onChange={(e) => setReference(e.target.value)} placeholder="FT26300012345" />}
                   </Field>
                   <Button
                     tip="Tell the dormitory you paid. A manager checks it against the bank statement, then the invoice shows as paid."
@@ -376,9 +379,9 @@ function Payment({ data, reload }) {
 
               {claim?.rejected > 0 && (
                 <Note>
-                  {t('Transfers rejected so far: {n}. Two rejections cancel a deposit or a balance.', {
-                    n: claim.rejected,
-                  })}
+                  {limit != null
+                    ? t('Transfers rejected so far: {n} of {limit}. At {limit} this invoice is cancelled.', { n: claim.rejected, limit })
+                    : t('Transfers rejected so far: {n}.', { n: claim.rejected })}
                 </Note>
               )}
 

@@ -13,8 +13,8 @@ import { t } from '@/i18n'
 // Item: { id, title, body, createdAt, link, read }.
 export function useNotifications() {
   const query = useQuery(['notifications'], ({ signal }) => api.notifications.list({ limit: 10 }, { signal }))
-  const markAll = useMutation(() => api.notifications.markAllRead(), { invalidates: ['notifications'], onError: () => {} })
-  const markOne = useMutation((id) => api.notifications.markRead(id), { invalidates: ['notifications'], onError: () => {} })
+  const markAll = useMutation(() => api.notifications.markAllRead(), { invalidates: ['notifications', 'board'], onError: () => {} })
+  const markOne = useMutation((id) => api.notifications.markRead(id), { invalidates: ['notifications', 'board'], onError: () => {} })
   const items = query.data?.items ?? []
   const unread = query.data?.unread ?? items.filter((n) => !n.read).length
   return { query, items, unread, markAll, markOne }

@@ -1,7 +1,9 @@
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../common.dart';
+import 'privacy.dart';
 import '../session.dart';
 
 /// Account verification (web SCR-AUTH-06, ADR-26, spec §6.1): a student whose Google account is not in the imported
@@ -137,6 +139,10 @@ class _DetailsFormState extends State<_DetailsForm> {
   String? _error;
   bool _busy = false;
 
+  /// The privacy notice the server asks the student to accept (Decree 13/2023, D3); null from an older server.
+  late final String? _notice = widget.data.str('privacyNoticeVersion');
+  bool _accepted = false;
+
   @override
   void dispose() {
     for (final c in [_code, _name, _cohort, _phone]) {
@@ -149,7 +155,8 @@ class _DetailsFormState extends State<_DetailsForm> {
       [_code.text, _name.text, _cohort.text, _phone.text].every((v) => v.trim().isNotEmpty) &&
       _gender != null &&
       _major != null &&
-      _birth != null;
+      _birth != null &&
+      (_notice == null || _accepted);
 
   Future<void> _send() async {
     setState(() {
@@ -167,6 +174,7 @@ class _DetailsFormState extends State<_DetailsForm> {
         'major': _major,
         'cohort': _cohort.text.trim().toUpperCase(),
         'phone': _phone.text.trim(),
+        'privacyNoticeVersion': ?_notice,
       });
       toast(
         first
@@ -178,6 +186,7 @@ class _DetailsFormState extends State<_DetailsForm> {
       );
       await widget.onSent();
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _errors = e.fields;
         _error = e.fields.isEmpty ? e.message : null;
@@ -275,6 +284,19 @@ class _DetailsFormState extends State<_DetailsForm> {
           error: _errors['phone'],
           onChanged: changed,
         ),
+        if (_notice != null) ...[
+          const PrivacyNotice(),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _accepted,
+            onChanged: (v) => setState(() => _accepted = v == true),
+            title: Text(t('I have read and accept the privacy notice', 'Tôi đã đọc và đồng ý với thông báo bảo mật')),
+            subtitle: _errors['privacyNoticeVersion'] == null
+                ? null
+                : Text(_errors['privacyNoticeVersion']!, style: TextStyle(color: Tone.error.mark)),
+          ),
+        ],
         BusyButton(
           label: first ? t('Send for verification', 'Gửi để xác minh') : t('Save changes', 'Lưu thay đổi'),
           icon: Icons.send,
@@ -405,62 +427,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 }
 
-/// The account sheet opened from the top bar (web StudentLayout's user menu): who is signed in, verification, change
-/// password and sign out.
-Future<void> showAccountSheet(BuildContext context, Session session, Future<void> Function() signOut) {
-  return showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheet) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Tokens.accent,
-              foregroundColor: Colors.white,
-              child: Text(session.name.trim().split(RegExp(r'\s+')).last.characters.firstOrNull ?? '?'),
-            ),
-            title: Text(session.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text(joinDot([session.studentCode, session.email])),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.verified_user_outlined),
-            title: Text(t('Account verification', 'Xác minh tài khoản')),
-            trailing: StatusChip(session.verification),
-            onTap: () {
-              Navigator.pop(sheet);
-              push(context, const VerificationScreen());
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock_outline),
-            title: Text(t('Change password', 'Đổi mật khẩu')),
-            onTap: () {
-              Navigator.pop(sheet);
-              push(context, const ChangePasswordScreen());
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.language),
-            title: Text(t('Language', 'Ngôn ngữ')),
-            subtitle: Text(t('Follows the phone: English', 'Theo ngôn ngữ của máy: Tiếng Việt')),
-          ),
-          ListTile(
-            leading: Icon(Icons.logout, color: Tone.error.mark),
-            title: Text(t('Sign out', 'Đăng xuất'), style: TextStyle(color: Tone.error.mark)),
-            onTap: () {
-              Navigator.pop(sheet);
-              signOut();
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 /// The Account tab: who is signed in (name, student code, email, verification) and the account's own actions —
 /// verification details, change password, sign out. The language follows the phone.
 class AccountScreen extends StatelessWidget {
@@ -557,6 +523,11 @@ class AccountScreen extends StatelessWidget {
               icon: Icons.lock_outline,
               title: t('Change password', 'Đổi mật khẩu'),
               onTap: () => push(context, const ChangePasswordScreen()),
+            ),
+            StatusRow(
+              icon: Icons.privacy_tip_outlined,
+              title: t('My data', 'Dữ liệu của tôi'),
+              onTap: () => push(context, const MyDataScreen()),
             ),
             StatusRow(
               icon: Icons.language,

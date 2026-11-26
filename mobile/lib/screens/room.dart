@@ -1,29 +1,58 @@
 import 'dart:async';
+import 'dart:convert';
 
+// ignore: deprecated_member_use (MOB-26: material_ui would be a new dependency; the app still builds with 3.47)
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api.dart';
 import '../common.dart';
 import '../files.dart';
+import 'activity.dart';
 import 'applications.dart';
+import 'checkout.dart';
 import 'handover.dart';
 import 'apply.dart';
 import 'payments.dart';
 import 'requests.dart';
 
-/// My Room (web SCR-ASG-01, spec §6.8–§6.10, §11.4): the stay's alerts (termination, unpaid Balance), the Room and its
-/// details, roommates, furniture, the next Term with its requests, the door code (shown 30 seconds, every view
-/// audited), the check-in pass as a QR code (A-11), late check-in, the check-in window and the Balance.
-/// `GET /students/me/allocation`, `/students/me/door-code` (+ `/reveal`), `/students/me/furniture`,
+/// My Room (web SCR-ASG-01 `MyRoom`, spec §6.8–§6.10, §11.4): the stay's alerts (termination, unpaid Balance) over
+/// three tabs like the web's: Room overview (the Room and its details, the check-in pass as a QR code (A-11), roommates,
+/// links), Furniture & equipment (the Room's furniture by type), and Contract & utilities (the stay contract, its
+/// milestones, the next Term with its requests, the Balance, the door code (shown 30 seconds, every view audited),
+/// late check-in). `GET /students/me/allocation`, `/students/me/door-code` (+ `/reveal`), `/students/me/furniture`,
 /// `/students/me/late-check-in`, `POST /students/me/stay/extension|end`.
+/// My Room's data, and the last copy kept on the phone for the desk when the network fails (MOB-22, N1): the check-in
+/// pass and the Room still show, marked "offline, as of …" (`_offlineAt`). Signing out clears the preferences, so the
+/// copy goes with the student.
+Future<Json> loadAllocation() async {
+  try {
+    final data = await Api.get('/students/me/allocation');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('allocation', jsonEncode(data));
+      await prefs.setString('allocationAt', DateTime.now().toUtc().toIso8601String());
+    } catch (_) {
+      // the copy is a convenience
+    }
+    return data;
+  } on ApiException catch (e) {
+    if (e.status != 0) rethrow; // only a network failure or a timeout falls back to the copy
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('allocation');
+    if (saved == null) rethrow;
+    return {...jsonDecode(saved) as Json, '_offlineAt': prefs.getString('allocationAt')};
+  }
+}
+
 class RoomScreen extends StatelessWidget {
   const RoomScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Loader<Json>(
-      fetch: () => Api.get('/students/me/allocation'),
+      fetch: loadAllocation,
       builder: (context, data, reload) {
         final a = data.obj('allocation');
         final term = data.obj('term');
@@ -64,34 +93,58 @@ class RoomScreen extends StatelessWidget {
   }
 }
 
-class _Room extends StatelessWidget {
+class _Room extends StatefulWidget {
   const _Room({required this.data, required this.reload});
 
   final Json data;
   final Future<void> Function() reload;
 
   @override
+  State<_Room> createState() => _RoomState();
+}
+
+class _RoomState extends State<_Room> {
+  String _tab = 'overview';
+  List<Json>? _furniture;
+
+  @override
+  void initState() {
+    super.initState();
+    Api.get('/students/me/furniture').then((d) {
+      if (mounted) setState(() => _furniture = d.objects('items'));
+    }, onError: (_) {});
+  }
+
+  Future<void> _open(Widget page) async {
+    await push(context, page);
+    await widget.reload();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     final a = data.obj('allocation')!;
-    final term = data.obj('term');
     final termination = data.obj('termination');
     final balance = data.obj('balance');
     final checkIn = data.obj('checkIn');
-    final stay = data.obj('stay');
-    final roommates = data.objects('roommates');
     final resident = a.str('status') == 'Resident';
-    final pass = !resident ? a.str('pass') : null;
-    final unpaid = balance != null && balance.str('status') != 'Paid';
-    final waitingCheckIn = checkIn != null && checkIn.str('checkedInAt') == null;
+    final next = data.obj('nextTerm');
+    final attention =
+        (balance != null && balance.str('status') != 'Paid') ||
+        next?.str('state') == 'Awaiting extension' ||
+        next?.obj('fee')?.str('status') == 'Unpaid';
 
-    Future<void> open(Widget page) async {
-      await push(context, page);
-      await reload();
-    }
-
-    // A phone shows what matters now (alerts, the Room, what to pay or do); the rest folds into "Room information".
     return Cards(
       children: [
+        if (data.str('_offlineAt') != null)
+          Alert(
+            tone: Tone.warning,
+            title: t('Offline', 'Không có mạng'),
+            body: t(
+              'Showing your Room as of ${moment(data.str('_offlineAt'))}. Pull down to refresh.',
+              'Đang hiện thông tin phòng lúc ${moment(data.str('_offlineAt'))}. Kéo xuống để làm mới.',
+            ),
+          ),
         if (termination != null)
           Alert(
             tone: Tone.error,
@@ -103,171 +156,956 @@ class _Room extends StatelessWidget {
               ?termination.str('note'),
               if (termination.str('status') != 'Checked out')
                 t(
-                  'Check out by ${day(termination.str('moveOutBy'))}.',
-                  'Trả phòng trước ${day(termination.str('moveOutBy'))}.',
+                  'Check out at the desk by ${day(termination.str('moveOutBy'))}.',
+                  'Trả phòng tại quầy trước ${day(termination.str('moveOutBy'))}.',
                 ),
             ].join(' '),
           ),
-        HeroCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 4,
-            children: [
-              Row(
-                children: [
-                  Expanded(child: Text(term?.str('name') ?? '', style: HeroCard.soft)),
-                  StatusChip(a.str('status') ?? 'Allocated'),
-                ],
-              ),
-              Text(roomBed(a.str('room'), a.str('bed')), style: HeroCard.strong.copyWith(fontSize: 26)),
-              Text(
-                joinDot([a.str('blockLabel') ?? a.str('block'), a.str('floor')].map(label)),
-                style: HeroCard.soft.copyWith(fontSize: 14),
-              ),
-              const SizedBox(height: 6),
-              const _DoorCode(),
-            ],
+        if (!resident && a.str('status') == 'Assigned – unpaid')
+          Alert(
+            tone: Tone.warning,
+            title: t('Pay the balance to keep your Bed', 'Hãy thanh toán tiền phòng còn lại để giữ chỗ'),
+            body: t(
+              'Your Bed is held until ${moment(balance?.str('dueAt'))}. Unpaid by then, it is released and the deposit is kept.',
+              'Chỗ ở được giữ đến ${moment(balance?.str('dueAt'))}. Nếu chưa thanh toán, chỗ ở sẽ bị hủy và tiền đặt cọc không được hoàn.',
+            ),
           ),
-        ),
-        if (unpaid)
-          NextAction(
-            icon: Icons.credit_card,
-            title: '${t('Balance', 'Tiền phòng')} · ${money(balance.number('amount'))}',
-            deadline: t('Due ', 'Hạn ') + moment(balance.str('dueAt')),
-            body: t('Unpaid by then, the Bed is released.', 'Quá hạn chưa trả, giường sẽ bị thu hồi.'),
-            action: balance.str('invoiceId') == null
-                ? null
-                : FilledButton(
-                    onPressed: () => open(InvoiceScreen(id: balance.text('invoiceId'))),
-                    child: Text(t('Pay balance', 'Trả tiền phòng')),
-                  ),
-          ),
-        if (pass != null)
-          Section(
-            title: t('Check-in pass', 'Thẻ nhận phòng'),
-            subtitle: waitingCheckIn
-                ? joinDot([
-                    range(checkIn.str('start'), checkIn.str('end')),
-                    checkIn.str('deskHours'),
-                    checkIn.str('location'),
-                  ])
-                : t('Show it at the desk of your Block.', 'Đưa mã này tại quầy của Block.'),
-            children: [
-              Center(
-                child: Semantics(
-                  label: t('Check-in pass', 'Thẻ nhận phòng'),
-                  child: QrImageView(data: pass, size: 200, backgroundColor: Colors.white),
-                ),
-              ),
-            ],
-          )
-        else if (waitingCheckIn)
-          Section(
-            title: t('Check-in', 'Nhận phòng'),
-            children: [
-              Text(
-                joinDot([
-                  range(checkIn.str('start'), checkIn.str('end')),
-                  checkIn.str('deskHours'),
-                  checkIn.str('location'),
-                ]),
-                style: const TextStyle(color: Tokens.fgSecondary),
-              ),
-            ],
-          ),
+        // What the check-in inventory or the furniture charges ask now; nothing when all is done.
         const HandoverCard(),
-        if (checkIn?.str('checkedInAt') == null && !resident) const _LateCheckInCard(),
-        _NextTermCard(data: data, reload: reload),
-        if (roommates.isNotEmpty || data.number('roommateCapacity') != null)
-          Section(
-            title: t('Roommates', 'Bạn cùng phòng'),
-            trailing: data.number('roommateCapacity') != null
-                ? Text(
-                    '${roommates.length}/${data.number('roommateCapacity')}',
-                    style: const TextStyle(color: Tokens.fgTertiary),
-                  )
-                : null,
-            children: [
-              if (roommates.isEmpty)
-                Text(
-                  t('No roommates assigned yet.', 'Chưa có bạn cùng phòng.'),
-                  style: const TextStyle(color: Tokens.fgSecondary),
-                ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final r in roommates)
-                    Chip(
-                      avatar: CircleAvatar(
-                        backgroundColor: Tokens.brandSubtle,
-                        child: Text(
-                          r.text('name').trim().split(RegExp(r'\s+')).last.characters.firstOrNull ?? '?',
-                          style: const TextStyle(fontSize: 12, color: Tokens.fgBrand, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      label: Text('${r.text('name')} · ${r.text('bed')}'),
-                      backgroundColor: Tokens.surface,
-                      side: const BorderSide(color: Tokens.line),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        Panel(
-          padding: EdgeInsets.zero,
-          child: Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              title: Text(
-                t('Room information', 'Thông tin phòng'),
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              leading: const Icon(Icons.info_outline, color: Tokens.fgSecondary),
-              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        TabStrip(
+          value: _tab,
+          onChanged: (v) => setState(() => _tab = v),
+          items: [
+            (
+              key: 'overview',
+              text: t('Room overview', 'Tổng quan phòng'),
+              icon: Icons.bed_outlined,
+              count: null,
+              dot: false,
+            ),
+            (
+              key: 'furniture',
+              text: t('Furniture & equipment', 'Nội thất & Thiết bị'),
+              icon: Icons.inventory_2_outlined,
+              count: _furniture?.length,
+              dot: false,
+            ),
+            (
+              key: 'contract',
+              text: t('Contract & utilities', 'Hợp đồng & Tiện ích'),
+              icon: Icons.key_outlined,
+              count: null,
+              dot: attention,
+            ),
+          ],
+        ),
+        ...switch (_tab) {
+          'furniture' => [
+            _FurnitureCard(
+              items: _furniture,
+              report: () => _open(const NewMaintenanceScreen()),
+              changed: (items) => setState(() => _furniture = items),
+            ),
+          ],
+          'contract' => [
+            _CheckOutCard(
+              data: data,
+              furniture: _furniture,
+              open: _open,
+              showFurniture: () => setState(() => _tab = 'furniture'),
+            ),
+            _StayContract(data: data, open: _open),
+            _StayMilestones(data: data),
+            _NextTermCard(data: data, reload: widget.reload),
+            if (balance != null) _BalanceCard(balance: balance, open: _open),
+            const DoorCodeCard(),
+            if (checkIn?.str('checkedInAt') == null && !resident) const _LateCheckInCard(),
+          ],
+          _ => [
+            _RoomHero(data: data, furniture: _furniture),
+            ?_checkInPass(a, checkIn, resident),
+            _Roommates(data: data),
+            StatusList(
               children: [
-                Column(
-                  spacing: 8,
-                  children: [
-                    if (term?.str('stayStart') != null)
-                      Line(t('Stay', 'Thời gian ở'), range(term!.str('stayStart'), term.str('stayEnd'))),
-                    Line(
-                      t('Room Type', 'Loại phòng'),
-                      label(a.str('roomTypeName')).isEmpty ? '—' : label(a.str('roomTypeName')),
-                    ),
-                    Line(
-                      t('Room Class', 'Hạng phòng'),
-                      label(a.str('roomClassName')).isEmpty ? '—' : label(a.str('roomClassName')),
-                    ),
-                    Line(t('Allocated on', 'Ngày xếp'), day(a.str('allocatedAt'))),
-                    if (checkIn?.str('checkedInAt') != null)
-                      Line(t('Checked in', 'Đã nhận phòng'), day(checkIn!.str('checkedInAt'))),
-                    if (a.str('residentSince') != null) Line(t('Resident since', 'Ở từ'), day(a.str('residentSince'))),
-                    if (stay != null) ...[
-                      Line(t('Stay length', 'Thời gian đăng ký'), terms(stay.number('committedTerms'))),
-                      Line(t('Terms used', 'Số kỳ đã ở'), '${stay.number('termsUsed') ?? 0}'),
-                    ] else if (data.number('stayTerms') != null)
-                      Line(t('Stay length', 'Thời gian đăng ký'), terms(data.number('stayTerms'))),
-                    if (balance != null && !unpaid)
-                      Line(t('Balance', 'Tiền phòng'), '${money(balance.number('amount'))} · ${label('Paid')}'),
-                  ],
+                if (data.str('rulesUrl') != null)
+                  StatusRow(
+                    icon: Icons.menu_book_outlined,
+                    title: t('Dormitory rules', 'Nội quy ký túc xá'),
+                    trailing: const Icon(Icons.open_in_new, size: 18, color: Tokens.fgSecondary),
+                    onTap: () => openUrl(data.text('rulesUrl')),
+                  ),
+                StatusRow(
+                  icon: Icons.swap_horiz,
+                  title: t('Request a Room change for next Term', 'Yêu cầu đổi phòng cho học kỳ sau'),
+                  onTap: () => _open(const NewRoomChangeScreen()),
                 ),
-                const SizedBox(height: 12),
-                const _Furniture(),
+                StatusRow(
+                  icon: Icons.people_outline,
+                  title: t('Swap next-Term Beds with another student', 'Hoán đổi giường học kỳ sau với sinh viên khác'),
+                  onTap: () => _open(const SwapScreen()),
+                ),
+              ],
+            ),
+          ],
+        },
+      ],
+    );
+  }
+
+  /// The check-in pass (A-11) while the student is not a resident yet, or the check-in window without a pass; the web
+  /// sends students to this app for it.
+  Widget? _checkInPass(Json a, Json? checkIn, bool resident) {
+    final pass = !resident ? a.str('pass') : null;
+    final waiting = checkIn != null && checkIn.str('checkedInAt') == null;
+    final where = waiting
+        ? joinDot([range(checkIn.str('start'), checkIn.str('end')), checkIn.str('deskHours'), checkIn.str('location')])
+        : null;
+    if (pass != null) {
+      return Section(
+        title: t('Check-in pass', 'Thẻ nhận phòng'),
+        subtitle: where ?? t('Show it at the desk of your Block.', 'Đưa mã này tại quầy của tòa.'),
+        children: [
+          Center(
+            child: Semantics(
+              label: t('Check-in pass', 'Thẻ nhận phòng'),
+              child: QrImageView(data: pass, size: 200, backgroundColor: Colors.white),
+            ),
+          ),
+          Center(
+            child: Text(
+              t('Bring your QR pass', 'Mang theo thẻ QR'),
+              style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
+            ),
+          ),
+        ],
+      );
+    }
+    if (where == null) return null;
+    return Section(
+      title: t('Check-in', 'Nhận phòng'),
+      children: [
+        InfoRow(
+          icon: Icons.event_outlined,
+          name: t('Window', 'Thời gian'),
+          value: range(checkIn!.str('start'), checkIn.str('end')),
+        ),
+        if (checkIn.str('deskHours') != null)
+          InfoRow(icon: Icons.schedule, name: t('Desk hours', 'Giờ làm việc'), value: checkIn.text('deskHours')),
+        if (checkIn.str('location') != null)
+          InfoRow(icon: Icons.place_outlined, name: t('Where', 'Địa điểm'), value: checkIn.text('location')),
+      ],
+    );
+  }
+}
+
+/// The Room as the web's hero card: an orange-tinted head with the Room, the Bed and the status, then the details
+/// (Block, floor, Room Type and Class, furniture, allocation day, stay length).
+class _RoomHero extends StatelessWidget {
+  const _RoomHero({required this.data, required this.furniture});
+
+  final Json data;
+  final List<Json>? furniture;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = data.obj('allocation')!;
+    final term = data.obj('term');
+    final stay = data.obj('stay');
+    String or(String? v) => label(v).isEmpty ? '—' : label(v);
+    final groups = <String, int>{};
+    for (final f in furniture ?? const <Json>[]) {
+      groups.update(furnitureName(f), (n) => n + 1, ifAbsent: () => 1);
+    }
+    final furnitureText = groups.isNotEmpty
+        ? groups.entries.map((e) => '${e.value} × ${e.key}').join(' · ')
+        : (a.objects('furniture').isNotEmpty ? countLines(a.objects('furniture')) : '—');
+    return Panel(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            color: Tokens.brandSubtle,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Row(
+              spacing: 12,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(color: Tokens.surface, shape: BoxShape.circle),
+                  child: const Icon(Icons.bed_outlined, color: Tokens.fgBrand, size: 24),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 4,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            roomBed(a.str('room'), a.str('bed')),
+                            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700, color: Tokens.fg),
+                          ),
+                          StatusChip(a.str('status') ?? 'Allocated'),
+                        ],
+                      ),
+                      Text(
+                        joinDot(
+                          [a.str('block'), a.str('floor'), a.str('roomTypeName'), a.str('roomClassName')].map(label),
+                        ),
+                        style: const TextStyle(color: Tokens.fgSecondary),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 10,
+              children: [
+                Text(t('Details', 'Chi tiết'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                if (term != null) Line(t('Term', 'Học kỳ'), term.text('name')),
+                if (term?.str('stayStart') != null)
+                  Line(t('Stay', 'Thời gian ở'), range(term!.str('stayStart'), term.str('stayEnd'))),
+                Line(t('Block', 'Tòa'), or(a.str('blockLabel') ?? a.str('block'))),
+                Line(t('Floor', 'Tầng'), or(a.str('floor'))),
+                Line(t('Room type', 'Loại phòng'), or(a.str('roomTypeName'))),
+                Line(t('Room tier', 'Hạng phòng'), or(a.str('roomClassName'))),
+                Line(t('Furniture', 'Nội thất'), furnitureText),
+                Line(t('Allocated on', 'Ngày xếp phòng'), day(a.str('allocatedAt'))),
+                if (stay != null) ...[
+                  Line(t('Stay length', 'Số kỳ đăng ký'), terms(stay.number('committedTerms'))),
+                  Line(t('Terms used', 'Số học kỳ đã ở'), '${stay.number('termsUsed') ?? 0}'),
+                ] else if (data.number('stayTerms') != null)
+                  Line(t('Stay length', 'Số kỳ đăng ký'), terms(data.number('stayTerms'))),
+                if (a.str('residentSince') != null) Line(t('Resident since', 'Cư dân từ'), day(a.str('residentSince'))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Roommates (web `RoommatesCard`): one row per roommate with the initial, the name and the Bed; only names are shared.
+class _Roommates extends StatelessWidget {
+  const _Roommates({required this.data});
+
+  final Json data;
+
+  @override
+  Widget build(BuildContext context) {
+    final roommates = data.objects('roommates');
+    final capacity = data.number('roommateCapacity');
+    return Section(
+      title: t('Roommates', 'Bạn cùng phòng'),
+      trailing: capacity == null
+          ? null
+          : Text('${roommates.length}/$capacity', style: const TextStyle(color: Tokens.fgTertiary)),
+      children: [
+        if (roommates.isEmpty)
+          Text(
+            t('No roommates assigned yet.', 'Chưa có bạn cùng phòng.'),
+            style: const TextStyle(color: Tokens.fgSecondary),
+          )
+        else
+          Column(
+            spacing: 8,
+            children: [
+              for (final r in roommates)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(color: Tokens.subtle, borderRadius: BorderRadius.circular(10)),
+                  child: Row(
+                    spacing: 10,
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Tokens.brandSubtle,
+                        child: Text(
+                          r.text('name').trim().split(RegExp(r'\s+')).last.characters.firstOrNull ?? '?',
+                          style: const TextStyle(fontSize: 13, color: Tokens.fgBrand, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          r.text('name'),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                        decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(999)),
+                        child: Text(
+                          '${t('Bed', 'Giường')} ${r.text('bed')}',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: Tokens.fgSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        Note(
+          t(
+            'Only names are shared. Contact details stay private; you meet your roommates at check-in.',
+            'Chỉ chia sẻ họ tên. Thông tin liên hệ được giữ kín; bạn gặp bạn cùng phòng khi nhận phòng.',
+          ),
         ),
-        StatusList(
+      ],
+    );
+  }
+}
+
+/// Furniture & equipment (web `FurnitureCard`): one tile per type with its count, the status of its items (never the
+/// asset codes) and what the student declared; "Report broken equipment", and the in-stay declaration of a worn,
+/// damaged or missing item that Staff check at check-out. `PUT /students/me/furniture/report`.
+class _FurnitureCard extends StatelessWidget {
+  const _FurnitureCard({required this.items, required this.report, required this.changed});
+
+  final List<Json>? items;
+  final VoidCallback report;
+
+  /// The Room's items after a declaration (the API answers with them).
+  final ValueChanged<List<Json>> changed;
+
+  String _place(Json i) => i.flag('personal') && i.str('bed') != null
+      ? t('Bed ${i.text('bed')}', 'Giường ${i.text('bed')}')
+      : t('Shared', 'Dùng chung');
+
+  /// Declaring needs a photo of the item, taken on the Check-out page; the items are read again after it.
+  Future<void> _declare(BuildContext context, List<Json> reportable, Json? item) async {
+    await push(context, const CheckOutScreen());
+    try {
+      changed((await Api.get('/students/me/furniture')).objects('items'));
+    } on ApiException {
+      // the list on screen stays
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = items;
+    if (list == null) {
+      return const Center(
+        child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()),
+      );
+    }
+    final reportable = list.where((i) => i.str('itemId') != null && i['reportable'] != false).toList();
+    final reported = list.where((i) => i.str('reportedCondition') != null).toList();
+    final groups = <String, List<Json>>{};
+    for (final i in list) {
+      groups.putIfAbsent(furnitureName(i), () => []).add(i);
+    }
+
+    Widget tile(MapEntry<String, List<Json>> g) {
+      final statuses = <String, int>{};
+      for (final i in g.value) {
+        statuses.update(i.str('status') ?? 'In use', (n) => n + 1, ifAbsent: () => 1);
+      }
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Tokens.subtle, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 10,
           children: [
-            if (data.str('rulesUrl') != null)
-              StatusRow(
-                icon: Icons.menu_book_outlined,
-                title: t('Dormitory rules', 'Nội quy KTX'),
-                trailing: const Icon(Icons.open_in_new, size: 18, color: Tokens.fgSecondary),
-                onTap: () => openUrl(data.text('rulesUrl')),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 8,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(9)),
+                  child: const Icon(Icons.inventory_2_outlined, size: 18, color: Tokens.fgBrand),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 7),
+                    child: Text(g.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(999)),
+                  child: Text(
+                    '× ${g.value.length}',
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Tokens.fgBrand),
+                  ),
+                ),
+              ],
+            ),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final MapEntry(key: status, value: n) in statuses.entries)
+                  Tag(statuses.length > 1 ? '${label(status)} ($n)' : label(status), tone: toneOf(status)),
+                for (final i in g.value.where((i) => i.str('reportedCondition') != null))
+                  Tag(
+                    t(
+                      'Declared: ${conditionName(i.str('reportedCondition'))}',
+                      'Đã kê khai: ${conditionName(i.str('reportedCondition'))}',
+                    ),
+                    tone: conditionTone(i.str('reportedCondition')),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    final entries = groups.entries.toList();
+    return Section(
+      title: '${t('Furniture & equipment', 'Nội thất & Thiết bị')} (${list.length})',
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 8,
+          children: [
+            BusyButton(
+              label: t('Report broken equipment', 'Báo cáo hỏng hóc'),
+              icon: Icons.build_outlined,
+              onPressed: report,
+            ),
+            if (reportable.isNotEmpty)
+              BusyButton(
+                label: t('Declare damaged / missing', 'Kê khai hư hỏng / mất'),
+                icon: Icons.edit_note,
+                outlined: true,
+                onPressed: () => _declare(context, reportable, null),
               ),
+          ],
+        ),
+        if (reported.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 6, 6),
+            decoration: BoxDecoration(
+              color: Tone.warning.bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Tone.warning.mark.withValues(alpha: 0.4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  spacing: 8,
+                  children: [
+                    Icon(Icons.warning_amber_rounded, size: 18, color: Tone.warning.fg),
+                    Expanded(
+                      child: Text(
+                        t(
+                          'Declared furniture issues during stay (${reported.length})',
+                          'Nội thất bạn đã kê khai hư hỏng / mất trong kỳ ở (${reported.length})',
+                        ),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: Tone.warning.fg),
+                      ),
+                    ),
+                  ],
+                ),
+                for (final i in reported)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            spacing: 4,
+                            children: [
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    '${furnitureName(i)} · ${_place(i)}',
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  Tag(
+                                    conditionName(i.str('reportedCondition')),
+                                    tone: conditionTone(i.str('reportedCondition')),
+                                  ),
+                                ],
+                              ),
+                              if (i.str('reportedNote') != null)
+                                Text(
+                                  i.text('reportedNote'),
+                                  style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (i['reportable'] != false)
+                        TextButton(
+                          onPressed: () => _declare(context, reportable, i),
+                          child: Text(t('Update', 'Cập nhật')),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        if (list.isEmpty)
+          Text(
+            t('No furniture recorded in this Room.', 'Chưa ghi nhận nội thất nào trong phòng này.'),
+            style: const TextStyle(color: Tokens.fgSecondary),
+          )
+        else
+          Column(
+            spacing: 10,
+            children: [
+              for (var i = 0; i < entries.length; i += 2)
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: 10,
+                    children: [
+                      Expanded(child: tile(entries[i])),
+                      Expanded(child: i + 1 < entries.length ? tile(entries[i + 1]) : const SizedBox.shrink()),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        Note(
+          t(
+            'You can declare worn, damaged or missing furniture during your stay so Staff can verify it when you check out. Something to repair? Report it from Requests.',
+            'Bạn có thể kê khai nội thất hao mòn, hư hỏng hoặc mất trong quá trình ở để nhân viên đối chiếu khi trả phòng. Cần sửa chữa? Hãy báo trong mục Yêu cầu.',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Check-out (the student's side of the web's check-out at the desk): shown when the stay ends (a termination, no Bed
+/// next Term) or Staff have recorded the furniture charges. The day to check out by, the three steps at the desk
+/// (final meters, the furniture against the check-in record and what the student declared, the Utility Deposit
+/// settlement), and the charges to answer. `GET /students/me/check-out`.
+class _CheckOutCard extends StatefulWidget {
+  const _CheckOutCard({required this.data, required this.furniture, required this.open, required this.showFurniture});
+
+  final Json data;
+  final List<Json>? furniture;
+  final Future<void> Function(Widget page) open;
+
+  /// Opens the Furniture & equipment tab (to declare an item before check-out).
+  final VoidCallback showFurniture;
+
+  @override
+  State<_CheckOutCard> createState() => _CheckOutCardState();
+}
+
+class _CheckOutCardState extends State<_CheckOutCard> {
+  Json? _charges;
+
+  @override
+  void initState() {
+    super.initState();
+    Api.get('/students/me/check-out').then((d) {
+      if (mounted) setState(() => _charges = d);
+    }, onError: (_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = widget.data;
+    final termination = data.obj('termination');
+    final next = data.obj('nextTerm');
+    final leaving = next?.str('state') == 'Not continuing';
+    final c = _charges;
+    final saved = c?.flag('saved') ?? false;
+    final claims = c?.objects('claims').where((x) => x.str('status') == 'Pending').length ?? 0;
+    final agreed = c?.str('agreedAt') != null;
+    final checkedOut = termination?.str('status') == 'Checked out';
+    if (termination == null && !leaving && !saved && claims == 0) return const SizedBox.shrink();
+    final by = termination?.str('moveOutBy') ?? next?.obj('window')?.str('checkOutBy') ?? next?.str('checkOutBy');
+    final declared = (widget.furniture ?? const <Json>[]).where((i) => i.str('reportedCondition') != null).length;
+
+    return Panel(
+      border: claims > 0 || (saved && !agreed) ? Tone.warning.mark.withValues(alpha: 0.5) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12,
+        children: [
+          Row(
+            spacing: 10,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(9)),
+                child: const Icon(Icons.logout, size: 19, color: Tokens.fgBrand),
+              ),
+              Expanded(
+                child: Text(
+                  t('Check-out', 'Trả phòng'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Tag(
+                checkedOut
+                    ? t('Checked out', 'Đã trả phòng')
+                    : agreed
+                    ? t('Charges agreed', 'Đã đồng ý khoản đền')
+                    : t('Coming up', 'Sắp trả phòng'),
+                tone: checkedOut || agreed ? Tone.success : Tone.warning,
+              ),
+            ],
+          ),
+          if (by != null && !checkedOut)
+            InfoRow(
+              icon: Icons.event_outlined,
+              name: t('Check out at the desk by', 'Trả phòng tại quầy trước'),
+              value: day(by),
+            ),
+          if (termination != null)
+            InfoRow(
+              icon: Icons.info_outline,
+              name: t('Reason', 'Lý do'),
+              value: joinDot([label(termination.str('reason')), termination.str('note')]),
+            )
+          else if (leaving && next?.str('endReason') != null)
+            InfoRow(icon: Icons.info_outline, name: t('Reason', 'Lý do'), value: label(next!.str('endReason'))),
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            decoration: BoxDecoration(
+              color: Tokens.subtle.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Milestones(
+              items: [
+                (
+                  title: t('Final meter reading', 'Chỉ số công tơ cuối'),
+                  text: t(
+                    'Staff read the Room\'s electricity and water meters when you leave.',
+                    'Nhân viên ghi chỉ số điện, nước của phòng khi bạn rời đi.',
+                  ),
+                  time: null,
+                  done: saved,
+                  current: !saved,
+                ),
+                (
+                  title: t('Furniture check', 'Đối chiếu nội thất'),
+                  text: t(
+                    'Each item is compared with your check-in record; only what got worse since is charged.',
+                    'Từng món được so với biên bản nhận phòng; chỉ phần xấu đi sau đó mới bị tính.',
+                  ),
+                  time: null,
+                  done: saved && claims == 0,
+                  current: saved && claims > 0,
+                ),
+                (
+                  title: t('Utility Deposit settlement', 'Quyết toán cọc điện nước'),
+                  text: t(
+                    'The deposit pays the last Utility share and the charges; the rest is refunded to your refund account.',
+                    'Cọc điện nước trừ phần điện nước cuối và khoản đền; phần còn lại được hoàn vào tài khoản nhận hoàn tiền.',
+                  ),
+                  time: c?.str('agreedAt') == null ? null : moment(c!.str('agreedAt')),
+                  done: agreed || checkedOut,
+                  current: saved && claims == 0 && !agreed,
+                ),
+              ],
+            ),
+          ),
+          if (claims > 0)
+            Alert(
+              tone: Tone.warning,
+              title: t('Confirm or decline the damage', 'Xác nhận hoặc từ chối hư hỏng'),
+              body: t(
+                'Staff ask you to confirm damage to a shared item.',
+                'Nhân viên đề nghị bạn xác nhận hư hỏng một món đồ chung.',
+              ),
+            )
+          else if (saved && !agreed)
+            Alert(
+              tone: Tone.warning,
+              title: t('Read the charges and agree', 'Hãy xem khoản đền và bấm đồng ý'),
+              body: t(
+                'Staff can complete your check-out once you agree.',
+                'Nhân viên hoàn tất trả phòng sau khi bạn đồng ý.',
+              ),
+            ),
+          if (saved || claims > 0)
+            BusyButton(
+              label: t('View furniture charges', 'Xem tiền đền nội thất'),
+              icon: Icons.receipt_long_outlined,
+              outlined: !(claims > 0 || (saved && !agreed)),
+              onPressed: () => widget.open(const CheckOutScreen()),
+            )
+          else if (!checkedOut)
+            Text(
+              declared > 0
+                  ? t(
+                      'You declared $declared items during your stay; Staff check them at the desk.',
+                      'Bạn đã kê khai $declared món trong kỳ ở; nhân viên sẽ đối chiếu tại quầy.',
+                    )
+                  : t(
+                      'Something worn, damaged or missing? Declare it before you check out.',
+                      'Có món hao mòn, hư hỏng hoặc mất? Hãy kê khai trước khi trả phòng.',
+                    ),
+              style: const TextStyle(fontSize: 13.5, color: Tokens.fgSecondary),
+            ),
+          if (!checkedOut && !saved)
+            BusyButton(
+              label: t('Open check-out & furniture report', 'Mở trả phòng & kê khai nội thất'),
+              icon: Icons.edit_note,
+              onPressed: () => widget.open(const CheckOutScreen()),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The dormitory stay contract (web `StayContractCard`): its code, the Room and Bed, the Term, the Room Type and
+/// Class, the stay commitment, this Term's room fee and the rules.
+class _StayContract extends StatelessWidget {
+  const _StayContract({required this.data, required this.open});
+
+  final Json data;
+  final Future<void> Function(Widget page) open;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = data.obj('allocation')!;
+    final term = data.obj('term');
+    final balance = data.obj('balance');
+    final stay = data.obj('stay');
+    final app = data.obj('application');
+    final code = app?.str('code') != null
+        ? 'HD-${app!.text('code')}'
+        : 'HD-${a.str('block') ?? 'KTX'}-${a.str('room') ?? '000'}-${a.str('bed') ?? '0'}';
+    final paid = balance?.str('status') == 'Paid';
+    final standard = t('Standard', 'Tiêu chuẩn');
+    final used = stay?.number('termsUsed') ?? 1;
+    final total = stay?.number('committedTerms') ?? 1;
+    final left = stay?.number('termsLeft');
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 12,
+        children: [
+          Row(
+            spacing: 10,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: Tokens.brandSubtle, borderRadius: BorderRadius.circular(9)),
+                child: const Icon(Icons.description_outlined, size: 19, color: Tokens.fgBrand),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('Dormitory stay contract', 'Hợp đồng lưu trú KTX'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    Text(code, style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary)),
+                  ],
+                ),
+              ),
+              StatusChip(a.str('status') ?? 'Allocated'),
+            ],
+          ),
+          const Divider(height: 1),
+          InfoRow(
+            icon: Icons.apartment_outlined,
+            name: t('Assigned Room & Bed', 'Phòng & giường được xếp'),
+            value: '${roomBed(a.str('room'), a.str('bed'))} (${label(a.str('blockLabel') ?? a.str('block'))})',
+          ),
+          InfoRow(
+            icon: Icons.event_outlined,
+            name: t('Contract validity period', 'Thời hạn hợp đồng'),
+            value: term == null ? '—' : '${term.text('name')} (${range(term.str('stayStart'), term.str('stayEnd'))})',
+          ),
+          InfoRow(
+            icon: Icons.bed_outlined,
+            name: t('Room Class & Type', 'Hạng phòng & loại phòng'),
+            value:
+                '${label(a.str('roomTypeName')).isEmpty ? standard : label(a.str('roomTypeName'))} · '
+                '${label(a.str('roomClassName')).isEmpty ? standard : label(a.str('roomClassName'))}',
+          ),
+          InfoRow(
+            icon: Icons.schedule,
+            name: t('Stay commitment', 'Thời gian cam kết ở'),
+            value: stay == null
+                ? terms(data.number('stayTerms') ?? 1)
+                : left != null
+                ? t('$used of $total Terms used · $left Terms left', 'Đã ở $used/$total kỳ · còn $left kỳ')
+                : t('$used of $total Terms used', 'Đã ở $used/$total kỳ'),
+          ),
+          if (balance != null)
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              decoration: BoxDecoration(
+                color: Tokens.subtle.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Tokens.line),
+              ),
+              child: Row(
+                spacing: 10,
+                children: [
+                  const Icon(Icons.credit_card, size: 18, color: Tokens.fgSecondary),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 4,
+                      children: [
+                        Text(
+                          t('Current Term room fee', 'Tiền phòng học kỳ này'),
+                          style: const TextStyle(fontSize: 12, color: Tokens.fgTertiary),
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(money(balance.number('amount')), style: const TextStyle(fontWeight: FontWeight.w600)),
+                            Tag(
+                              paid ? t('Paid', 'Đã thanh toán') : t('Unpaid', 'Chưa thanh toán'),
+                              tone: paid ? Tone.success : Tone.warning,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (balance.str('invoiceId') != null)
+                    SmallAction(
+                      t('View invoice', 'Xem hóa đơn'),
+                      onPressed: () => open(InvoiceDetailScreen(id: balance.text('invoiceId'))),
+                    ),
+                ],
+              ),
+            ),
+          if (data.str('rulesUrl') != null) ...[
+            Note(
+              t(
+                'Residents must strictly follow dormitory regulations, safety and curfew policies.',
+                'Sinh viên nội trú có trách nhiệm tuân thủ nghiêm ngặt nội quy KTX, quy định an toàn và giờ giới nghiêm.',
+              ),
+            ),
+            LinkButton(
+              t('Dormitory rules', 'Nội quy ký túc xá'),
+              icon: Icons.open_in_new,
+              onPressed: () => openUrl(data.text('rulesUrl')),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The stay's milestones (web `StayActivityLogCard`): application, allocation, room fee, check-in, residency.
+class _StayMilestones extends StatelessWidget {
+  const _StayMilestones({required this.data});
+
+  final Json data;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = data.obj('allocation')!;
+    final term = data.obj('term');
+    final balance = data.obj('balance');
+    final checkIn = data.obj('checkIn');
+    final app = data.obj('application');
+    final resident = a.str('status') == 'Resident';
+    final paid = balance?.str('status') == 'Paid';
+    final checkedIn = checkIn?.str('checkedInAt') != null;
+    final block = label(a.str('blockLabel') ?? a.str('block'));
+    final amount = money(balance?.number('amount'));
+    return Section(
+      title: t('Stay milestones & activity', 'Mốc sự kiện & hoạt động lưu trú'),
+      children: [
+        Milestones(
+          items: [
+            (
+              title: t('Application & eligibility', 'Hồ sơ đăng ký & duyệt chỗ ở'),
+              text: app?.str('code') != null
+                  ? t(
+                      'Application ${app!.text('code')} verified and approved',
+                      'Đơn đăng ký ${app.text('code')} đã được xác minh và phê duyệt',
+                    )
+                  : t('Application submitted and verified', 'Đơn đăng ký đã nộp và được xác thực'),
+              time: a.str('allocatedAt') == null ? null : day(a.str('allocatedAt')),
+              done: true,
+              current: false,
+            ),
+            (
+              title: t('Room & Bed allocation', 'Xếp phòng & phân bổ giường'),
+              text: t(
+                'Allocated to ${a.text('room')} · Bed ${a.text('bed')} (Block $block)',
+                'Đã xếp vào ${a.text('room')} · Giường ${a.text('bed')} (Tòa $block)',
+              ),
+              time: a.str('allocatedAt') == null ? null : moment(a.str('allocatedAt')),
+              done: true,
+              current: false,
+            ),
+            (
+              title: t('Room fee payment', 'Thanh toán tiền phòng & cọc'),
+              text: paid
+                  ? t('Paid $amount successfully', 'Đã thanh toán thành công $amount')
+                  : t('Room fee $amount awaiting payment', 'Tiền phòng $amount đang chờ thanh toán'),
+              time: balance?.str('paidAt') != null
+                  ? day(balance!.str('paidAt'))
+                  : balance?.str('dueAt') != null
+                  ? t('Due ${day(balance!.str('dueAt'))}', 'Hạn ${day(balance.str('dueAt'))}')
+                  : null,
+              done: paid,
+              current: !paid,
+            ),
+            (
+              title: t('Key handover & check-in', 'Bàn giao chìa khóa & nhận phòng'),
+              text: checkedIn
+                  ? t(
+                      'Checked in at the dormitory desk, key and room inventory handed over',
+                      'Đã làm thủ tục nhận phòng tại quầy, bàn giao chìa khóa và tài sản',
+                    )
+                  : checkIn?.str('start') != null
+                  ? t(
+                      'Check-in window: ${range(checkIn!.str('start'), checkIn.str('end'))}',
+                      'Khung giờ nhận phòng: ${range(checkIn.str('start'), checkIn.str('end'))}',
+                    )
+                  : t('Prepare the check-in pass in this app', 'Chuẩn bị thẻ nhận phòng trên ứng dụng'),
+              time: checkedIn ? moment(checkIn!.str('checkedInAt')) : null,
+              done: checkedIn || resident,
+              current: !checkedIn && paid && !resident,
+            ),
+            (
+              title: t('Active residency', 'Lưu trú chính thức'),
+              text: resident
+                  ? t(
+                      'Currently residing in the Room until ${day(term?.str('stayEnd'))}',
+                      'Hiện đang lưu trú tại phòng đến ngày ${day(term?.str('stayEnd'))}',
+                    )
+                  : t('Begins upon check-in at the desk', 'Bắt đầu sau khi hoàn tất thủ tục tại quầy nhận phòng'),
+              time: term?.str('stayStart') == null ? null : range(term!.str('stayStart'), term.str('stayEnd')),
+              done: false,
+              current: resident,
+            ),
           ],
         ),
       ],
@@ -275,8 +1113,52 @@ class _Room extends StatelessWidget {
   }
 }
 
-// The next Term (spec §6.10): the Bed, its fee, the requests window, extension and end of stay, and the requests
-/// that change the Bed while the window is open.
+/// The Balance (web `BalanceCard`): the amount and its status, "Pay balance" or "View invoices".
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({required this.balance, required this.open});
+
+  final Json balance;
+  final Future<void> Function(Widget page) open;
+
+  @override
+  Widget build(BuildContext context) {
+    final paid = balance.str('status') == 'Paid';
+    return Section(
+      title: t('Balance', 'Tiền phòng còn lại'),
+      trailing: StatusChip(balance.str('status')),
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 2,
+          children: [
+            Text(money(balance.number('amount')), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+            Text(
+              paid
+                  ? t('Paid ${day(balance.str('paidAt'))}', 'Đã thanh toán ${day(balance.str('paidAt'))}')
+                  : t('Due ${day(balance.str('dueAt'))}', 'Hạn ${day(balance.str('dueAt'))}'),
+              style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary),
+            ),
+          ],
+        ),
+        if (paid)
+          BusyButton(
+            label: t('View invoices', 'Xem hóa đơn'),
+            outlined: true,
+            onPressed: () => open(const PaymentsPage()),
+          )
+        else if (balance.str('invoiceId') != null)
+          BusyButton(
+            label: t('Pay balance', 'Thanh toán tiền phòng còn lại'),
+            icon: Icons.credit_card,
+            onPressed: () => open(InvoiceScreen(id: balance.text('invoiceId'))),
+          ),
+      ],
+    );
+  }
+}
+
+// The next Term (spec §6.10, web `NextTermCard`): the Bed, its fee, the requests window, and while it is open the
+/// requests that change it (extension, Room change, swap, end of stay); before the window a short plan.
 class _NextTermCard extends StatelessWidget {
   const _NextTermCard({required this.data, required this.reload});
 
@@ -288,7 +1170,7 @@ class _NextTermCard extends StatelessWidget {
     final reason = TextEditingController();
     final ok = await confirm(
       context,
-      title: t('Extend my stay', 'Gia hạn lưu trú'),
+      title: t('Extend my stay', 'Gia hạn hợp đồng ở'),
       yes: t('Extend', 'Gia hạn'),
       content: StatefulBuilder(
         builder: (context, setState) => Column(
@@ -330,7 +1212,7 @@ class _NextTermCard extends StatelessWidget {
     final w = n.obj('window');
     final ok = await confirm(
       context,
-      title: t('End my stay after this Term', 'Kết thúc lưu trú sau kỳ này'),
+      title: t('End my stay after this Term', 'Kết thúc hợp đồng ở sau học kỳ này'),
       body: t(
         'Your Bed for ${n.obj('term')?.text('name')} is released at once. You check out at the desk by ${day(w?.str('checkOutBy') ?? n.str('checkOutBy'))}; the Utility Deposit is settled then. Nothing is charged for ending now.',
         'Giường của bạn cho ${n.obj('term')?.text('name')} được trả lại ngay. Bạn trả phòng tại quầy trước ${day(w?.str('checkOutBy') ?? n.str('checkOutBy'))}; cọc điện nước được quyết toán lúc đó. Kết thúc lúc này không mất phí.',
@@ -370,169 +1252,196 @@ class _NextTermCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final n = data.obj('nextTerm');
-    if (n == null) return const SizedBox.shrink();
-    final w = n.obj('window');
-    final filing = w?.flag('filing') == true;
-    final fee = n.obj('fee');
-    final stay = data.obj('stay');
-    final left = stay != null ? (9 - (stay.number('committedTerms') ?? 1)).clamp(1, 8).toInt() : 8;
-    final state = n.str('state');
-
     Future<void> open(Widget page) async {
       await push(context, page);
       await reload();
     }
 
-    // The requests of the window open in a sheet, so the card stays two lines and a button.
-    Future<void> requests() => showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheet) {
-        void go(VoidCallback action) {
-          Navigator.pop(sheet);
-          action();
-        }
-
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final n = data.obj('nextTerm');
+    if (n == null) {
+      return Section(
+        title: t('Next Term plan', 'Kế hoạch học kỳ tiếp theo'),
+        trailing: Tag(t('Upcoming', 'Sắp tới'), dot: false),
+        children: [
+          Text(
+            t(
+              'Registration for the next Term is not open yet. You will be notified when extension, Room change and swap requests become available before the current Term ends.',
+              'Chưa mở đợt đăng ký cho học kỳ tiếp theo. Bạn sẽ nhận được thông báo khi cổng đăng ký gia hạn, đổi phòng hoặc hoán đổi chỗ ở mở trước khi kết thúc học kỳ.',
+            ),
+            style: const TextStyle(color: Tokens.fgSecondary),
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(
-                  t(
-                    'Requests for ${n.obj('term')?.text('name')} · until ${moment(w?.str('closesAt'))}',
-                    'Yêu cầu cho ${n.obj('term')?.text('name')} · đến ${moment(w?.str('closesAt'))}',
-                  ),
-                  style: const TextStyle(color: Tokens.fgSecondary),
-                ),
+              OutlinedButton.icon(
+                onPressed: () => open(const RequestsPage(kind: 'room-changes')),
+                icon: const Icon(Icons.swap_horiz, size: 18),
+                label: Text(t('View submitted requests', 'Xem các yêu cầu đã gửi')),
               ),
-              _action(
-                Icons.event_repeat,
-                t('Extend my stay', 'Gia hạn lưu trú'),
-                () => go(() => _extend(context, left)),
-              ),
-              if (state == 'Continuing') ...[
-                _action(
-                  Icons.swap_horiz,
-                  t('Change Room next Term', 'Đổi phòng kỳ sau'),
-                  () => go(() => open(const NewRoomChangeScreen())),
-                ),
-                _action(
-                  Icons.people_outline,
-                  t('Swap Beds for next Term', 'Đổi chỗ kỳ sau'),
-                  () => go(() => open(const SwapScreen())),
-                ),
-              ],
-              _action(
-                Icons.logout,
-                t('End my stay after this Term', 'Kết thúc lưu trú sau kỳ này'),
-                () => go(() => _end(context, n)),
-                danger: true,
+              TextButton(
+                onPressed: () => open(const NewRoomChangeScreen()),
+                child: Text(t('Room change info', 'Thông tin đổi phòng')),
               ),
             ],
           ),
-        );
-      },
-    );
+        ],
+      );
+    }
+    final w = n.obj('window');
+    final filing = w?.flag('filing') == true;
+    final fee = n.obj('fee');
+    final stay = data.obj('stay');
+    // MOB-30: the configured longest stay (`stay.maxTerms`, stay.max_terms) less the Terms already committed, as the
+    // server checks it; 8 when an older server does not send it.
+    final maxTerms = (stay?.number('maxTerms') ?? 8).toInt().clamp(1, 99);
+    final left = (maxTerms - (stay?.number('committedTerms') ?? 0).toInt()).clamp(1, maxTerms);
+    final state = n.str('state');
 
     return Section(
-      title: t('Next Term · ${n.obj('term')?.text('name')}', 'Kỳ sau · ${n.obj('term')?.text('name')}'),
+      title: t('Next Term · ${n.obj('term')?.text('name')}', 'Học kỳ sau · ${n.obj('term')?.text('name')}'),
       trailing: StatusChip(state),
       children: [
         if (state == 'Not continuing')
-          Text(
-            [
-              t('No Bed: ${label(n.str('endReason'))}.', 'Không có giường: ${label(n.str('endReason'))}.'),
+          Alert(
+            tone: Tone.warning,
+            title: t('No Bed for the next Term', 'Không có giường cho học kỳ sau'),
+            body: [
+              t('Reason: ${label(n.str('endReason'))}.', 'Lý do: ${label(n.str('endReason'))}.'),
               if (n.str('checkOutBy') != null)
-                t('Check out by ${day(n.str('checkOutBy'))}.', 'Trả phòng trước ${day(n.str('checkOutBy'))}.'),
+                t(
+                  'Check out at the desk by ${day(n.str('checkOutBy'))}.',
+                  'Trả phòng tại quầy trước ${day(n.str('checkOutBy'))}.',
+                ),
             ].join(' '),
-            style: TextStyle(color: Tone.warning.fg),
           )
         else ...[
-          Text(
-            joinDot([
+          InfoRow(
+            icon: Icons.bed_outlined,
+            name: t('Your Bed next Term', 'Giường của bạn học kỳ sau'),
+            value: joinDot([
               roomBed(n.str('room'), n.str('bed')),
-              if (n.number('termPrice') != null) '${money(n.number('termPrice'))} / ${t('Term', 'kỳ')}',
+              label(n.str('roomTypeName')),
+              label(n.str('roomClassName')),
             ]),
-            style: const TextStyle(fontWeight: FontWeight.w500),
           ),
-          Text(
-            state == 'Awaiting extension'
-                ? t(
-                    'Last Term of your stay: extend before ${moment(w?.str('closesAt'))} to keep your Bed.',
-                    'Kỳ cuối: gia hạn trước ${moment(w?.str('closesAt'))} để giữ giường.',
-                  )
-                : t(
-                    '${n.number('termsLeft') ?? 0} Terms left after this one',
-                    'Còn ${n.number('termsLeft') ?? 0} kỳ sau kỳ này',
+          if (n.number('termPrice') != null)
+            InfoRow(
+              icon: Icons.credit_card,
+              name: t('Next-Term fee', 'Phí học kỳ sau'),
+              value: money(n.number('termPrice')),
+            ),
+          if (state == 'Awaiting extension')
+            Alert(
+              tone: Tone.warning,
+              title: t('This is the last Term of your stay', 'Đây là học kỳ cuối của hợp đồng ở'),
+              body: t(
+                'Ask for an extension before ${moment(w?.str('closesAt'))} to keep your Bed. Otherwise it is released and you check out at the end of this Term.',
+                'Hãy xin gia hạn trước ${moment(w?.str('closesAt'))} để giữ giường. Nếu không, giường sẽ được trả lại và bạn trả phòng vào cuối kỳ này.',
+              ),
+            )
+          else
+            Text(
+              t(
+                'Terms left on your stay after this one: ${n.number('termsLeft') ?? 0}',
+                'Số học kỳ còn lại của hợp đồng ở sau học kỳ này: ${n.number('termsLeft') ?? 0}',
+              ),
+              style: const TextStyle(fontSize: 13.5, color: Tokens.fgSecondary),
+            ),
+          if (fee != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Tokens.subtle, borderRadius: BorderRadius.circular(10)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 10,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(money(fee.number('amount')), style: const TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      if (fee.str('status') == 'Unpaid')
+                        Text(
+                          t('Due ${moment(fee.str('dueAt'))}', 'Hạn ${moment(fee.str('dueAt'))}'),
+                          style: const TextStyle(fontSize: 13, color: Tokens.fgSecondary),
+                        )
+                      else
+                        StatusChip(fee.str('status')),
+                    ],
                   ),
-            style: TextStyle(
-              color: state == 'Awaiting extension' ? Tone.warning.fg : Tokens.fgSecondary,
-              fontSize: 13.5,
-            ),
-          ),
-          if (fee != null && fee.str('status') != 'Unpaid')
-            Row(
-              spacing: 8,
-              children: [
-                Text(
-                  t('Next-Term fee ', 'Phí kỳ sau ') + money(fee.number('amount')),
-                  style: const TextStyle(fontSize: 13.5),
-                ),
-                StatusChip(fee.str('status')),
-              ],
-            ),
-          if (fee != null && fee.str('status') == 'Unpaid' && fee.str('invoiceId') != null)
-            BusyButton(
-              label: '${t('Pay next-Term fee', 'Trả phí kỳ sau')} · ${money(fee.number('amount'))}',
-              onPressed: () => open(InvoiceScreen(id: fee.text('invoiceId'))),
+                  if (fee.str('status') == 'Unpaid' && fee.str('invoiceId') != null)
+                    BusyButton(
+                      label: t('Pay next-Term fee', 'Thanh toán phí học kỳ sau'),
+                      icon: Icons.credit_card,
+                      onPressed: () => open(InvoiceScreen(id: fee.text('invoiceId'))),
+                    ),
+                ],
+              ),
             ),
         ],
+        if (w != null)
+          Text(
+            filing
+                ? t(
+                    'Requests for the next Term are open until ${moment(w.str('closesAt'))}.',
+                    'Nhận yêu cầu cho học kỳ sau đến ${moment(w.str('closesAt'))}.',
+                  )
+                : t(
+                    'Requests for the next Term closed on ${moment(w.str('closesAt'))}.',
+                    'Đã đóng nhận yêu cầu cho học kỳ sau ngày ${moment(w.str('closesAt'))}.',
+                  ),
+            style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
+          ),
         if (filing && state != 'Not continuing')
-          BusyButton(
-            label: state == 'Awaiting extension'
-                ? t('Extend or end my stay', 'Gia hạn hoặc kết thúc')
-                : t('Requests for next Term', 'Yêu cầu cho kỳ sau'),
-            icon: Icons.tune,
-            outlined: state != 'Awaiting extension',
-            onPressed: requests,
-          )
-        else if (w != null)
-          Note(
-            t('Requests closed on ${day(w.str('closesAt'))}.', 'Đã đóng nhận yêu cầu ngày ${day(w.str('closesAt'))}.'),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 8,
+            children: [
+              BusyButton(
+                label: t('Extend my stay', 'Gia hạn hợp đồng ở'),
+                icon: Icons.event_repeat,
+                outlined: state != 'Awaiting extension',
+                onPressed: () => _extend(context, left),
+              ),
+              if (state == 'Continuing') ...[
+                BusyButton(
+                  label: t('Change Room next Term', 'Đổi phòng học kỳ sau'),
+                  icon: Icons.swap_horiz,
+                  outlined: true,
+                  onPressed: () => open(const NewRoomChangeScreen()),
+                ),
+                BusyButton(
+                  label: t('Swap Beds for next Term', 'Hoán đổi giường cho học kỳ sau'),
+                  icon: Icons.people_outline,
+                  outlined: true,
+                  onPressed: () => open(const SwapScreen()),
+                ),
+              ],
+              TextButton(
+                onPressed: () => _end(context, n),
+                style: TextButton.styleFrom(foregroundColor: Tone.error.fg),
+                child: Text(t('End my stay after this Term', 'Kết thúc hợp đồng ở sau học kỳ này')),
+              ),
+            ],
           ),
       ],
     );
   }
-
-  Widget _action(IconData icon, String text, VoidCallback onTap, {bool danger = false}) {
-    final color = danger ? Tone.error.mark : Tokens.fg;
-    return ListTile(
-      leading: Icon(icon, color: danger ? color : Tokens.fgSecondary),
-      title: Text(
-        text,
-        style: TextStyle(fontWeight: FontWeight.w500, color: color),
-      ),
-      trailing: Icon(Icons.chevron_right, color: danger ? color : Tokens.fgTertiary),
-      onTap: onTap,
-    );
-  }
 }
 
-/// The Room's door code (ADR-23), one line in the Room card: shown on request for 30 seconds; every view is written to
+/// The Room's door code (ADR-23, web `DoorCodeCard`; also on the check-in inventory screen): shown on request for 30 seconds; every view is written to
 /// the Audit Log.
-class _DoorCode extends StatefulWidget {
-  const _DoorCode();
+class DoorCodeCard extends StatefulWidget {
+  const DoorCodeCard({super.key});
 
   @override
-  State<_DoorCode> createState() => _DoorCodeState();
+  State<DoorCodeCard> createState() => DoorCodeCardState();
 }
 
-class _DoorCodeState extends State<_DoorCode> {
+class DoorCodeCardState extends State<DoorCodeCard> {
   Json? _door;
+  bool _failed = false;
   String? _code;
   bool _busy = false;
   Timer? _hide;
@@ -540,26 +1449,42 @@ class _DoorCodeState extends State<_DoorCode> {
   @override
   void initState() {
     super.initState();
-    Api.get('/students/me/door-code').then((d) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _failed = false);
+    try {
+      final d = await Api.get('/students/me/door-code');
       if (mounted) setState(() => _door = d);
-    }, onError: (_) {});
+    } on ApiException catch (e) {
+      // MOB-18: say so instead of hiding the row (404: no Bed this Term, nothing to show)
+      if (mounted && e.status != 404) setState(() => _failed = true);
+    }
   }
 
   @override
   void dispose() {
     _hide?.cancel();
+    if (_code != null) secureScreen(false);
     super.dispose();
+  }
+
+  void _show(String? code) {
+    secureScreen(code != null); // MOB-17: no screenshot or recent-apps thumbnail while the code is on screen
+    setState(() => _code = code);
   }
 
   Future<void> _reveal() async {
     setState(() => _busy = true);
     try {
       final code = (await Api.post('/students/me/door-code/reveal')).text('code');
+      if (!mounted) return;
       _hide?.cancel();
       _hide = Timer(const Duration(seconds: 30), () {
-        if (mounted) setState(() => _code = null);
+        if (mounted) _show(null);
       });
-      setState(() => _code = code);
+      _show(code);
     } on ApiException catch (e) {
       toast(e.message, error: true);
     }
@@ -569,50 +1494,56 @@ class _DoorCodeState extends State<_DoorCode> {
   @override
   Widget build(BuildContext context) {
     final d = _door;
-    if (d == null) return const SizedBox.shrink();
+    if (d == null) {
+      return _failed ? RetryRow(what: t('the door code', 'mã cửa'), retry: _load) : const SizedBox.shrink();
+    }
     final code = _code;
-    final ready = d.str('status') == 'Ready';
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
-      decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            spacing: 10,
-            children: [
-              const Icon(Icons.key_outlined, color: Tokens.fgBrand),
-              Expanded(
-                child: ready
-                    ? Text(
-                        code ?? '• • • •',
-                        style: TextStyle(
-                          fontSize: code != null ? 26 : 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: code != null ? 6 : 2,
-                        ),
-                      )
-                    : Text(
-                        joinDot([t('Door code', 'Mã cửa'), label(d.str('status')), label(d.str('note'))]),
-                        style: const TextStyle(color: Tokens.fgSecondary),
-                      ),
-              ),
-              if (ready)
-                _busy
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : TextButton(
-                        onPressed: code == null ? _reveal : () => setState(() => _code = null),
-                        child: Text(code == null ? t('Show door code', 'Hiện mã cửa') : t('Hide', 'Ẩn')),
-                      ),
-            ],
-          ),
+    return Section(
+      title: t('Door code', 'Mã cửa'),
+      trailing: StatusChip(d.str('status')),
+      children: [
+        if (d.str('status') == 'Ready') ...[
           if (code != null)
-            Text(
-              t('Never share it. Every view is recorded.', 'Không chia sẻ mã. Mỗi lần xem đều được ghi lại.'),
-              style: const TextStyle(fontSize: 12, color: Tokens.fgTertiary),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+              decoration: BoxDecoration(color: Tokens.subtle, borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      code,
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 8),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _show(null),
+                    icon: const Icon(Icons.visibility_off_outlined, size: 18),
+                    label: Text(t('Hide', 'Ẩn')),
+                  ),
+                ],
+              ),
+            )
+          else
+            BusyButton(
+              label: t('Show door code', 'Xem mã cửa'),
+              icon: Icons.visibility_outlined,
+              busy: _busy,
+              onPressed: _reveal,
             ),
-        ],
-      ),
+          Text(
+            t(
+              'Changed ${moment(d.str('changedAt'))}. It changes whenever someone leaves the Room; never share it.',
+              'Đổi lúc ${moment(d.str('changedAt'))}. Mã được đổi mỗi khi có người rời phòng; đừng chia sẻ mã.',
+            ),
+            style: const TextStyle(fontSize: 13, color: Tokens.fgTertiary),
+          ),
+        ] else
+          InfoRow(
+            icon: Icons.key_outlined,
+            name: t('Room ${d.text('room')}', 'Phòng ${d.text('room')}'),
+            value: label(d.str('note')),
+          ),
+      ],
     );
   }
 }
@@ -628,6 +1559,7 @@ class _LateCheckInCard extends StatefulWidget {
 
 class _LateCheckInCardState extends State<_LateCheckInCard> {
   Json? _data;
+  bool _failed = false;
   bool _open = false;
   final _reason = TextEditingController();
   DateTime? _day;
@@ -649,11 +1581,12 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _failed = false);
     try {
       final d = await Api.get('/students/me/late-check-in');
       if (mounted) setState(() => _data = d);
-    } on ApiException {
-      // the card stays hidden
+    } on ApiException catch (e) {
+      if (mounted && e.status != 404) setState(() => _failed = true); // MOB-18
     }
   }
 
@@ -678,9 +1611,11 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
           'Đã gửi yêu cầu nhận phòng muộn. Quản lý sẽ quyết định; bạn sẽ được thông báo.',
         ),
       );
+      if (!mounted) return;
       setState(() => _open = false);
       await _load();
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _errors = e.fields;
         _error = e.fields.isEmpty ? e.message : null;
@@ -692,7 +1627,11 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
   @override
   Widget build(BuildContext context) {
     final d = _data;
-    if (d == null) return const SizedBox.shrink();
+    if (d == null) {
+      return _failed
+          ? Panel(child: RetryRow(what: t('the late check-in', 'yêu cầu nhận phòng muộn'), retry: _load))
+          : const SizedBox.shrink();
+    }
     final r = d.obj('request');
     if (r == null && !d.flag('canRequest')) return const SizedBox.shrink();
     final latest = DateTime.tryParse(d.text('latestDay'));
@@ -795,58 +1734,6 @@ class _LateCheckInCardState extends State<_LateCheckInCard> {
               onPressed: () => setState(() => _open = true),
             ),
           ],
-      ],
-    );
-  }
-}
-
-//// The furniture of the Room inside "Room information": one line per type; items not in use are named with their
-/// asset code.
-class _Furniture extends StatefulWidget {
-  const _Furniture();
-
-  @override
-  State<_Furniture> createState() => _FurnitureState();
-}
-
-class _FurnitureState extends State<_Furniture> {
-  List<Json>? _items;
-
-  @override
-  void initState() {
-    super.initState();
-    Api.get('/students/me/furniture').then((d) {
-      if (mounted) setState(() => _items = d.objects('items'));
-    }, onError: (_) {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final items = _items;
-    if (items == null) return const SizedBox.shrink();
-    final groups = <String, List<Json>>{};
-    for (final i in items) {
-      groups.putIfAbsent(furnitureName(i), () => []).add(i);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 6,
-      children: [
-        Text(t('Furniture', 'Nội thất'), style: const TextStyle(fontWeight: FontWeight.w600)),
-        if (items.isEmpty)
-          Text(
-            t('No furniture recorded in this Room.', 'Phòng chưa ghi nhận nội thất.'),
-            style: const TextStyle(color: Tokens.fgSecondary),
-          ),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final MapEntry(key: name, value: list) in groups.entries) Tag('${list.length} × $name', dot: false),
-            for (final i in items.where((i) => i.str('status') != 'In use'))
-              Tag('${i.text('assetCode')} · ${label(i.str('status'))}', tone: toneOf(i.str('status'))),
-          ],
-        ),
       ],
     );
   }

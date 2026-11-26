@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import vn.fpt.campusstay.common.i18n.Messages;
@@ -50,7 +49,7 @@ class RenewalNotificationListener {
         this.messages = messages;
     }
 
-    @EventListener
+    @AfterCommit
     void on(RequestsWindowOpened e) {
         for (RequestsWindowOpened.Continuing s : e.students()) {
             if (s.termsLeft() > 0) {
@@ -64,7 +63,7 @@ class RenewalNotificationListener {
     }
 
     /** The student asked for the end of the stay: My Room says it; otherwise they are told why (also by email). */
-    @EventListener
+    @AfterCommit
     void on(NextTermAllocationCancelled e) {
         String why = WHY.get(e.reason());
         if (why == null) {
@@ -76,7 +75,7 @@ class RenewalNotificationListener {
         email(e.studentId(), "NEXT_TERM_CANCELLED", values, "why");
     }
 
-    @EventListener
+    @AfterCommit
     void on(NextTermRequestDecided e) {
         for (long student : e.studentIds()) {
             notifier.notify(student, "NEXT_TERM_REQUEST_DECIDED", Map.of("kind", e.kind(), "decision", e.decision(),
@@ -84,7 +83,7 @@ class RenewalNotificationListener {
         }
     }
 
-    @EventListener
+    @AfterCommit
     void on(EndOfStayNotice e) {
         Map<String, String> values = new HashMap<>(Map.of("term", e.termName(), "block", e.block(),
                 "checkOutBy", e.checkOutBy() == null ? "-" : DAY.format(e.checkOutBy()),
@@ -94,13 +93,13 @@ class RenewalNotificationListener {
         email(e.studentId(), "END_OF_STAY_NOTICE", values, null);
     }
 
-    @EventListener
+    @AfterCommit
     void on(ResidentMoved e) {
         notifier.notify(e.studentId(), "RESIDENT_MOVED", Map.of("room", e.room(), "bed", e.bed(), "reason", e.reason()),
                 "/student/room");
     }
 
-    @EventListener
+    @AfterCommit
     void on(RenewalWorkUndecided e) {
         Map<String, String> values = Map.of("term", e.termName(), "requests", String.valueOf(e.requests()),
                 "items", String.valueOf(e.reconciliationItems()), "dueAt", WHEN.format(e.dueAt()));

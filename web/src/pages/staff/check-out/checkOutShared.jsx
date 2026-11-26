@@ -14,7 +14,7 @@ import { StatusTag, Tag } from '@/components/ui/Tag'
 import { cx } from '@/lib/cx'
 import { conditionName, conditionTone, typeName } from '@/lib/furniture'
 import { formatDate, formatDateTime, formatNumber, formatVnd } from '@/lib/format'
-import { parseDecimal } from '@/lib/numbers'
+import { parseReading } from '@/lib/numbers'
 import { t, tr } from '@/i18n'
 
 export const CHECKOUT_TONES = {
@@ -25,10 +25,13 @@ export const CHECKOUT_TONES = {
   'Settlement due': 'error',
 }
 
-/** A typed meter reading as a number, decimals kept ("1360,5" → 1360.5, WEB-OPS-01); blank or unreadable → 0. */
-export const toNumber = (v) => {
-  const n = parseDecimal(v)
-  return n == null || Number.isNaN(n) ? 0 : n
+/** Field error for a typed meter reading: "1360,5" and "1.234,5" read, anything else is refused (WEB-OPS-17). */
+export const readingError = (v) => (Number.isNaN(parseReading(v)) ? t('Enter a number, e.g. 1360,5') : undefined)
+
+/** Use since the previous reading ("12,5"), or — while the reading is blank or unreadable. */
+export const readingUsage = (v, previous) => {
+  const n = parseReading(v)
+  return n == null || Number.isNaN(n) ? '—' : formatNumber(Math.max(0, n - Number(previous ?? 0)))
 }
 
 // In-memory draft cache keyed by allocationId so navigating between
@@ -152,7 +155,29 @@ export function useCheckOutWorkspace(allocationId) {
     [allocationId],
   )
 
-  const s = d?.settlement ?? { held: 0, share: 0, unpaid: 0, damage: 0 }
+  // The settlement follows the readings typed (estimated by the server a moment after typing stops, nothing saved).
+  const [typed, setTyped] = useState(null)
+  useEffect(() => {
+    const e = parseReading(electricity)
+    const w = parseReading(water)
+    const ok = e != null && w != null && !Number.isNaN(e) && !Number.isNaN(w)
+    const handle = setTimeout(() => setTyped(ok ? { electricity: e, water: w } : null), 400)
+    return () => clearTimeout(handle)
+  }, [electricity, water])
+  const estimateQuery = useQuery(
+    ['check-out', 'estimate', allocationId, typed?.electricity, typed?.water],
+    ({ signal }) => api.desk.checkOutEstimate(allocationId, typed, { signal }),
+    { enabled: Boolean(allocationId && typed && !done) },
+  )
+  const s = (!done && typed && estimateQuery.data?.settlement) || d?.settlement || { held: 0, share: 0, unpaid: 0, damage: 0 }
+  const estimating = Boolean(typed && !done && estimateQuery.loading)
+  const usage =
+    d?.previousReading && typed
+      ? {
+          kwh: Math.max(0, typed.electricity - Number(d.previousReading.electricity ?? 0)),
+          m3: Math.max(0, typed.water - Number(d.previousReading.water ?? 0)),
+        }
+      : null
   const byCondition = Boolean(fData?.saved)
   const damageAmount = done ? s.damage ?? 0 : condition === 'good' ? 0 : liveFurnitureTotal || (byCondition ? fData.total : 0)
   const refund = done ? s.refund : (s.held ?? 0) - (s.share ?? 0) - (s.unpaid ?? 0) - damageAmount
@@ -187,15 +212,18 @@ export function useCheckOutWorkspace(allocationId) {
 
   const hasSharedSplit = damageLines.some((l) => l.split > 1)
 
+  // An unreadable reading blocks saving instead of being sent as 0 (WEB-OPS-17); a blank one is sent as null.
+  const readingsInvalid = [electricity, water].some((v) => Number.isNaN(parseReading(v)))
   const submit = useMutation(
     async (draft) => {
       if (!d) return null
+      if (readingsInvalid) throw new Error(t('Enter a number, e.g. 1360,5'))
       if (!done && condition && furnitureSummary?.dirty) {
         await api.checkOutFurniture.record(d.allocationId, furnitureSummary.payload)
       }
       return api.desk.checkOut(d.allocationId, {
-        electricity: toNumber(electricity),
-        water: toNumber(water),
+        electricity: parseReading(electricity),
+        water: parseReading(water),
         conditionGood: condition === 'good',
         draft,
       })
@@ -232,10 +260,13 @@ export function useCheckOutWorkspace(allocationId) {
     fData,
     done,
     s,
+    estimating,
+    usage,
     electricity,
     setElectricity,
     water,
     setWater,
+    readingsInvalid,
     condition,
     setCondition,
     liveFurnitureTotal,

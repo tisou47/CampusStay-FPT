@@ -161,7 +161,6 @@ export default function Buildings() {
     <>
       <PageHeader
         title="Buildings"
-        description="Blocks, floors, rooms and beds. Each room has its room type, and its room tier per term (Manager › Room tiers); bulk-generate a floor layout to save time."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setModal({ type: 'block', block: {} })} disabled={!query.data}>
             New block

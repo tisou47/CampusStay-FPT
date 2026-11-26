@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/Choice'
 import { Alert, Card, Facts } from '@/components/ui/Display'
 import { formatDateTime, formatVnd } from '@/lib/format'
 import { WizardActions, WizardLayout, classLabel, clearDraft, isTwoBed, roommateLabel, stepPaths, useWizard } from './wizard'
-import { t } from '@/i18n'
+import { t, tr } from '@/i18n'
 
 // SCR-APP-01 Application Wizard – 4 Review and submit (Figma 15:580)
 // POST /applications → { id, depositInvoiceId, depositDueAt }
@@ -114,9 +114,9 @@ export default function ApplyReview() {
           <Facts
             items={[
               ['Roommate preferences', 'Free add-on'],
-              ['Region', prefs.region ?? '—'],
-              ['Semester', prefs.semester ?? '—'],
-              ['Major', prefs.major ?? '—'],
+              ['Region', tr(prefs.region) || '—'],
+              ['Semester', tr(prefs.semester) || '—'],
+              ['Major', tr(prefs.major) || '—'],
             ]}
           />
         )}
@@ -137,7 +137,7 @@ export default function ApplyReview() {
             <p className="text-base font-medium text-fg-secondary">{t('Deposit to pay after submit')}</p>
             <p className="text-kpi font-semibold text-fg">{deposit != null ? formatVnd(deposit) : '—'}</p>
           </div>
-          {term?.depositWindowHours && (
+          {term?.depositWindowHours > 0 && (
             <p className="text-base font-medium text-fg">{t('Pay within {n} hours', { n: term.depositWindowHours })}</p>
           )}
         </div>

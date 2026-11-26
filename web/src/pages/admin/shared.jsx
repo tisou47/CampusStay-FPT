@@ -54,10 +54,10 @@ export function useConfigForm(name, resource, { onSaved } = {}) {
 }
 
 /** Page header plus the loading / error state of a config form; renders children once the draft is ready. */
-export function ConfigPage({ form, title, description, actions, children }) {
+export function ConfigPage({ form, title, actions, children }) {
   return (
     <>
-      <PageHeader title={title} description={description} actions={form.draft ? actions : null} />
+      <PageHeader title={title} actions={form.draft ? actions : null} />
       {form.saveError && (
         <Alert type="error" title="Could not save" className="shrink-0">
           {form.saveError.message}
@@ -65,16 +65,6 @@ export function ConfigPage({ form, title, description, actions, children }) {
       )}
       {form.draft ? children : form.query.error ? <ErrorState error={form.query.error} onRetry={form.query.reload} /> : <LoadingState />}
     </>
-  )
-}
-
-/** Form section: Label/Base secondary heading over a row of fields (Admin forms). */
-export function FormSection({ title, columns = 3, className, children }) {
-  return (
-    <div className={cx('flex flex-col gap-2', className)}>
-      {title && <p className="text-base font-medium text-fg-secondary">{tr(title)}</p>}
-      <div className={cx('grid gap-4', columns === 2 && 'grid-cols-2', columns === 3 && 'grid-cols-3', columns === 4 && 'grid-cols-4')}>{children}</div>
-    </div>
   )
 }
 
